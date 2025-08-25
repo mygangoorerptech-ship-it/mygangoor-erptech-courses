@@ -1,0 +1,538 @@
+// backend/src/controllers/authController.js
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import speakeasy from "speakeasy";
+import QRCode from "qrcode";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import { encryptTotpSecret, decryptTotpSecret } from "../utils/mfaCrypto.js";
+
+import { setAuthCookies, clearAuthCookies } from "../utils/cookies.js";
+import User from "../models/User.js";
+import Invitation from "../models/Invitation.js";
+import { sendOtpEmail, sendInvitationEmail } from "../utils/email.js";
+import {
+  signAccessToken,
+  signRefreshToken,
+  signMfaTempToken,
+  verifyMfaTempToken,
+} from "../utils/jwt.js";
+
+const hash = (v) => crypto.createHash("sha256").update(String(v)).digest("hex");
+
+// ===== Refresh token rotation (JTI) minimal model =====
+const RefreshTokenSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, index: true, required: true },
+    jti: { type: String, unique: true, required: true },
+    exp: { type: Date, required: true },
+    device: { type: String },
+    revokedAt: { type: Date },
+    replacedBy: { type: String },
+  },
+  { timestamps: true }
+);
+const RefreshToken =
+  mongoose.models.RefreshToken || mongoose.model("RefreshToken", RefreshTokenSchema);
+
+const ACCESS_TTL = process.env.ACCESS_TTL || "15m";
+const REFRESH_TTL_SEC = parseInt(process.env.REFRESH_TTL_SEC || `${60 * 60 * 24 * 30}`, 10);
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+
+function expFromNowSec(sec) {
+  return new Date(Date.now() + sec * 1000);
+}
+
+async function saveRefresh(userId, jti, exp, device) {
+  await RefreshToken.create({ userId, jti, exp, device });
+}
+
+async function revokeRefresh(jti, replacedBy) {
+  await RefreshToken.updateOne({ jti }, { $set: { revokedAt: new Date(), replacedBy } });
+}
+
+async function findRefresh(jti) {
+  return RefreshToken.findOne({ jti });
+}
+
+function mintTokens(user, device) {
+  const jti = crypto.randomUUID();
+  const refresh = jwt.sign({ sub: String(user.id), jti }, JWT_REFRESH_SECRET, {
+    expiresIn: REFRESH_TTL_SEC,
+  });
+  const payload = {
+    sub: String(user.id),
+    role: user.role,
+    roles: [user.role],          // convenient for future multi-role use
+    orgId: user.orgId ? String(user.orgId) : null,
+  };
+  const access = jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn: ACCESS_TTL });
+  const refreshExp = expFromNowSec(REFRESH_TTL_SEC);
+  return { access, refresh, jti, refreshExp, device };
+}
+
+// ===== Controllers =====
+export async function login(req, res) {
+  const { email, password, as } = req.body;
+  const user = await User.findOne({ email }).select("+passwordHash");
+  if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+
+  const ok = await bcrypt.compare(password, user.passwordHash || "");
+  if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+
+  if (as && user.role !== as) {
+    return res.status(403).json({ ok: false, message: "Role mismatch" });
+  }
+
+  if (user.status !== "active") {
+    return res.status(403).json({ ok: false, message: "Account disabled" });
+  }
+
+  if (user.mfa?.required) {
+    const method = user.mfa.method || "otp";
+    const mfaTempToken = signMfaTempToken({ uid: user.id, method, email: user.email });
+    if (method === "otp") {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      user.mfa.emailOtp = {
+        codeHash: hash(code),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        lastSentAt: new Date(),
+        attempts: 0,
+      };
+      await user.save();
+      await sendOtpEmail(user.email, code);
+    }
+    return res.json({ ok: true, mfa: { required: true, method }, mfaTempToken });
+  }
+
+  // ✅ No-MFA path: first successful password login marks the account verified
+  if (!user.isVerified) {
+    user.isVerified = true;
+    await user.save();
+  }
+
+  const device = req.get("User-Agent") || "unknown";
+  const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+  await saveRefresh(user.id, jti, refreshExp, device);
+  setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+  // Keep JSON tokens for compatibility (consider removing later)
+  return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+}
+
+export async function resendOtp(req, res) {
+  const { mfaTempToken } = req.body;
+  try {
+    const { uid } = verifyMfaTempToken(mfaTempToken);
+    const user = await User.findById(uid);
+    if (!user) return res.status(400).json({ ok: false });
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    user.mfa.emailOtp = {
+      codeHash: hash(code),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      lastSentAt: new Date(),
+      attempts: user.mfa.emailOtp?.attempts || 0,
+    };
+    await user.save();
+    await sendOtpEmail(user.email, code);
+    return res.json({ ok: true });
+  } catch {
+    return res.status(400).json({ ok: false });
+  }
+}
+
+export async function verifyMfa(req, res) {
+  const { code, method, mfaTempToken } = req.body;
+  try {
+    const { uid } = verifyMfaTempToken(mfaTempToken);
+    const user = await User.findById(uid);
+    if (!user) return res.status(400).json({ ok: false, message: "Session expired" });
+
+    if (method === "otp") {
+      const otp = user.mfa?.emailOtp;
+      if (!otp || !otp.expiresAt || otp.expiresAt.getTime() < Date.now()) {
+        return res.status(400).json({ ok: false, message: "Code expired" });
+      }
+      const attempts = Number(otp.attempts || 0);
+      if (attempts >= 5) {
+        return res
+          .status(429)
+          .json({ ok: false, message: "Too many attempts. Please request a new code." });
+      }
+      const valid = otp.codeHash && otp.codeHash === hash(code);
+      if (!valid) {
+        user.mfa.emailOtp = { ...otp, attempts: attempts + 1 };
+        await user.save();
+        return res.status(400).json({ ok: false, message: "Invalid code" });
+      }
+      user.mfa.emailOtp = null;
+      if (!user.isVerified) user.isVerified = true;
+      await user.save();
+    } else if (method === "totp") {
+      const secretEnc = user.mfa?.totpSecretEnc;
+      const legacySecret = user.mfa?.totpSecretHash || null;
+      if (!secretEnc && !legacySecret) {
+        return res.status(400).json({ ok: false, message: "TOTP not set up" });
+      }
+      const tokenValidates = speakeasy.totp.verify({
+        secret: secretEnc ? decryptTotpSecret(secretEnc) : legacySecret,
+        encoding: "base32",
+        token: code,
+        window: 1,
+      });
+      if (!tokenValidates) return res.status(400).json({ ok: false, message: "Invalid code" });
+      if (!user.isVerified) {
+        user.isVerified = true;
+        await user.save();
+      }
+    } else {
+      return res.status(400).json({ ok: false, message: "Invalid method" });
+    }
+
+    const device = req.get("User-Agent") || "unknown";
+    const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+    await saveRefresh(user.id, jti, refreshExp, device);
+    setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+    return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+  } catch (e) {
+    return res.status(400).json({ ok: false, message: "Invalid or expired session" });
+  }
+}
+
+export async function totpSetup(req, res) {
+  const { mfaTempToken } = req.body;
+  try {
+    if (!mfaTempToken) {
+      return res.status(400).json({ ok: false, message: "Missing MFA session token" });
+    }
+    const { uid } = verifyMfaTempToken(mfaTempToken);
+    const user = await User.findById(uid);
+    if (!user) return res.status(400).json({ ok: false, message: "Invalid or expired session" });
+
+    if (!user.mfa || !user.mfa.required || user.mfa.method !== "totp") {
+      return res.status(400).json({ ok: false, message: "TOTP not required for this account" });
+    }
+
+    // Create secret if not present; otherwise use existing (encrypted or legacy).
+    const enc = user.mfa.totpSecretEnc;
+    const hasValidEnc =
+      !!(enc && typeof enc.iv === "string" && enc.iv &&
+               typeof enc.ct === "string" && enc.ct &&
+               typeof enc.tag === "string" && enc.tag);
+    const hasHash = !!user.mfa.totpSecretHash;
+
+    let base32Secret;
+    if (!hasValidEnc && !hasHash) {
+      // no usable secret -> generate
+      const secret = speakeasy.generateSecret({ name: process.env.TOTP_ISSUER || "MyApp" });
+      user.mfa.totpSecretEnc = encryptTotpSecret(secret.base32);
+      user.mfa.totpSecretHash = undefined; // prefer encrypted storage
+      await user.save();
+      base32Secret = secret.base32;
+    } else {
+      try {
+        base32Secret = hasHash
+          ? user.mfa.totpSecretHash
+          : decryptTotpSecret(user.mfa.totpSecretEnc);
+      } catch (e) {
+        // corrupted / legacy-bad -> self-heal by regenerating
+        const secret = speakeasy.generateSecret({ name: process.env.TOTP_ISSUER || "MyApp" });
+        user.mfa.totpSecretEnc = encryptTotpSecret(secret.base32);
+        user.mfa.totpSecretHash = undefined;
+        await user.save();
+        base32Secret = secret.base32;
+      }
+    }
+
+
+    const otpauth_url = speakeasy.otpauthURL({
+      secret: base32Secret,
+      encoding: "base32",
+      label: user.email,
+      issuer: process.env.TOTP_ISSUER || "MyApp",
+      digits: 6,
+      period: 30,
+    });
+    const qrDataUrl = await QRCode.toDataURL(otpauth_url);
+    return res.json({ ok: true, otpauth_url, qrDataUrl });
+  } catch {
+    return res.status(400).json({ ok: false, message: "Invalid or expired session" });
+  }
+}
+
+export async function totpVerify(req, res) {
+  const { code, mfaTempToken } = req.body;
+  const user = req.user;
+  try {
+    if (!mfaTempToken) {
+      return res.status(400).json({ ok: false, message: "Missing MFA session token" });
+    }
+    if (!/^\d{6}$/.test(String(code))) {
+      return res.status(400).json({ ok: false, message: "Invalid code format" });
+    }
+
+    const { uid } = verifyMfaTempToken(mfaTempToken);
+    const user = await User.findById(uid);
+    if (!user) return res.status(400).json({ ok: false, message: "Invalid or expired session" });
+
+    const secretEnc = user.mfa?.totpSecretEnc || null;
+    const legacySecret = user.mfa?.totpSecretHash || null;
+    if (!secretEnc && !legacySecret) {
+      return res.status(400).json({ ok: false, message: "TOTP not setup" });
+    }
+
+    const result = speakeasy.totp.verifyDelta({
+      secret: secretEnc ? decryptTotpSecret(secretEnc) : legacySecret,
+      encoding: "base32",
+      token: String(code),
+      digits: 6,
+      step: 30,
+      window: process.env.MFA_WINDOW ? Number(process.env.MFA_WINDOW) : 3,
+    });
+
+    if (!result) {
+      if (process.env.DEBUG_MFA === "1") {
+        console.log("[mfa] verify failed for", user.email, "code:", code);
+      }
+      return res.status(400).json({ ok: false, message: "Invalid code" });
+    }
+
+    if (!user.isVerified) {
+      user.isVerified = true;
+      await user.save();
+    }
+
+    const device = req.get("User-Agent") || "unknown";
+    const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+    await saveRefresh(user.id, jti, refreshExp, device);
+  setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+  return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+  } catch {
+    return res.status(400).json({ ok: false, message: "Invalid or expired session" });
+  }
+}
+
+export async function invite(req, res) {
+  const actor = req.user || {};
+  if (!actor || actor.role !== "superadmin") return res.status(403).json({ ok: false });
+  const actorId = actor.sub || actor._id || actor.id || actor.uid || null;
+
+  const { email, role, orgId, mfaRequired, mfaMethod, managerId } = req.body;
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = hash(token);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await Invitation.create({
+    email,
+    role,
+    orgId: orgId || null,
+    mfaRequired: !!mfaRequired,
+    mfaMethod: mfaRequired ? (mfaMethod || "otp") : null,
+    managerId: managerId || null,
+    tokenHash,
+    expiresAt,
+    invitedBy: actorId, // <— was actor.uid
+  });
+
+  const link = `${process.env.PUBLIC_APP_URL?.split(",")[0] || "http://localhost:5173"}/signup?invite=${token}`;
+  await sendInvitationEmail(email, link);
+  return res.json({ ok: true });
+}
+
+export async function acceptInvite(req, res) {
+  const { token, name, password } = req.body;
+  const tokenHash = hash(token);
+
+  const inv = await Invitation.findOne({
+    tokenHash,
+    accepted: false,
+    expiresAt: { $gt: new Date() },
+  });
+  if (!inv) {
+    return res.status(400).json({ ok: false, message: "Invalid or expired invitation" });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  // Build MFA policy from invitation; fallbacks by role
+  const mfaPolicy = (() => {
+    if (inv.mfaRequired) {
+      return { required: true, method: inv.mfaMethod || "otp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
+    }
+    // default behavior if no explicit requirement came with the invite:
+    if (inv.role === "admin")  return { required: false, method: null, totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
+    if (inv.role === "vendor") return { required: true,  method: "totp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
+    // students optional
+    return { required: false, method: null, totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
+  })();
+
+  const verifiedNow = !mfaPolicy.required; // students w/o MFA become verified immediately
+
+  let user = await User.findOne({ email: inv.email });
+  if (!user) {
+    user = await User.create({
+      email: inv.email,
+      name,
+      passwordHash,
+      role: inv.role,
+      status: "active",
+      isVerified: verifiedNow,
+      orgId: inv.orgId || null,
+      invitedBy: inv.invitedBy || null,
+      managerId: inv.managerId || null, // vendor -> admin mapping (if present)
+      mfa: mfaPolicy,
+    });
+  } else {
+    user.name = name;
+    user.passwordHash = passwordHash;
+    user.role = inv.role;
+    user.orgId = inv.orgId || null;
+    user.managerId = inv.managerId || null;
+    user.mfa = mfaPolicy;
+    user.isVerified = verifiedNow;
+    await user.save();
+  }
+
+  inv.accepted = true;
+  await inv.save();
+
+  const device = req.get("User-Agent") || "unknown";
+  const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+  await saveRefresh(user.id, jti, refreshExp, device);
+
+  return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+}
+
+export async function check(req, res) {
+  try {
+    const header = req.headers.authorization || "";
+    const accessCookie = req.cookies?.["__Host-session"] || req.cookies?.sid || null;
+    const headerTok = header.startsWith("Bearer ") ? header.slice(7) : null;
+    const token = accessCookie || headerTok;
+
+    // 1) If access token is valid, return user
+    if (token) {
+      try {
+        const { sub: uid } = jwt.verify(token, JWT_ACCESS_SECRET);
+        const user = await User.findById(uid);
+        if (user) return res.json({ ok: true, user });
+      } catch { /* fall through to refresh */ }
+    }
+
+    // 2) Try refresh-based rehydration (survive server restarts)
+    const rt = req.cookies?.["__Host-refresh"] || req.cookies?.sr;
+    if (!rt) return res.status(401).json({ ok: false });
+
+    let payload;
+    try { payload = jwt.verify(rt, JWT_REFRESH_SECRET); }
+    catch { return res.status(401).json({ ok: false }); }
+
+    const { sub: userId, jti: oldJti } = payload || {};
+    if (!userId || !oldJti) return res.status(401).json({ ok: false });
+
+    const dbTok = await findRefresh(oldJti);
+    if (!dbTok || dbTok.revokedAt) return res.status(401).json({ ok: false });
+
+    const device = req.get("User-Agent") || dbTok.device || "unknown";
+    const user = await User.findById(userId).lean();
+    if (!user) return res.status(401).json({ ok: false });
+
+    const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+    await revokeRefresh(oldJti, jti);
+    await saveRefresh(userId, jti, refreshExp, device);
+    setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+    return res.json({ ok: true, user });
+  } catch {
+    return res.status(401).json({ ok: false });
+  }
+}
+ 
+export async function refresh(req, res) {
+  try {
+    const rt = req.cookies?.["__Host-refresh"] || req.cookies?.sr;
+    if (!rt) return res.status(401).json({ ok: false });
+
+    let payload;
+    try {
+      payload = jwt.verify(rt, JWT_REFRESH_SECRET);
+    } catch {
+      return res.status(401).json({ ok: false });
+    }
+    const { sub: userId, jti: oldJti } = payload || {};
+    if (!userId || !oldJti) return res.status(401).json({ ok: false });
+
+    const dbTok = await findRefresh(oldJti);
+    if (!dbTok || dbTok.revokedAt) {
+      // Reuse or unknown token
+      return res.status(401).json({ ok: false, message: "Refresh reuse detected" });
+    }
+
+    // Rotate: revoke old, issue new pair
+    const device = req.get("User-Agent") || dbTok.device || "unknown";
+    const user = await User.findById(userId).lean();
+    if (!user) return res.status(401).json({ ok: false });
+    const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+    await revokeRefresh(oldJti, jti);
+    await saveRefresh(userId, jti, refreshExp, device);
+
+    setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+    return res.json({ ok: true, accessToken: access });
+  } catch (e) {
+    return res.status(401).json({ ok: false });
+  }
+}
+
+export async function logout(req, res) {
+  try {
+    // Revoke whichever refresh cookie name is present
+    const rt = req.cookies?.["__Host-refresh"] || req.cookies?.sr;
+    if (rt) {
+      try {
+        const { jti } = jwt.verify(rt, JWT_REFRESH_SECRET);
+        if (jti) await revokeRefresh(jti, undefined);
+      } catch {}
+    }
+  } finally {
+    clearAuthCookies(res); // clears __Host-* and dev sid/sr with matching attributes
+  }
+  return res.json({ ok: true });
+}
+
+export async function precheckEmail(req, res) {
+  const email = String(req.query.email || '').toLowerCase().trim();
+  if (!email) return res.status(400).json({ message: 'email required' });
+
+  const user = await User.findOne({ email });
+  if (user) {
+    // already provisioned → must SignIn (MFA applied by login flow)
+    return res.json({ mode: 'signin', reason: 'Account already exists', mfa: user.mfa || { required:false, method:null } });
+  }
+
+  const inv = await Invitation.findOne({ email, expiresAt: { $gt: new Date() } });
+  if (inv) {
+    // legacy pending invite — direct them to SignIn (accept flow routes there)
+    return res.json({ mode: 'signin', reason: 'You have a pending invitation', mfa: inv.mfa || { required:false, method:null } });
+  }
+
+  return res.json({ mode: 'signup' });
+}
+
+export async function signupStudent(req, res) {
+  const { name, email, password } = req.body || {};
+  if (!email || !password) return res.status(400).json({ message: 'email and password required' });
+
+  const existing = await User.findOne({ email: String(email).toLowerCase() });
+  if (existing) return res.status(409).json({ message: 'Email already in use' });
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await User.create({
+    name: name || null,
+    email: String(email).toLowerCase(),
+    role: 'student',
+    status: 'active',
+    isVerified: true,
+    mfa: { required: false, method: null }, // manual signup → no MFA by default
+    passwordHash,
+  });
+  return res.json({ ok: true });
+}

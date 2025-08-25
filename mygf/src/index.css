@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+html, body {
+  overflow-x: hidden;
+}
+
+/* task progresbar */
+/* ===== Progress: fill then unfill ===== */
+@keyframes barFill {
+  0%   { width: 0%; }
+  50%  { width: 100%; }
+  100% { width: 0%; }
+}
+
+.animate-barFill {
+  animation-name: barFill;
+  animation-duration: var(--dur, 2500ms);
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-delay: var(--delay, 0ms);
+  will-change: width;
+}
+
+/* ===== Check: draw then undraw (stroke-dashoffset) ===== */
+@keyframes checkDash {
+  0%   { stroke-dashoffset: 40; }
+  50%  { stroke-dashoffset: 0;  }
+  100% { stroke-dashoffset: 40; }
+}
+
+/* Color blends from slate to green at peak, back to slate */
+@keyframes checkColor {
+  0%, 100% { stroke: #94a3b8; } /* slate-400 */
+  50%      { stroke: #22c55e; } /* green-500 */
+}
+
+/* Compose both animations so timing stays identical to the bar */
+.animate-checkDrawColor {
+  stroke-dasharray: 40;
+  animation:
+    checkDash  var(--dur, 2500ms) ease-in-out infinite var(--delay, 0ms),
+    checkColor var(--dur, 2500ms) ease-in-out infinite var(--delay, 0ms);
+  will-change: stroke-dashoffset, stroke;
+}
+
+
+/* pages styles */
+@keyframes slidebar {
+  0% { width: 15%; }
+  50% { width: 40%; }
+  100% { width: 15%; }
+}
+
+
+/* join modal utility aliases */
+.Input { @apply w-full bg-transparent outline-none py-2.5; }
+.Radio { @apply h-4 w-4 accent-indigo-600; }
+.CardRadio { @apply flex items-center gap-2 p-2 rounded-lg border hover:bg-slate-50; }
+
+
+/* course screen */
+.wave-bg {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  position: relative;
+  overflow: visible; /* allow page scroll */
+}
+.wave-bg::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e2e8f0' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.1; pointer-events: none;
+}
+
+.progress-fill {
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.level-card { transition: all 0.3s ease; }
+.level-card:hover { transform: translateY(-2px); }
+.certificate-animation { animation: certificateFloat 2s ease-in-out infinite; }
+@keyframes certificateFloat {
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+.success-pulse { animation: successPulse 1.5s ease-in-out infinite; }
+@keyframes successPulse {
+  0%,100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+.star-rating { color: #fbbf24; }
+.carousel-container { scroll-behavior: smooth; }
