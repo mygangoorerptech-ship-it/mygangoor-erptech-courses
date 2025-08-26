@@ -15,6 +15,8 @@ import { verifyMailer } from "./src/utils/email.js";
 import organizationsRouter from "./src/routes/organizations.js";
 import saUsersRoutes from "./src/routes/saUsers.js";
 import adUsersRoutes from "./src/routes/adUsers.js";
+import assessmentsRoutes from "./src/routes/assessments.js";
+import assessmentGroupRoutes from "./src/routes/assessmentGroups.js";
 
 const app = express();
 
@@ -141,6 +143,8 @@ app.use("/api", userRoutes);
 app.use("/api/organizations", organizationsRouter);
 app.use("/api/sa/users", saUsersRoutes);
 app.use("/api/ad/users", adUsersRoutes);
+app.use("/api", assessmentsRoutes);
+app.use("/api", assessmentGroupRoutes);
 
 const PORT = process.env.PORT || 5002;
 

@@ -26,10 +26,11 @@ r.get("/auth/check", ctrl.check);
 r.post("/auth/refresh", ctrl.refresh);
 r.post("/auth/logout", ctrl.logout);
 
-r.post("/invitations", authz, ctrl.invite);
+r.post("/auth/invitations", authz, ctrl.invite);
 r.post("/invitations/accept", ctrl.acceptInvite);
 
-r.get('/precheck', ctrl.precheckEmail);
-r.post('/signup-student', ctrl.signupStudent);
+r.get('/auth/precheck', ctrl.precheckEmail);
+r.post('/auth/signup-student', ctrl.signupStudent);
+r.post('/auth/signup', ctrl.signupStudent);
 
 export default r;

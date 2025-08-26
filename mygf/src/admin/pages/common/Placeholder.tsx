@@ -1,4 +1,4 @@
-import React from 'react'
+
 export default function Placeholder({title,description}:{title:string,description?:string}){
   return (<div className="space-y-4">
     <h1 className="text-2xl font-semibold">{title}</h1>

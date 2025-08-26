@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listPayments, refundPayment } from '../../api/payments'
 import { useAuth } from '../../auth/store'

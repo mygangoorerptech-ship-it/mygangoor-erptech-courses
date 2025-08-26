@@ -32,6 +32,7 @@ export const MENUS: RoleMenuMap = {
         { label: "Users",         to: `${SA}/users`,         icon: Users },
         { label: "Students",      to: `${SA}/students`,      icon: Users },
         { label: "Courses",       to: `${SA}/courses`,       icon: BookOpen },
+        { label: "Assessments",       to: `${SA}/assessments`,icon: FileText },
       ],
     },
     {

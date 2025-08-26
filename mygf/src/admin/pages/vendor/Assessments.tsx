@@ -1,5 +1,5 @@
-//mygf/src/pages/admin/Assessments.tsx
+//src/admin/pages/vendor/Assessments.tsx
 import OrgScopedAssessments from "../../features/assessments/OrgScopedAssessments";
-export default function AdminAssessments() {
+export default function VendorAssessments() {
   return <OrgScopedAssessments />;
 }

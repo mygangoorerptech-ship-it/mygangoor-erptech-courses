@@ -1,5 +1,5 @@
-//  mygf/src/components/dashboard/StudentDashboard.tsx
-import React from "react";
+// mygf/src/components/dashboard/StudentDashboard.tsx
+import { useMemo } from "react";
 import NavBar from "../home/NavBar";
 import DashboardHeader from "./DashboardHeader";
 import WelcomeBanner from "./WelcomeBanner";
@@ -10,23 +10,78 @@ import RecentCertificatesCard from "./RecentCertificatesCard";
 import LearningStreakCard from "./LearningStreakCard";
 import type { CourseProgress, CertificateItem, QuickStat } from "./types";
 import Footer from "../common/Footer";
+import { useAuthHydration } from "../../hooks/useAuthHydration";
+
+function formatDate(d?: string | Date | null) {
+  if (!d) return "—";
+  try {
+    const dt = new Date(d);
+    return dt.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  } catch {
+    return "—";
+  }
+}
+
+function initialsFrom(name?: string | null, email?: string | null) {
+  const src = (name || email || "").trim();
+  if (!src) return "U";
+  if (name) {
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0][0].toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return src[0]?.toUpperCase() || "U";
+}
 
 export default function StudentDashboard() {
-  // Demo data mirrors your HTML content
-  const profile = {
-    initials: "AJ",
-    name: "Alex Johnson",
-    handle: "alexjohnson2024",
-    statusBadges: [
-      { text: "Active", bg: "bg-green-100", textColor: "text-green-800" },
-      { text: "Premium Member", bg: "bg-blue-100", textColor: "text-blue-800" },
-    ],
-    dob: "March 15, 1998",
-    registrationDate: "January 10, 2024",
-    paymentStatus: "Paid" as const,
-    accountStatus: "Active" as const,
-  };
+  // Cookie session → hydrated once, then reused from Zustand
+  const { user } = useAuthHydration();
 
+  // Only the allowed fields
+  const {
+    name: uName,
+    email: uEmail,
+    status: uStatus,
+    createdAt: uCreatedAt,
+    isVerified: uVerified,
+  } = (user as any) || {};
+
+  const profile = useMemo(() => {
+    const name = uName || "Student";
+    const handle = uEmail || "student@example.com"; // handle == email
+    const registrationDate = formatDate(uCreatedAt);
+
+    // statusBadges now reflect isVerified, Premium badge stays
+    const verifiedBadge = uVerified
+      ? { text: "Verified", bg: "bg-green-100", textColor: "text-green-800" }
+      : { text: "Unverified", bg: "bg-amber-100", textColor: "text-amber-800" };
+
+    const statusBadges: Array<{ text: string; bg: string; textColor: string }> = [
+      verifiedBadge,
+      { text: "Premium Member", bg: "bg-blue-100", textColor: "text-blue-800" },
+    ];
+
+    // Account status maps DB status -> component type
+    const accountStatus: "Active" | "Suspended" =
+      uStatus === "active" ? "Active" : "Suspended";
+
+    return {
+      initials: initialsFrom(name, handle),
+      name,
+      handle,
+      statusBadges,
+      dob: "March 15, 1998",          // dummy (unchanged)
+      registrationDate,               // real (createdAt)
+      paymentStatus: "Paid" as const, // dummy (unchanged)
+      accountStatus,                  // real (status)
+    };
+  }, [uName, uEmail, uStatus, uCreatedAt, uVerified]);
+
+  // Keep existing demo data for the other cards
   const courseProgress: CourseProgress[] = [
     {
       id: "c1",
@@ -61,113 +116,54 @@ export default function StudentDashboard() {
   ];
 
   const quickStats: QuickStat[] = [
-    {
-      id: "s1",
-      label: "Total Courses",
-      value: "12",
-      iconClass: "fas fa-book",
-      iconBg: "bg-blue-100",
-      iconColor: "text-blue-600",
-      valueColor: "text-blue-600",
-    },
-    {
-      id: "s2",
-      label: "Completed",
-      value: "8",
-      iconClass: "fas fa-check-circle",
-      iconBg: "bg-green-100",
-      iconColor: "text-green-600",
-      valueColor: "text-green-600",
-    },
-    {
-      id: "s3",
-      label: "In Progress",
-      value: "4",
-      iconClass: "fas fa-clock",
-      iconBg: "bg-yellow-100",
-      iconColor: "text-yellow-600",
-      valueColor: "text-yellow-600",
-    },
-    {
-      id: "s4",
-      label: "Certificates",
-      value: "8",
-      iconClass: "fas fa-certificate",
-      iconBg: "bg-purple-100",
-      iconColor: "text-purple-600",
-      valueColor: "text-purple-600",
-    },
+    { id: "s1", label: "Total Courses", value: "12", iconClass: "fas fa-book", iconBg: "bg-blue-100", iconColor: "text-blue-600", valueColor: "text-blue-600" },
+    { id: "s2", label: "Completed", value: "8", iconClass: "fas fa-check-circle", iconBg: "bg-green-100", iconColor: "text-green-600", valueColor: "text-green-600" },
+    { id: "s3", label: "In Progress", value: "4", iconClass: "fas fa-clock", iconBg: "bg-yellow-100", iconColor: "text-yellow-600", valueColor: "text-yellow-600" },
+    { id: "s4", label: "Certificates", value: "8", iconClass: "fas fa-certificate", iconBg: "bg-purple-100", iconColor: "text-purple-600", valueColor: "text-purple-600" },
   ];
 
   const certificates: CertificateItem[] = [
-    {
-      id: "cert1",
-      title: "Web Development",
-      issued: "Dec 2024",
-      iconColor: "text-yellow-600",
-      bgGradient: "from-yellow-50 to-yellow-100",
-      borderColor: "border-yellow-200",
-    },
-    {
-      id: "cert2",
-      title: "JavaScript Basics",
-      issued: "Nov 2024",
-      iconColor: "text-blue-600",
-      bgGradient: "from-blue-50 to-blue-100",
-      borderColor: "border-blue-200",
-    },
-    {
-      id: "cert3",
-      title: "HTML & CSS",
-      issued: "Oct 2024",
-      iconColor: "text-green-600",
-      bgGradient: "from-green-50 to-green-100",
-      borderColor: "border-green-200",
-    },
+    { id: "cert1", title: "Web Development", issued: "Dec 2024", iconColor: "text-yellow-600", bgGradient: "from-yellow-50 to-yellow-100", borderColor: "border-yellow-200" },
+    { id: "cert2", title: "JavaScript Basics", issued: "Nov 2024", iconColor: "text-blue-600", bgGradient: "from-blue-50 to-blue-100", borderColor: "border-blue-200" },
+    { id: "cert3", title: "HTML & CSS", issued: "Oct 2024", iconColor: "text-green-600", bgGradient: "from-green-50 to-green-100", borderColor: "border-green-200" },
   ];
 
   return (
-        <>
-              {/* make the sticky NavBar full-bleed (not inside max-w) */}
-          <div className="relative z-20">
-            <NavBar />
-          </div>
-    <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans">
-      <DashboardHeader />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <WelcomeBanner name={profile.name} />
+    <>
+      <div className="relative z-20">
+        <NavBar />
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: profile + progress */}
-          <div className="lg:col-span-2">
-            <ProfileInfoCard
-              initials={profile.initials}
-              name={profile.name}
-              handle={profile.handle}
-              statusBadges={profile.statusBadges}
-              dob={profile.dob}
-              registrationDate={profile.registrationDate}
-              paymentStatus={profile.paymentStatus}
-              accountStatus={profile.accountStatus}
-            />
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans">
+        <DashboardHeader />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <WelcomeBanner name={profile.name} />
 
-            <CourseProgressList items={courseProgress} />
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <ProfileInfoCard
+                initials={profile.initials}
+                name={profile.name}
+                handle={profile.handle}
+                statusBadges={profile.statusBadges}
+                dob={profile.dob}
+                registrationDate={profile.registrationDate}
+                paymentStatus={profile.paymentStatus}
+                accountStatus={profile.accountStatus}
+              />
+              <CourseProgressList items={courseProgress} />
+            </div>
 
-          {/* Right sidebar */}
-          <div className="space-y-6">
-            <QuickStatsCard stats={quickStats} />
-            <RecentCertificatesCard items={certificates} />
-            <LearningStreakCard days={15} />
+            <div className="space-y-6">
+              <QuickStatsCard stats={quickStats} />
+              <RecentCertificatesCard items={certificates} />
+              <LearningStreakCard days={15} />
+            </div>
           </div>
-        </div>
-      </main>
-    </div>
-                {/* Footer at the end */}
-          <Footer
-            brandName="MithunKumar"
-            tagline="Learn smarter. Build faster."
-          />
-        </>
+        </main>
+      </div>
+
+      <Footer brandName="MithunKumar" tagline="Learn smarter. Build faster." />
+    </>
   );
 }

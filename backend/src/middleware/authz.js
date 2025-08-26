@@ -33,14 +33,23 @@ export function requireRole(role) {
   };
 }
 
-/** Any of the given roles (NEW: case-insensitive + roles[]) */
+/** Any of the given roles (accepts varargs or arrays) */
 export function requireAnyRole(...roles) {
+  // Flatten roles in case someone passed an array
+  const flat = [];
+  for (const r of roles) {
+    if (Array.isArray(r)) flat.push(...r);
+    else flat.push(r);
+  }
   return (req, res, next) => {
-    const want = roles.map(r => (r || '').toString().toLowerCase());
+    const want = flat.map(r => (r || '').toString().toLowerCase());
     const one  = (req.user?.role || '').toString().toLowerCase();
-    const many = Array.isArray(req.user?.roles) ? req.user.roles.map(r => (r || '').toString().toLowerCase()) : [];
+    const many = Array.isArray(req.user?.roles)
+      ? req.user.roles.map(r => (r || '').toString().toLowerCase())
+      : [];
     const ok = (one && want.includes(one)) || many.some(r => want.includes(r));
     if (!ok) return res.status(403).json({ error: "Forbidden" });
     next();
   };
 }
+

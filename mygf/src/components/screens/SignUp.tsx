@@ -74,9 +74,12 @@ const SignUp: React.FC = () => {
       // Backend should return: { mode:'signin'|'signup', reason?, mfa? }
       const { data } = await api.get('/auth/precheck', { params: { email: e } });
       setPrecheck(data as PrecheckResp);
+      return data as PrecheckResp;         // <-- return the value so caller can decide immediately
     } catch (err: any) {
       // If precheck is unavailable, allow signup flow to proceed
-      setPrecheck({ mode: 'signup' });
+      const fallback = { mode: 'signup' } as PrecheckResp;
+      setPrecheck(fallback);
+      return fallback;
     } finally {
       setChecking(false);
     }
@@ -86,25 +89,17 @@ const SignUp: React.FC = () => {
     setFormError(null);
     if (!validateForm()) return;
 
-    // Always verify the email status before signup
-    await runPrecheck(email);
-    if (precheck?.mode === 'signin') {
-      // Block Sign Up for provisioned/invited emails → go to Sign In
-      setFormError(precheck?.reason || 'This email is already managed by your organization. Please use Sign In.');
+    // Always verify the email status before signup (use the return to avoid state-race)
+    const pc = await runPrecheck(email);
+    if (pc?.mode === 'signin') {
+      // Go to Sign In instead of attempting signup
+      navigate('/login', { state: { email } });
       return;
     }
 
     try {
-      // Preferred: manual student signup endpoint (no MFA by default)
-      let data: any = null;
-      try {
-        const res = await api.post('/auth/signup-student', { name: username, email, password });
-        data = res.data;
-      } catch {
-        // Fallback to existing legacy endpoint in your app
-        const res = await api.post('/auth/signup', { username, email, password });
-        data = res.data;
-      }
+      // Only call the student signup endpoint; no legacy fallback that causes 404s
+      const { data } = await api.post('/auth/signup-student', { name: username, email, password });
 
       // If backend returns user + tokens, persist and route by role
       if (data?.user && data?.tokens) {
@@ -118,6 +113,11 @@ const SignUp: React.FC = () => {
       // Fallback: cookie-based session only (no tokens returned)
       navigate('/dashboard', { replace: true });
     } catch (error: any) {
+      // If the email was created elsewhere during the attempt, show “Go to Sign In”
+      if (error?.response?.status === 409) {
+        setPrecheck({ mode: 'signin', reason: 'Account already exists' });
+        return;
+      }
       alert(error?.response?.data?.message || 'Sign-up failed');
     }
   };

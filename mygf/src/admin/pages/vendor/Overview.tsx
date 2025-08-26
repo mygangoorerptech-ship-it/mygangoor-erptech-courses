@@ -1,4 +1,4 @@
-// src/pages/superadmin/Overview.tsx
+// src/pages/vendor/Overview.tsx
 import { useQuery } from '@tanstack/react-query'
 import { getSuperadminOverview } from '../../api/overview'
 import { Link } from 'react-router-dom'

@@ -55,3 +55,7 @@ backend/uploads/
 backend/storage/
 mygf/.vercel/
 mygf/.netlify/
+
+# archives
+*.zip
+

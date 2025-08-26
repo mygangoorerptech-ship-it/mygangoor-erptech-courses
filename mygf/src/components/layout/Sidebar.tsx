@@ -1,3 +1,4 @@
+// mygf/src/components/layout/Sidebar.tsx
 import React from "react";
 import { NavLink } from "react-router-dom";
 import { MENUS, type Role, type MenuGroup } from "../../config/nav";

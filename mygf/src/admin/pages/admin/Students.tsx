@@ -6,7 +6,7 @@ import { listStudents, createStudent, updateStudent, deleteStudent, setStudentSt
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
-import { Plus, Pencil, Trash2, UserPlus, Upload, CheckCircle2, XCircle } from 'lucide-react'
+import { Pencil, Trash2, UserPlus, Upload, CheckCircle2, XCircle } from 'lucide-react'
 
 type Filters = { q: string; status: 'all'|StudentStatus }
 

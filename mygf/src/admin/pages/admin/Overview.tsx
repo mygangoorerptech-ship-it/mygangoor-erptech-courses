@@ -1,5 +1,4 @@
 // src/pages/admin/Overview.tsx
-import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getAdminOverview } from '../../api/overview'
 import { useAuth } from '../../auth/store'

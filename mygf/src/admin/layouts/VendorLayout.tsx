@@ -1,4 +1,4 @@
-import React from "react";
+//`src/admin/layouts/VendorLayout.tsx`
 import DashboardLayout from "../../components/layout/DashboardLayout";
 
 export default function VendorLayout() {

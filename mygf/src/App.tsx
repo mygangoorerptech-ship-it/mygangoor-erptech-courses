@@ -16,6 +16,7 @@ import Mfa from "./pages/auth/Mfa";
 // ---------- Admin area (already present under src/admin) ----------
 import SuperadminLayout from "./admin/layouts/SuperadminLayout";
 import AdminLayout from "./admin/layouts/AdminLayout";
+import VendorLayout from "./admin/layouts/VendorLayout";
 
 // Superadmin pages
 import SAOverview from "./admin/pages/superadmin/Overview";
@@ -34,6 +35,7 @@ import SAPayouts from "./admin/pages/superadmin/Payouts";
 import SAPayoutDetail from "./admin/pages/superadmin/PayoutDetail";
 import SAReconciliation from "./admin/pages/superadmin/Reconciliation";
 import SASettings from "./admin/pages/superadmin/Settings";
+import SA_Assessments from "./admin/pages/superadmin/Assessments";
 
 // Admin pages
 import ADOverview from "./admin/pages/admin/Overview";
@@ -55,6 +57,10 @@ import ADReports from "./admin/pages/admin/Reports";
 import ADCommunity from "./admin/pages/admin/Community";
 import ADSettings from "./admin/pages/admin/Settings";
 import ADUsers from "./admin/pages/admin/Users";
+
+//vendor pages
+import VEOverview from "./admin/pages/vendor/Overview";
+import VEAssessments from "./admin/pages/vendor/Assessments";
 
 // ---------- Centralized guards ----------
 import Shell from "./shell";
@@ -115,6 +121,7 @@ export default function App() {
         <Route path="payouts/:id" element={<SAPayoutDetail />} />
         <Route path="reconciliation" element={<SAReconciliation />} />
         <Route path="settings" element={<SASettings />} />
+        <Route path="assessments" element={<SA_Assessments />} />
       </Route>
 
       {/* ---------- Org Admin area (guarded by Shell) ---------- */}
@@ -147,6 +154,20 @@ export default function App() {
         <Route path="community" element={<ADCommunity />} />
         <Route path="settings" element={<ADSettings />} />
       </Route>
+
+            {/* ---------- Org Admin area (guarded by Shell) ---------- */}
+      <Route
+        path="/vendor"
+        element={
+          <Shell allowedRoles={["vendor"]}>
+            <VendorLayout />
+          </Shell>
+        }
+      >
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route path="overview" element={<VEOverview />} />
+        <Route path="assessments" element={<VEAssessments />} />
+        </Route>
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/home" replace />} />

@@ -1,18 +1,33 @@
 //mygf/src/components/dashboard/DashboardHeader.tsx
-import React from "react";
+import React, { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { logout as apiLogout } from "../../api/auth";
+import { useAuth } from "../../auth/store";
+import { resetAuthHydration } from "../../hooks/useAuthHydration";
 
 type Props = {
   onSignOut?: () => void;
 };
 
 export default function DashboardHeader({ onSignOut }: Props) {
-  const handleClick = () => {
+  const navigate = useNavigate();
+  const { logout: storeLogout } = useAuth();
+
+  const handleClick = useCallback(async () => {
     if (onSignOut) return onSignOut();
-    // default behavior (demo parity with original)
+
     if (confirm("Are you sure you want to sign out?")) {
-      alert("Signing out... (Demo functionality)");
+      try {
+        await apiLogout(); // clear cookies server-side
+      } catch {
+        // ignore network errors; we'll still clear client state
+      } finally {
+        storeLogout?.();      // clear Zustand
+        resetAuthHydration(); // allow fresh re-hydration next visit
+        navigate("/login", { replace: true });
+      }
     }
-  };
+  }, [onSignOut, storeLogout, navigate]);
 
   return (
     <header className="bg-white shadow-lg border-b border-gray-200">
