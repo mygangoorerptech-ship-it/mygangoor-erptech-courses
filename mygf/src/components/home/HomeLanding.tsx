@@ -1,18 +1,14 @@
 // mygf/src/components/home/HomeLanding.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
- import { useAuth, selectAuthLite, type Role } from "../../auth/store"; 
- import { useAuthHydration } from "../../hooks/useAuthHydration";
+import { useAuth } from "../../admin/auth/store";
 import { createPortal } from "react-dom";
 import { JoinNowModal } from "../join";
 
 export default function HomeLanding() {
   const navigate = useNavigate();
-  // ✅ pull a tiny, typed slice (user, derived role, derived isAuthenticated) 
-  const { user, role, isAuthenticated } = useAuth(selectAuthLite); 
-  // ✅ (optional) hydrate cookie session once; safe to call here 
-  useAuthHydration(); 
-  const isAuthed = isAuthenticated || !!user;
+  const { user, role, isAuthenticated } = useAuth();
+  const isAuthed = !!(isAuthenticated ?? user);
   const [joinOpen, setJoinOpen] = useState(false);
 
   // ==== ACTIONS: copy the runtime behavior from NavBar.tsx & HeroLeftCard.tsx ====
@@ -22,7 +18,7 @@ const goLoginOrDashboard = () => {
       navigate("/dashboard");
       return;
     }
-    switch (role as Role | undefined) {
+    switch (role) {
       case "superadmin": navigate("/superadmin"); break;
       case "admin":      navigate("/admin"); break;
       case "vendor":     navigate("/vendor"); break;

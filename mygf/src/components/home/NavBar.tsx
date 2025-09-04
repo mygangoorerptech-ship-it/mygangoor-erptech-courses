@@ -2,24 +2,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { useAuth, selectAuthLite, type Role } from "../../auth/store"; // ← use the shared store + selector
-import { useAuthHydration } from "../../hooks/useAuthHydration";        // ← optional, safe helper
+import { useAuth } from "../../admin/auth/store";
 import { JoinNowModal } from "../join";
 
 export default function NavBar() {
   const navigate = useNavigate();
-
-  // ✅ pull a typed, minimal slice; no "any", no TS warnings
-  const { user, role, isAuthenticated } = useAuth(selectAuthLite);
-
-  // (optional) ensure cookie session is hydrated once; safe to call here
-  useAuthHydration();
-
-  const isAuthed = isAuthenticated || !!user;
+  const { user, role, isAuthenticated } = useAuth();
+  const isAuthed = !!(isAuthenticated ?? user);
 
   const [joinOpen, setJoinOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // expose global opener (unchanged)
   useEffect(() => {
     const handler = () => setJoinOpen(true);
     (window as any).app = (window as any).app || {};
@@ -29,6 +23,7 @@ export default function NavBar() {
     };
   }, []);
 
+  // close on ESC + lock body scroll while open
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
     if (mobileOpen) {
@@ -49,7 +44,7 @@ export default function NavBar() {
         navigate("/dashboard");
         return;
       }
-      switch (role as Role | undefined) {
+      switch (role) {
         case "superadmin": navigate("/superadmin"); break;
         case "admin":      navigate("/admin"); break;
         case "vendor":     navigate("/vendor"); break;
@@ -69,6 +64,7 @@ export default function NavBar() {
     setJoinOpen(true);
   };
 
+  // shared handlers for links (close drawer first on mobile)
   const goHome = (e?: React.MouseEvent) => { e?.preventDefault?.(); setMobileOpen(false); navigate("/home"); };
   const goAbout = (e?: React.MouseEvent) => { e?.preventDefault?.(); setMobileOpen(false); navigate("/about"); };
   const goDashOrLogin = () => { setMobileOpen(false); goLoginOrDashboard(); };
