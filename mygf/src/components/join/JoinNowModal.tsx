@@ -1,4 +1,3 @@
-// mygf/src/components/join/JoinNowModal.tsx
 import React from "react";
 import { X, ChevronRight, GraduationCap, Loader2, ShieldCheck } from "lucide-react";
 import Steps from "./ui/Steps";
@@ -6,13 +5,44 @@ import CourseStep from "./steps/CourseStep";
 import DetailsStep from "./steps/DetailsStep";
 import PaymentStep from "./steps/PaymentStep";
 import SuccessStep from "./steps/SuccessStep";
-import { COURSES } from "./constants";
 import { classNames } from "./utils";
+import { rzpCreateOrder, rzpVerifyPayment, rzpReceipt } from "../../api/checkout";
+import { loadRazorpay } from "./utils/loadRazorpay";
 import type { CourseOption, DiscountKind, Gender, PayMethod, PayMode, Step } from "./types";
+import { formatINRFromPaise } from "../../admin/utils/currency";
+// axios client + auth
+import { useAuth } from "../../auth/store";
+import { api } from "../../api/client"; // <-- added back
+//zustand catalog store
+import { useJoinCatalog, type CatalogState } from "./store/useJoinCatalog";
+import { useShallow } from "zustand/react/shallow";
 
-export default function JoinNowModal({ onClose }: { onClose: () => void }) {
+// lazy imports to keep bundle small
+const loadJsPDF = () => import("jspdf");
+
+export default function JoinNowModal({
+  onClose,
+  selectedCourseId,                     // NEW: optional preselection prop
+}: {
+  onClose: () => void;
+  selectedCourseId?: string;
+}) {
   const [step, setStep] = React.useState<Step>(1);
   const [selectedCourse, setSelectedCourse] = React.useState<CourseOption | null>(null);
+
+  // 🚀 use cached catalog (no local fetching state anymore)
+  const selectCatalog = useShallow((s: CatalogState) => ({
+    courses: s.courses,
+    loadingCourses: s.loading,
+    coursesError: s.error,
+    fetchCatalog: s.fetch,
+    invalidateCatalog: s.invalidate,
+  }));
+  const { courses, loadingCourses, coursesError, fetchCatalog, invalidateCatalog } =
+    useJoinCatalog(selectCatalog);
+
+  // ✨ Ensure array element type for inference in .find callbacks
+  const typedCourses: CourseOption[] = courses as CourseOption[];
 
   // form state
   const [fullName, setFullName] = React.useState("");
@@ -34,16 +64,171 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
   const [isPaying, setIsPaying] = React.useState(false);
   const [paid, setPaid] = React.useState(false);
 
-  // price math
-  const base = selectedCourse?.price ?? 0;
-  const discount = (() => {
-    if (!selectedCourse) return 0;
-    if (discountKind === "coupon" && couponCode.trim().toLowerCase() === "welcome10")
-      return Math.round(base * 0.1);
-    if (discountKind === "refer") return Math.round(base * 0.05);
-    return 0;
+  // real receipt/status
+  const [orderId, setOrderId] = React.useState<string | null>(null);
+  const [receipt, setReceipt] = React.useState<any | null>(null);
+  const [loadingReceipt, setLoadingReceipt] = React.useState(false);
+  const receiptRef = React.useRef<HTMLDivElement>(null);
+
+  // auth (Zustand)
+  const { user, status, hydrate } = useAuth();
+  React.useEffect(() => { if (status === "idle") hydrate(); }, [status, hydrate]);
+
+  // ⛔️ STOP refetching on every select:
+  // Only (re)load when we actually show Step 1 AND auth is ready.
+  React.useEffect(() => {
+    if (step !== 1 || status !== "ready") return;
+    if (!user || !user.orgId) return; // show message instead of fetching
+    fetchCatalog({ force: false });    // uses TTL cache; background refresh if stale
+  }, [step, status, user?.orgId, fetchCatalog]);
+
+  React.useEffect(() => {
+    if (!selectedCourseId || selectedCourse || typedCourses.length === 0) return;
+    const match = typedCourses.find((c) => c.id === selectedCourseId) ?? null;
+    if (match) setSelectedCourse(match);
+  }, [selectedCourseId, selectedCourse, typedCourses]);
+
+// ---------- Per-course user state (enrollment/payment) for Step 1 ----------
+type CourseState = {
+  enrollment?: string | null; // e.g. "premium"
+  payment?: { status?: string | null; amount?: number | null }; // status & amount (paise)
+};
+const [courseStates, setCourseStates] = React.useState<Record<string, CourseState>>({});
+
+// NEW: one clear fetch to the dedicated endpoint
+React.useEffect(() => {
+  let cancel = false;
+  if (step !== 1 || status !== "ready" || !user?.orgId) return;
+  if (!typedCourses.length) return;
+
+  (async () => {
+    try {
+      const { data } = await api.get("/student/join/state", { withCredentials: true });
+      const st = (data && data.states) || {};
+      const merged: Record<string, CourseState> = {};
+      for (const c of typedCourses) {
+        const s = st[c.id] || {};
+        merged[c.id] = {
+          enrollment: s.enrollment ?? null,
+          payment: s.payment
+            ? { status: s.payment.status || null, amount: Number(s.payment.amount) || null }
+            : undefined,
+        };
+      }
+      if (!cancel) setCourseStates(merged);
+    } catch (e) {
+      console.warn("[join state] fetch failed", e);
+      if (!cancel) setCourseStates({});
+    }
   })();
-  const total = Math.max(0, base - discount);
+
+  return () => { cancel = true; };
+}, [step, status, user?.orgId, typedCourses]);
+
+// compute visible list (hide already-premium or captured/verified)
+const visibleCourses = React.useMemo(() => {
+  return typedCourses.filter((c) => {
+    const st = courseStates[c.id];
+    if (!st) return true;
+
+    if ((st.enrollment || "").toLowerCase() === "premium") return false;
+
+    const ps = (st.payment?.status || "").toLowerCase();
+    if (ps === "captured" || ps === "verified") return false; // hide paid/verified
+
+    if (["refunded", "failed", "cancelled", "canceled", "rejected"].includes(ps)) return true;
+    return true; // pending/submitted → keep (badge shown)
+  });
+}, [typedCourses, courseStates]);
+
+// pending badge text (₹ from paise) — unchanged
+const pendingMap = React.useMemo(() => {
+  const m: Record<string, string> = {};
+  for (const [id, st] of Object.entries(courseStates)) {
+    const ps = (st.payment?.status || "").toLowerCase();
+    if (ps === "pending" || ps === "submitted") {
+      const amt = st.payment?.amount;
+      m[id] = amt ? `Pending • ${formatINRFromPaise(amt)}` : "Pending";
+    }
+  }
+  return m;
+}, [courseStates]);
+
+  // price math
+const basePaise = selectedCourse?.price ?? 0;
+const base = basePaise / 100;
+const discount = (() => {
+  if (!selectedCourse) return 0;
+  if (discountKind === "coupon" && couponCode.trim().toLowerCase() === "welcome10")
+    return Math.round(base * 0.1);
+  if (discountKind === "refer") return Math.round(base * 0.05);
+  return 0;
+})();
+const total = Math.max(0, base - discount);
+
+  // ---- payment flow
+  async function handleOnlinePay() {
+    if (!selectedCourse || !user?.orgId) return;
+    setIsPaying(true);
+    try {
+      const order = await rzpCreateOrder({
+        courseId: selectedCourse.id,
+        orgId: String(user.orgId),
+        discountKind,
+        couponCode,
+        mode,
+        partAmount: mode === "part" ? Number(partAmount) || 0 : undefined,
+      });
+      if (!order?.ok) throw new Error("order create failed");
+      setOrderId(order.orderId);
+
+      await loadRazorpay();
+      const rzp = new (window as any).Razorpay({
+        key: order.key,
+        order_id: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        name: "MYGF",
+        description: selectedCourse.title,
+        prefill: { name: fullName, email, contact: mobile },
+        notes: { courseId: selectedCourse.id, orgId: String(user.orgId) },
+        method: { upi: true, netbanking: true, card: true, wallet: true, paylater: true },
+        handler: async (resp: any) => {
+          try {
+            await rzpVerifyPayment({
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+              courseId: selectedCourse.id,
+              orgId: String(user.orgId),
+              joinForm: { fullName, age, gender, birth, address, mobile, email, photo: photoUrl },
+            });
+
+            // fetch real receipt/status
+            setLoadingReceipt(true);
+            const data = await rzpReceipt(resp.razorpay_order_id);
+            setReceipt(data?.receipt || null);
+            setPaid(true);
+            setStep(4);
+
+            // 🔄 optional: mark catalog stale so next open revalidates
+            invalidateCatalog();
+          } catch (e) {
+            alert("Payment verification failed. If debited, contact support.");
+          } finally {
+            setLoadingReceipt(false);
+            setIsPaying(false);
+          }
+        },
+        modal: { ondismiss: () => setIsPaying(false) },
+      });
+      rzp.open();
+    } catch (err) {
+      console.error("[join/pay]", err);
+      setIsPaying(false);
+      alert("Could not start payment. Please try again.");
+    }
+  }
 
   // validators
   const errors: Record<string, string> = {};
@@ -78,78 +263,203 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
   }
   function onPhotoChange(file: File | null) {
     setPhoto(file);
-    if (file) setPhotoUrl(URL.createObjectURL(file));
-    else setPhotoUrl(null);
-  }
-  async function simulatePayment() {
-    if (Object.keys(errors).length) return;
-    setIsPaying(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setIsPaying(false);
-    setPaid(true);
-    setStep(4);
+    setPhotoUrl(file ? URL.createObjectURL(file) : null);
   }
 
-    // --- build a simple demo receipt (no backend) ---
-  const receipt = React.useMemo(() => {
-    const paidNow =
-      mode === "part" ? (typeof partAmount === "number" ? partAmount : Number(partAmount) || 0) : total;
+  // computed message if not signed in to an org
+  const orgGateError = !user || !user.orgId ? "Please sign in using your organisation account to view available courses." : "";
 
+  // -------- Receipt capture (PDF / PNG) + Share --------
+  function buildReceiptData() {
     return {
-      platform: "MYGF",
-      demo: true,
-      name: fullName || "Student",
-      course: selectedCourse?.title || "",
-      method,
-      mode,
-      paidNow,
-      total,
-      discountKind,
-      discount,
-      dateISO: new Date().toISOString(),
+      title: "MYGF",
+      subtitle: "Payment Receipt",
+      date: receipt?.dateISO ? new Date(receipt.dateISO).toLocaleString() : "-",
+      student: receipt?.student?.name || fullName || "-",
+      course: receipt?.course?.title || selectedCourse?.title || "-",
+      orderId: receipt?.orderId || "-",
+      paymentId: receipt?.paymentId || "-",
+      method: (receipt?.method || "-").toString(),
+      status: receipt?.status || "-",
+      amount: receipt ? (receipt.amount / 100).toLocaleString("en-IN", { style: "currency", currency: receipt.currency || "INR" }) : "-",
+      enroll: receipt?.enrollment?.present ? "Enrollment: active" : `Enrollment: ${receipt?.enrollment?.status || "pending"}`
     };
-  }, [fullName, selectedCourse, method, mode, partAmount, total, discountKind, discount]);
-
-  function downloadReceipt() {
-    const blob = new Blob([JSON.stringify(receipt, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `mygf-receipt-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
+  function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r = 12) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y,     x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x,     y + h, r);
+    ctx.arcTo(x,     y + h, x,     y,     r);
+    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.closePath();
+  }
+
+  async function buildReceiptCanvas(): Promise<HTMLCanvasElement> {
+    const d = buildReceiptData();
+
+    // Canvas size (device-independent, then scale for DPR)
+    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    const W = 940;   // px
+    const H = 600;   // px (enough for our layout)
+    const M = 28;    // margin
+
+    const canvas = document.createElement("canvas");
+    canvas.width  = Math.floor(W * DPR);
+    canvas.height = Math.floor(H * DPR);
+    canvas.style.width  = `${W}px`;
+    canvas.style.height = `${H}px`;
+
+    const ctx = canvas.getContext("2d")!;
+    ctx.scale(DPR, DPR);
+
+    // Background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
+    // Card
+    const cardX = M, cardY = M, cardW = W - M*2, cardH = H - M*2;
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 18);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#e5e7eb"; // slate-200
+    ctx.stroke();
+
+    // Header
+    ctx.fillStyle = "#0f172a"; // slate-900
+    ctx.font = "600 20px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu";
+    ctx.fillText(d.title, cardX + 20, cardY + 32);
+
+    ctx.fillStyle = "#64748b"; // slate-500
+    ctx.font = "12px ui-sans-serif, system-ui";
+    ctx.fillText(d.subtitle, cardX + 20, cardY + 50);
+
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "500 14px ui-sans-serif, system-ui";
+    ctx.fillText(d.date, cardX + cardW - 20, cardY + 36);
+    ctx.textAlign = "left";
+
+    // Divider
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.beginPath();
+    ctx.moveTo(cardX + 20, cardY + 66);
+    ctx.lineTo(cardX + cardW - 20, cardY + 66);
+    ctx.stroke();
+
+    // Two-column grid labels
+    const colL = cardX + 20;
+    const colR = cardX + cardW / 2 + 10;
+    let y = cardY + 98;
+
+    function labelValue(label: string, value: string) {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "12px ui-sans-serif, system-ui";
+      ctx.fillText(label, colL, y);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "600 14px ui-sans-serif, system-ui";
+      ctx.fillText(value, colL, y + 18);
+    }
+    function labelValueR(label: string, value: string) {
+      ctx.fillStyle = "#64748b";
+      ctx.font = "12px ui-sans-serif, system-ui";
+      ctx.fillText(label, colR, y);
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "600 14px ui-sans-serif, system-ui";
+      ctx.fillText(value, colR, y + 18);
+    }
+
+    labelValue("Student", d.student);
+    labelValueR("Course", d.course);
+    y += 56;
+    labelValue("Order ID", d.orderId);
+    labelValueR("Payment ID", d.paymentId);
+    y += 56;
+    labelValue("Method", d.method);
+    labelValueR("Status", d.status);
+    y += 56;
+
+    // Amount box
+    const bx = cardX + 20, bw = cardW - 40, bh = 56;
+    drawRoundedRect(ctx, bx, y, bw, bh, 12);
+    ctx.fillStyle = "#f8fafc";   // slate-50
+    ctx.fill();
+    ctx.strokeStyle = "#e5e7eb";
+    ctx.stroke();
+
+    ctx.fillStyle = "#475569";   // slate-600
+    ctx.font = "14px ui-sans-serif, system-ui";
+    ctx.fillText("Amount paid", bx + 16, y + 22 + 10);
+
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "700 20px ui-sans-serif, system-ui";
+    ctx.fillText(d.amount, bx + bw - 16, y + 22 + 10);
+    ctx.textAlign = "left";
+
+    // Footer line
+    y += bh + 20;
+    ctx.fillStyle = "#64748b";
+    ctx.font = "12px ui-sans-serif, system-ui";
+    ctx.fillText(d.enroll, bx, y);
+
+    return canvas;
+  }
+
+  // ---- Download as PDF (vector page with our PNG) ----
+  async function downloadReceipt(format: "pdf" | "png" = "pdf") {
+    const canvas = await buildReceiptCanvas();
+    const dataUrl = canvas.toDataURL("image/png");
+
+    if (format === "png") {
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `receipt-${orderId || Date.now()}.png`;
+      a.click();
+      return;
+    }
+
+    const { default: jsPDF } = await loadJsPDF();
+    const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const margin = 36;
+    const imgW = pageW - margin * 2;
+    const ratio = canvas.height / canvas.width;
+    const imgH = imgW * ratio;
+
+    pdf.addImage(dataUrl, "PNG", margin, margin, imgW, imgH);
+    pdf.save(`receipt-${orderId || Date.now()}.pdf`);
+  }
+
+  // ---- Share the same PNG (no DOM capture) ----
   async function shareReceipt() {
-    const text =
-      `MYGF Receipt (Demo)\n` +
-      `Name: ${receipt.name}\n` +
-      `Course: ${receipt.course}\n` +
-      `Method: ${receipt.method}\n` +
-      `Mode: ${receipt.mode}\n` +
-      `Paid now: ₹${receipt.paidNow}\n` +
-      `Total: ₹${receipt.total}\n` +
-      `Date: ${new Date(receipt.dateISO).toLocaleString()}`;
+    try {
+      const canvas = await buildReceiptCanvas();
+      const blob: Blob = await new Promise((r) => canvas.toBlob((b) => r(b as Blob), "image/png"));
+      const file = new File([blob], `receipt-${orderId || Date.now()}.png`, { type: "image/png" });
 
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "MYGF Receipt", text });
-      } catch {
-        // user cancelled share; no-op
+      const text =
+        `Payment Receipt - ${receipt?.course?.title || "Course"}\n` +
+        `Amount: ${(receipt?.amount ?? 0) / 100} ${receipt?.currency || "INR"}\n` +
+        `Order: ${receipt?.orderId}\n` +
+        `${receipt?.enrollment?.present ? "Enrolled" : "Enrollment pending"}`;
+
+      // @ts-ignore
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        // @ts-ignore
+        await navigator.share({ title: "Payment receipt", text, files: [file] });
+        return;
       }
-    } else {
-      await navigator.clipboard?.writeText(text);
+      const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+      window.open(wa, "_blank") || window.open(tw, "_blank") || (await navigator.clipboard.writeText(text));
       alert("Receipt details copied to clipboard.");
+    } catch {
+      /* user canceled / no share target */
     }
   }
-
-  // --- auto-close after success (10s) ---
-  React.useEffect(() => {
-    if (step === 4) {
-      const t = setTimeout(onClose, 10_000);
-      return () => clearTimeout(t);
-    }
-  }, [step, onClose]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center" aria-modal role="dialog">
@@ -160,9 +470,11 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-3">
             <GraduationCap className="w-5 h-5 text-indigo-600" />
             <h3 className="text-lg font-semibold">Join a Course</h3>
-            <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-              Demo • No payment made
-            </span>
+            {paid && receipt && (
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                {receipt.verified ? "Verified by provider" : "Awaiting verification"}
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -177,11 +489,27 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
 
         <div className="p-5 overflow-y-auto max-h-[60vh]">
           {step === 1 && (
-            <CourseStep
-              selected={selectedCourse?.id ?? ""}
-              onSelect={(id) => setSelectedCourse(COURSES.find(c => c.id === id) || null)}
-              error={errors.course}
-            />
+            <>
+              {loadingCourses ? (
+                <div className="h-28 grid place-items-center text-sm text-slate-600">
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading courses…
+                  </span>
+                </div>
+              ) : (orgGateError || coursesError) ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                  {orgGateError || coursesError}
+                </div>
+              ) : (
+                <CourseStep
+                  selected={selectedCourse?.id ?? ""}
+                  onSelect={(id) => setSelectedCourse(visibleCourses.find((c) => c.id === id) ?? null)}
+                  error={errors.course}
+                  courses={visibleCourses}
+                  pendingMap={pendingMap} // <-- NEW
+                />
+              )}
+            </>
           )}
 
           {step === 2 && (
@@ -215,13 +543,40 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
               partAmount={partAmount}
               setPartAmount={setPartAmount}
               isPaying={isPaying}
-              onPay={simulatePayment}
+              onPay={method === "online" ? handleOnlinePay : undefined}
               errors={errors}
             />
           )}
 
-          {step === 4 && paid && selectedCourse && (
-            <SuccessStep name={fullName} course={selectedCourse.title} method={method} onDownload={downloadReceipt} onShare={shareReceipt} />
+          {step === 4 && paid && (
+            <>
+              {loadingReceipt ? (
+                <div className="h-28 grid place-items-center text-sm text-slate-600">
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Finalizing…
+                  </span>
+                </div>
+              ) : (
+                <SuccessStep
+                  receipt={receipt ? {
+                    orderId: receipt.orderId,
+                    paymentId: receipt.paymentId,
+                    status: receipt.status,
+                    verified: receipt.verified,
+                    method: receipt.method,
+                    currency: receipt.currency,
+                    amount: receipt.amount,
+                    dateISO: receipt.dateISO,
+                    student: { name: receipt.student?.name || fullName },
+                    course: { title: receipt.course?.title || selectedCourse?.title || "" },
+                    enrollment: { present: !!receipt.enrollment?.present, status: receipt.enrollment?.status || "pending" },
+                  } : null}
+                  onDownload={downloadReceipt}
+                  onShare={shareReceipt}
+                  innerRef={receiptRef}
+                />
+              )}
+            </>
           )}
         </div>
 
@@ -229,7 +584,7 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
           <div className="flex items-center justify-between px-5 py-4 border-t bg-slate-50">
             <div className="flex items-center gap-2 text-xs text-slate-600">
               <ShieldCheck className="w-4 h-4" />
-              <span>Your data is safe. This is a local demo only.</span>
+              <span>Payments are processed securely.</span>
             </div>
             <div className="flex items-center gap-3">
               {step > 1 && (
@@ -250,7 +605,7 @@ export default function JoinNowModal({ onClose }: { onClose: () => void }) {
               )}
               {step === 3 && (
                 <button
-                  onClick={simulatePayment}
+                  onClick={method === "online" ? handleOnlinePay : undefined}
                   disabled={isPaying || Object.keys(errors).length > 0}
                   className={classNames(
                     "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white",

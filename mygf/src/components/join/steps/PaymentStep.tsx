@@ -1,5 +1,4 @@
 // mygf/src/components/join/steps/PaymentStep.tsx
-import React from "react";
 import { AlertCircle, BadgePercent, CreditCard, Timer, Wallet } from "lucide-react";
 import InlineError from "../ui/InlineError";
 import type { CourseOption, DiscountKind, PayMethod, PayMode } from "../types";
@@ -11,7 +10,7 @@ export default function PaymentStep(props: {
   method: PayMethod; setMethod: (v: PayMethod)=>void;
   mode: PayMode; setMode: (v: PayMode)=>void;
   partAmount: number | ""; setPartAmount: (v: number | "") => void;
-  isPaying: boolean; onPay: () => void;
+  isPaying: boolean; onPay?: () => void | Promise<void>;
   errors: Record<string, string>;
 }) {
   const {

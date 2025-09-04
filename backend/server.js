@@ -19,6 +19,33 @@ import assessmentsRoutes from "./src/routes/assessments.js";
 import assessmentGroupRoutes from "./src/routes/assessmentGroups.js";
 import saCoursesRoutes from "./src/routes/saCourses.js";
 import coursesRoutes from "./src/routes/courses.js";
+import enrollmentsRouter from "./src/routes/enrollments.js";
+import saAuditRouter  from "./src/routes/saAudit.js";
+import paymentsRouter from "./src/routes/payments.js";
+import studentsRouter from "./src/routes/students.js";
+import auditRouter    from "./src/routes/audit.js";
+import debugRoutes from "./src/routes/debug.js";
+import { requireAuthNoRole } from "./src/middleware/authz.js";
+import studentCatalogRouter from "./src/routes/studentCatalog.js";
+import razorpayRouter from "./src/routes/razorpay.js";
+import courseReviewsRouter from "./src/routes/courseReviewsRoute.js";
+import * as rzpCtrl from "./src/controllers/razorpayController.js";
+import studentPaymentsRouter from "./src/routes/studentPayments.js";
+import studentEnrollmentsRouter from "./src/routes/studentEnrollments.js";
+import ordersRouter from "./src/routes/orders.js";
+import subscriptionsRouter from "./src/routes/subscriptions.js";
+import saPaymentsRouter from "./src/routes/saPayments.js";
+import saReconciliationRouter from "./src/routes/saReconciliation.js"; 
+import saPayoutsRouter from "./src/routes/saPayouts.js";
+import uploadsRouter from "./src/routes/uploads.js";
+import joinStateRouter from "./src/routes/joinState.js";
+import studentWishlistRouter from "./src/routes/studentWishlist.js";
+import configRouter from "./src/routes/config.js";
+import reportsRouter from "./src/routes/reports.js";
+import studentProgressRouter from "./src/routes/studentProgress.js";
+import certificatesRouter from "./src/routes/certificates.js";
+import path from "path";
+import fs from "fs";
 
 const app = express();
 
@@ -45,6 +72,9 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
   })
 );
+
+// 🔐 Razorpay webhook requires RAW body (do this before json())
+app.post("/api/checkout/razorpay/webhook", express.raw({ type: "application/json" }), rzpCtrl.webhook);
 
 app.use(cookieParser());
 app.use(express.json({ limit: "1mb" }));
@@ -88,23 +118,6 @@ if (process.env.TRUST_PROXY === "1" || process.env.NODE_ENV !== "production") {
   app.set("trust proxy", 1);
 }
 
-// CSRF: issue a readable cookie and require matching header on unsafe methods
-app.get("/csrf", (req, res) => {
-  const viaHttps =
-    req?.secure === true ||
-    (req?.headers?.["x-forwarded-proto"] || "").toString().includes("https");
-  const name = viaHttps ? "__Host-csrf" : "csrf";
-  const token = Buffer.from(crypto.randomBytes(32)).toString("base64url");
-  res.cookie(name, token, {
-    httpOnly: false, // must be readable by frontend JS
-    secure: viaHttps,
-    sameSite: process.env.CROSS_SITE === "1" ? "none" : "lax",
-    path: "/",
-    maxAge: 60 * 60 * 1000, // 1h
-  });
-  res.json({ token });
-});
-
 // Allow these paths without CSRF (adjust to your routes)
 const CSRF_EXEMPT = [
   "/csrf",
@@ -118,37 +131,136 @@ const CSRF_EXEMPT = [
   "/api/auth/accept-invite",
   "/api/auth/refresh",
   "/api/auth/logout",
+  "/api/checkout/razorpay/webhook",
 ];
 
-app.use((req, res, next) => {
-  // Always let preflight through
-  if (req.method === "OPTIONS") return next();
+// Helper: detect "effectively https" when sitting behind a proxy
+function looksHttps(req) {
+  const xfwd = (req.headers["x-forwarded-proto"] || "").toString().toLowerCase();
+  const origin = (req.headers["origin"] || "").toString().toLowerCase();
+  const referer = (req.headers["referer"] || "").toString().toLowerCase();
+  return req.secure || xfwd.includes("https") || origin.startsWith("https://") || referer.startsWith("https://");
+}
 
-  // Only gate unsafe methods
+// --- CSRF protection (double-submit; proxy/same-origin aware) ---
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") return next();
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
 
-  // Exempt selected auth endpoints
-  const path = req.path;
+  const path = req.path || req.originalUrl || "";
   if (CSRF_EXEMPT.some((p) => path === p || path.startsWith(p))) return next();
 
-  const hdr = req.get("X-CSRF-Token");
-  const cookie =
-    req.cookies?.["__Host-csrf"] || req.cookies?.["csrf"]; // accept dev or prod name
-  if (!hdr || !cookie || hdr !== cookie) {
-    return res.status(403).json({ error: "CSRF token invalid" });
+  const headerTok = req.get("X-CSRF-Token") || "";
+  const cookieTok = req.cookies?.["__Host-csrf"] || req.cookies?.["csrf"] || "";
+  let ok = !!headerTok && !!cookieTok && headerTok === cookieTok;
+
+  if (!ok) {
+    const origin = req.get("Origin") || "";
+    const referer = req.get("Referer") || "";
+
+    // Reconstruct browser origin when behind dev proxy
+    const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0].trim();
+    const xfHost  = (req.get("x-forwarded-host")  || "").split(",")[0].trim();
+    const xfOrigin = xfProto && xfHost ? `${xfProto}://${xfHost}` : "";
+
+    const refOrigin = (() => {
+      try { return new URL(referer).origin; } catch { return ""; }
+    })();
+
+    const allowedOrigins = allow; // already computed above
+    const fromAllowed = [origin, refOrigin, xfOrigin].some(
+      o => o && allowedOrigins.includes(o)
+    );
+
+    // If request is clearly same-origin (dev proxy or direct), accept header-only
+    if (headerTok && fromAllowed) ok = true;
+
+    // Optional debug (enable temporarily if needed):
+    if (!ok) console.warn('[csrf] reject', { path: req.originalUrl, origin, refOrigin, xfOrigin, hasHeader: !!headerTok, hasCookie: !!cookieTok });
   }
+
+  if (!ok) return res.status(403).json({ error: "CSRF token invalid" });
   next();
 });
+
+// Issue the CSRF cookie (use __Host- prefix if effectively HTTPS)
+app.get("/csrf", (req, res) => {
+  const viaHttps = looksHttps(req);
+  const name = viaHttps ? "__Host-csrf" : "csrf";
+  const token = Buffer.from(crypto.randomBytes(32)).toString("base64url");
+  res.cookie(name, token, {
+    httpOnly: false,
+    secure: viaHttps,
+    sameSite: process.env.CROSS_SITE === "1" ? "none" : "lax",
+    path: "/",
+    maxAge: 60 * 60 * 1000,
+  });
+  res.json({ token });
+});
+
+// --- DEV request tracer for /api/student/* ---
+const DEBUG_STUDENT = process.env.DEBUG_STUDENT === "1";
+if (DEBUG_STUDENT) {
+  app.use("/api/student", (req, res, next) => {
+    const started = Date.now();
+    const safeCookieKeys = Object.keys(req.cookies || {});
+    const hdrOrigin = req.headers?.origin;
+    const hdrReferer = req.headers?.referer;
+    console.groupCollapsed(`[api-student] ${req.method} ${req.originalUrl}`);
+    console.log("origin:", hdrOrigin);
+    console.log("referer:", hdrReferer);
+    console.log("cookie keys:", safeCookieKeys);
+    console.log("ip:", req.ip);
+    console.groupEnd();
+
+    res.on("finish", () => {
+      const ms = Date.now() - started;
+      console.log(`[api-student] ← ${res.statusCode} ${req.method} ${req.originalUrl} (${ms}ms)`);
+    });
+    next();
+  });
+}
 
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api/organizations", organizationsRouter);
 app.use("/api/sa/users", saUsersRoutes);
 app.use("/api/ad/users", adUsersRoutes);
-app.use("/api", assessmentsRoutes);
+app.use("/api/assessments", assessmentsRoutes);
 app.use("/api", assessmentGroupRoutes);
 app.use('/api/sa/courses', saCoursesRoutes);
+app.use('/api/courses', courseReviewsRouter);
 app.use('/api/courses', coursesRoutes);
+app.use("/api/payments", paymentsRouter);
+app.use("/api/student/payments", studentPaymentsRouter);
+app.use("/api/student/enrollments", studentEnrollmentsRouter);
+app.use("/api/checkout/razorpay", razorpayRouter);
+app.get("/api/debug/claims", (req, res, next) => next());
+app.use("/api/student-catalog", studentCatalogRouter);
+app.use("/api/students", studentsRouter);
+app.use("/api/audit", auditRouter);
+app.use("/api/sa/audit", saAuditRouter);
+app.use("/api/enrollments", enrollmentsRouter);
+app.use("/api/debug", debugRoutes);
+app.get("/api/debug/claims", requireAuthNoRole, (req, res) => {
+  res.json({ ok: true, claims: req.user, cookies: Object.keys(req.cookies || {}) });
+});
+app.use("/api/orders", ordersRouter);
+app.use("/api/subscriptions", subscriptionsRouter);
+app.use("/api/sa/payments", saPaymentsRouter);
+app.use("/api/sa/reconciliation", saReconciliationRouter);
+app.use("/api/sa/payouts", saPayoutsRouter);
+app.use("/api/uploads", uploadsRouter);
+app.use("/api/student/join", joinStateRouter);
+app.use("/api/student/wishlist", studentWishlistRouter);
+app.use("/api/config", configRouter);
+app.use("/api/reports", reportsRouter);
+app.use("/api/student/progress", studentProgressRouter);
+const templatesCandidate1 = path.join(process.cwd(), "templates", "certificates");
+const templatesCandidate2 = path.join(process.cwd(), "backend", "templates", "certificates");
+const templatesDir = fs.existsSync(templatesCandidate1) ? templatesCandidate1 : templatesCandidate2;
+app.use("/api/static/templates", express.static(templatesDir));
+app.use("/api", certificatesRouter);
 
 const PORT = process.env.PORT || 5002;
 

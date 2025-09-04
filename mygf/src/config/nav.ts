@@ -1,3 +1,4 @@
+// mygf/src/config/nav.ts
 // Central menu config (single source of truth) for all roles
 import type React from "react";
 import { LayoutDashboard, Building2, Users, Shield, Settings, BookOpen, CreditCard, BarChart, FileText } from "lucide-react";
@@ -30,16 +31,16 @@ export const MENUS: RoleMenuMap = {
       items: [
         { label: "Organizations", to: `${SA}/organizations`, icon: Building2 },
         { label: "Users",         to: `${SA}/users`,         icon: Users },
-        { label: "Students",      to: `${SA}/students`,      icon: Users },
+        // { label: "Students",      to: `${SA}/students`,      icon: Users },
         { label: "Courses",       to: `${SA}/courses`,       icon: BookOpen },
-        { label: "Assessments",       to: `${SA}/assessments`,icon: FileText },
+        // { label: "Assessments",       to: `${SA}/assessments`,icon: FileText },
       ],
     },
     {
       heading: "Commerce",
       items: [
         { label: "Payments",       to: `${SA}/payments`,       icon: CreditCard },
-        { label: "Subscriptions",  to: `${SA}/subscriptions`,  icon: FileText },
+        // { label: "Subscriptions",  to: `${SA}/subscriptions`,  icon: FileText },
         { label: "Payouts",        to: `${SA}/payouts`,        icon: CreditCard },
         { label: "Reconciliation", to: `${SA}/reconciliation`, icon: FileText },
       ],
@@ -49,10 +50,14 @@ export const MENUS: RoleMenuMap = {
       items: [
         { label: "Analytics", to: `${SA}/analytics`, icon: BarChart },
         { label: "Audit Logs", to: `${SA}/audit`,   icon: Shield },
-        { label: "Compliance", to: `${SA}/compliance`, icon: Shield },
+        // { label: "Compliance", to: `${SA}/compliance`, icon: Shield },
+        { label: "Reports",      to: `${SA}/reports`,      icon: BarChart },
       ],
     },
-    { heading: "System", items: [ { label: "Integrations", to: `${SA}/integrations`, icon: FileText }, { label: "Settings", to: `${SA}/settings`, icon: Settings } ] },
+    { heading: "System", items: [ 
+      // { label: "Integrations", to: `${SA}/integrations`, icon: FileText },
+      { label: "Settings", to: `${SA}/settings`, icon: Settings } 
+    ] },
   ],
 
   admin: [
@@ -62,14 +67,14 @@ export const MENUS: RoleMenuMap = {
       items: [
         { label: "Courses",      to: `${AD}/courses`,     icon: BookOpen },
         // { label: "Curriculum",   to: `${AD}/curriculum`,  icon: FileText },
-        { label: "Assessments",  to: `${AD}/assessments`, icon: FileText },
+        // { label: "Assessments",  to: `${AD}/assessments`, icon: FileText },
         // { label: "Assignments",  to: `${AD}/assignments`, icon: FileText },
       ],
     },
     {
       heading: "People",
       items: [ 
-        { label: "Students", to: `${AD}/students`, icon: Users },
+        // { label: "Students", to: `${AD}/students`, icon: Users },
         { label: "Users", to: `${AD}/users`,    icon: Users },
        ],
     },
@@ -78,7 +83,7 @@ export const MENUS: RoleMenuMap = {
       items: [
         { label: "Payments",      to: `${AD}/payments`,      icon: CreditCard },
         { label: "Orders",        to: `${AD}/orders`,        icon: FileText },
-        { label: "Subscriptions", to: `${AD}/subscriptions`, icon: FileText },
+        // { label: "Subscriptions", to: `${AD}/subscriptions`, icon: FileText },
       ],
     },
     {
@@ -87,7 +92,7 @@ export const MENUS: RoleMenuMap = {
         { label: "Certificates", to: `${AD}/certificates`, icon: FileText },
         { label: "Reviews",      to: `${AD}/reviews`,      icon: FileText },
         // { label: "Media",        to: `${AD}/media`,        icon: FileText },
-        { label: "Marketing",    to: `${AD}/marketing`,    icon: FileText },
+        // { label: "Marketing",    to: `${AD}/marketing`,    icon: FileText },
         // { label: "Community",    to: `${AD}/community`,    icon: Users },
         { label: "Reports",      to: `${AD}/reports`,      icon: BarChart },
       ],
@@ -97,7 +102,12 @@ export const MENUS: RoleMenuMap = {
 
   vendor: [
     { heading: "Overview", items: [ { label: "Dashboard", to: `${VE}/overview`, icon: LayoutDashboard, exact: true } ] },
-    { heading: "Learning", items: [ { label: "Courses", to: `${VE}/courses`, icon: BookOpen } ] },
+    { heading: "Courses", items: [ 
+      { label: "Courses", to: `${VE}/courses`, icon: BookOpen },
+      { label: "Reports", to: `${VE}/reports`,      icon: BarChart },
+    ] },
+    
+    // { heading: "Payments", items: [ { label: "Payments", to: `${VE}/payments`, icon: CreditCard } ] },
   ],
 
   student: [],

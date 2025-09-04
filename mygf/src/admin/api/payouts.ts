@@ -1,31 +1,72 @@
+// src/admin/api/payouts.ts
+//
+// Client helper for payouts API. Provides functions to list and create
+// payout records. A payout is created when the superadmin settles
+// captured payments to an organisation.
+
 import { api } from './client'
-import { PayoutsDB } from './mockPayouts'
-import type { Payout } from '../types/payout'
 
-const useMock = (import.meta.env.VITE_API_URL ?? '/mock') === '/mock'
+export interface PayoutSummary {
+  id: string
+  orgId: string
+  orgName: string
+  orgCode: string | null
+  totalAmount: number
+  status: string
+  method: string
+  reference: string | null
+  note: string | null
+  paymentCount: number
+  createdAt: string
+}
 
-export async function listPayouts(params?: { q?: string; status?: string; dateFrom?: string; dateTo?: string }): Promise<Payout[]> {
-  if (useMock) return PayoutsDB.list(params as any)
-  const { data } = await api.get('/payouts', { params })
+export async function listPayouts(params?: { orgId?: string; dateFrom?: string; dateTo?: string }): Promise<PayoutSummary[]> {
+  const { data } = await api.get('/sa/payouts', { params })
+  return data || []
+}
+
+// Create a payout for an organisation. paymentIds optional; if omitted all
+// unsettled captured payments will be included. method can be 'manual' or
+// 'razorpay', reference/note optional for bookkeeping.
+export async function createPayout({
+  orgId,
+  paymentIds,
+  method,
+  reference,
+  note,
+  includeSettled,
+  dateFrom,
+  dateTo
+}: {
+  orgId: string
+  paymentIds?: string[]
+  method?: string
+  reference?: string
+  note?: string
+  includeSettled?: boolean
+  dateFrom?: string
+  dateTo?: string
+}): Promise<{ ok: boolean; id: string; totalAmount: number; paymentCount: number }> {
+  const { data } = await api.post('/sa/payouts', {
+    orgId, paymentIds, method, reference, note, includeSettled, dateFrom, dateTo
+  })
   return data
 }
-export async function getPayout(id: string): Promise<Payout> {
-  if (useMock) return PayoutsDB.get(id)
-  const { data } = await api.get(`/payouts/${id}`)
-  return data
-}
-export async function approvePayout(id: string): Promise<Payout> {
-  if (useMock) return PayoutsDB.approve(id)
-  const { data } = await api.post(`/payouts/${id}/approve`, {})
-  return data
-}
-export async function markPayoutPaid(id: string, reference: string, paidAt?: string): Promise<Payout> {
-  if (useMock) return PayoutsDB.markPaid(id, reference, paidAt)
-  const { data } = await api.post(`/payouts/${id}/pay`, { reference, paidAt })
-  return data
-}
-export async function failPayout(id: string, reason: string): Promise<Payout> {
-  if (useMock) return PayoutsDB.fail(id, reason)
-  const { data } = await api.post(`/payouts/${id}/fail`, { reason })
+
+// Get details of a specific payout by id. Returns the payout record with
+// an array of payment details.
+export async function getPayout(id: string): Promise<{
+  id: string
+  orgId: string
+  paymentCount: number
+  totalAmount: number
+  status: string
+  method: string
+  reference: string | null
+  note: string | null
+  createdAt: string
+  payments: { id: string; amount: number; courseId: string | null; studentId: string | null; createdAt: string }[]
+}> {
+  const { data } = await api.get(`/sa/payouts/${id}`)
   return data
 }

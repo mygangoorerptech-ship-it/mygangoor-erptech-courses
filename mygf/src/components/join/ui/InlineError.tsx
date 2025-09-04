@@ -1,5 +1,4 @@
 // mygf/src/components/join/ui/InlineError.tsx
-import React from "react";
 import { AlertCircle } from "lucide-react";
 
 export default function InlineError({ msg }: { msg: string }) {

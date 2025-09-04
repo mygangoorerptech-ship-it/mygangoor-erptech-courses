@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
   passwordHash: String,
   role: { type: String, enum: ["superadmin","admin","vendor","student","orgadmin","orguser"], default: "student" },
   status: { type: String, enum: ["active","disabled"], default: "active" },
-  orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Org", default: null },
+  orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", default: null },
   mfa: { type: mfaSchema, default: () => ({ required: false }) },
   invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

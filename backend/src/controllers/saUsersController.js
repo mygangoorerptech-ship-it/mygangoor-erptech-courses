@@ -15,6 +15,18 @@ function sanitize(u) {
   return Object.assign(obj, { id: String(obj._id) });
 }
 
+/** Tolerant orgId normalizer for list/filter endpoints */
+const HEX24 = /^[0-9a-fA-F]{24}$/;
+function normalizeOrgId(input) {
+  if (input === undefined) return undefined;              // no filter
+  if (input === null || input === "" || input === "global" || input === "null") return null; // global
+  let v = input;
+  if (typeof v === "object" && v) v = v.value || v._id || v.$oid || v.id || v.toString?.();
+  const s = String(v);
+  if (s === "[object Object]") return null;
+  return HEX24.test(s) ? s : null;
+}
+
 // GET /sa/users
 export async function list(req, res) {
   const { q = "", role = "all", status = "all", orgId, verified } = req.query || {};
@@ -29,8 +41,20 @@ export async function list(req, res) {
     });
   }
   if (role && role !== "all") and.push({ role });
-  if (status && status !== "all") and.push({ status });
-  if (orgId) and.push({ orgId });
+
+  if (status && status !== "all") {
+    and.push({ status });
+  }
+
+  // ✅ tolerant org filter prevents CastError on [object Object]
+  const oid = normalizeOrgId(orgId);
+  if (oid === undefined) {
+    // no org filter
+  } else if (oid === null) {
+    and.push({ orgId: null });          // global users
+  } else {
+    and.push({ orgId: oid });           // specific org
+  }
 
   // By default, hide unverified (and keep back-compat by including docs where field is missing)
   if (verified !== "all") {
@@ -54,15 +78,28 @@ export async function list(req, res) {
     rows.map(r => ({
       ...r,
       id: String(r._id),
+      // normalize orgId to string|null for client to avoid future “[object Object]”
+      orgId: r.orgId ? String(r.orgId) : null,
       orgName: r.orgId ? nameById[String(r.orgId)] || undefined : undefined,
     }))
   );
 }
 
+// --- the rest of your file remains unchanged below ---
+
 // POST /sa/users
 export async function create(req, res) {
   const actor = req.user || {};
-  if (!actor || actor.role !== "superadmin") return res.status(403).json({ ok: false });
+  // Determine the actor's primary role; prefer `role` but fall back to the first entry in `roles`.
+  let actorRole = actor?.role;
+  if (!actorRole && Array.isArray(actor?.roles) && actor.roles.length) {
+    actorRole = actor.roles[0];
+  }
+  actorRole = (actorRole || "").toString().toLowerCase();
+
+  if (!actorRole || actorRole !== "superadmin") {
+    return res.status(403).json({ ok: false });
+  }
 
   const {
     name,
@@ -120,83 +157,88 @@ export async function create(req, res) {
       const org = await Organization.findById(orgId).select("name").lean();
       orgName = org?.name;
     }
-    await sendStaffCredentialsEmail(email, {
-      role,
-      signinUrl: signInUrl,
+    let emailSent = false;
+    try {
+      await sendStaffCredentialsEmail(email, {
+        role,
+        signinUrl: signInUrl,
+        email,
+        password: plain,
+        mfaMethod: user.mfa.method || "otp",
+        orgName,
+      });
+      emailSent = true;
+    } catch (err) {
+      console.warn("[saUsers.create] sendStaffCredentialsEmail failed:", err?.message);
+    }
+
+    return res.status(201).json({ ...sanitize(user), emailSent });
+  }
+
+  // STUDENT: direct account + MFA policy + email credentials (no signup page)
+  if (role === "student") {
+    // prefer explicit adminId/managerId from request
+    const chosenAdminId = req.body.adminId || req.body.managerId;
+    if (!chosenAdminId) {
+      return res.status(400).json({ ok:false, message:"Admin required for student creation" });
+    }
+
+    // find admin and derive orgId
+    const adminDoc = await User.findOne({ _id: chosenAdminId, role: "admin" });
+    if (!adminDoc) return res.status(400).json({ ok:false, message:"Selected admin not found" });
+    if (!adminDoc.orgId) return res.status(400).json({ ok:false, message:"Selected admin has no organization" });
+
+    // generate password
+    const plain = crypto
+      .randomBytes(10).toString("base64")
+      .replace(/[^a-z0-9]/gi, "").slice(0, 12) + "9!";
+    const passwordHash = await bcrypt.hash(plain, 12);
+
+    // NEW: students start unverified; will flip to true on first successful login/MFA
+    const user = await User.create({
+      name: name || null,
       email,
-      password: plain, // only ever sent here; never persisted
-      mfaMethod: user.mfa.method || "otp",
-      orgName,
+      role: "student",
+      status: "active",
+      orgId: adminDoc.orgId,
+      invitedBy: actor.sub || actor._id || actor.id || actor.uid || null, // FIX: record creator
+      managerId: adminDoc._id,                                            // supervising admin
+      isVerified: false,                                                  // FIX: start false
+      passwordHash,
+      mfa: {
+        required: !!mfa?.required,
+        method: mfa?.required ? (mfa?.method === "totp" ? "totp" : "otp") : null,
+        totpSecretHash: null,
+        totpSecretEnc: { iv: null, ct: null, tag: null },
+        emailOtp: null,
+      },
     });
+
+    // email credentials (CORRECT CALL SIGNATURE)
+    const appBase = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
+    const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
+
+    let orgName;
+    if (adminDoc.orgId) {
+      const org = await Organization.findById(adminDoc.orgId).select("name").lean();
+      orgName = org?.name;
+    }
+
+    try {
+      await sendStaffCredentialsEmail(email, {
+        role: "student",
+        signinUrl: signInUrl,
+        email,
+        password: plain,
+        mfaMethod: user.mfa.method,          // 'otp' | 'totp' | null
+        mfaRequired: !!user.mfa.required,    // ensure correct wording
+        orgName,
+        adminName: adminDoc.name || adminDoc.email,
+      });
+    } catch {}
 
     return res.status(201).json(sanitize(user));
   }
-
-// STUDENT: direct account + MFA policy + email credentials (no signup page)
-if (role === "student") {
-  // prefer explicit adminId/managerId from request
-  const chosenAdminId = req.body.adminId || req.body.managerId;
-  if (!chosenAdminId) {
-    return res.status(400).json({ ok:false, message:"Admin required for student creation" });
-  }
-
-  // find admin and derive orgId
-  const adminDoc = await User.findOne({ _id: chosenAdminId, role: "admin" });
-  if (!adminDoc) return res.status(400).json({ ok:false, message:"Selected admin not found" });
-  if (!adminDoc.orgId) return res.status(400).json({ ok:false, message:"Selected admin has no organization" });
-
-  // generate password
-  const plain = crypto
-    .randomBytes(10).toString("base64")
-    .replace(/[^a-z0-9]/gi, "").slice(0, 12) + "9!";
-  const passwordHash = await bcrypt.hash(plain, 12);
-
-  // NEW: students start unverified; will flip to true on first successful login/MFA
-  const user = await User.create({
-    name: name || null,
-    email,
-    role: "student",
-    status: "active",
-    orgId: adminDoc.orgId,
-    invitedBy: actor.sub || actor._id || actor.id || actor.uid || null, // FIX: record creator
-    managerId: adminDoc._id,                                            // supervising admin
-    isVerified: false,                                                  // FIX: start false
-    passwordHash,
-    mfa: {
-      required: !!mfa?.required,
-      method: mfa?.required ? (mfa?.method === "totp" ? "totp" : "otp") : null,
-      totpSecretHash: null,
-      totpSecretEnc: { iv: null, ct: null, tag: null },
-      emailOtp: null,
-    },
-  });
-
-  // email credentials (CORRECT CALL SIGNATURE)
-  const appBase = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
-  const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
-
-  let orgName;
-  if (adminDoc.orgId) {
-    const org = await Organization.findById(adminDoc.orgId).select("name").lean();
-    orgName = org?.name;
-  }
-
-  try {
-    await sendStaffCredentialsEmail(email, {
-      role: "student",
-      signinUrl: signInUrl,
-      email,
-      password: plain,
-      mfaMethod: user.mfa.method,          // 'otp' | 'totp' | null
-      mfaRequired: !!user.mfa.required,    // ensure correct wording
-      orgName,
-      adminName: adminDoc.name || adminDoc.email,
-    });
-  } catch {}
-
-  return res.status(201).json(sanitize(user));
-}
-
 
   // For completeness: allow creating superadmin via API if needed
   if (role === "superadmin") {
@@ -277,6 +319,16 @@ export async function remove(req, res) {
 // POST /sa/users/bulk-upsert
 export async function bulkUpsert(req, res) {
   const actor = req.user || {};
+  // Determine the actor's primary role for access control. Only superadmin may bulk import users.
+  let actorRole = actor?.role;
+  if (!actorRole && Array.isArray(actor?.roles) && actor.roles.length) {
+    actorRole = actor.roles[0];
+  }
+  actorRole = (actorRole || "").toString().toLowerCase();
+  if (actorRole !== "superadmin") {
+    return res.status(403).json({ ok: false, message: "Forbidden" });
+  }
+
   const actorId = actor.sub || actor._id || actor.id || actor.uid || null;
   const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
   let created = 0, updated = 0;

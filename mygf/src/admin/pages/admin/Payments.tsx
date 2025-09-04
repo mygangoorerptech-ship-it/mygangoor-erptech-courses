@@ -1,29 +1,47 @@
+// mygf/src/admin/pages/admin/Payments.tsx
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listPayments, refundPayment } from '../../api/payments'
+import { listPayments, refundPayment, createOfflinePayment, verifyPayment } from '../../../api/payments'
 import { useAuth } from '../../auth/store'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
-import { RotateCcw, Search } from 'lucide-react'
+import OfflinePaymentModal from '../../features/payments/OfflinePaymentModal'
+import { RotateCcw, Search, CheckCircle2, Plus } from 'lucide-react'
 
-type PaymentStatus = 'initiated'|'captured'|'refunded'|'failed'
+// include 'submitted' so offline flow can be verified
+type PaymentStatus = 'initiated'|'submitted'|'captured'|'refunded'|'failed'|'pending'|'verified'
 type Filters = { q?:string; status:'all'|PaymentStatus }
 
 export default function ADPayments(){
   const qc = useQueryClient()
   const { user } = useAuth()
-  const orgId = (user as any)?.orgId
   const [filters,setFilters] = useState<Filters>({ q:'', status:'all' })
   const [target,setTarget] = useState<any|null>(null)
+  const [openOffline, setOpenOffline] = useState(false)
 
   const query = useQuery({
-    queryKey:['admin-payments', filters, orgId],
-    queryFn:()=> listPayments({ orgId, q:filters.q||undefined, status:filters.status })
+    queryKey:['admin-payments', filters],
+    queryFn:()=> listPayments({ q:filters.q||undefined, status:filters.status })
   })
 
   const refundMut = useMutation({
     mutationFn:(id:string)=> refundPayment(id),
+    onSuccess:()=> qc.invalidateQueries({ queryKey:['admin-payments'] })
+  })
+
+  // create offline payment
+  const createOfflineMut = useMutation({
+    mutationFn: createOfflinePayment,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-payments'] })
+      setOpenOffline(false)
+    }
+  })
+
+  // verify submitted offline payment
+  const verifyMut = useMutation({
+    mutationFn:(id:string)=> verifyPayment(id),
     onSuccess:()=> qc.invalidateQueries({ queryKey:['admin-payments'] })
   })
 
@@ -44,12 +62,14 @@ export default function ADPayments(){
           <Select value={filters.status} onChange={e=>setFilters(f=>({...f, status: e.target.value as Filters['status']}))}>
             <option value="all">All</option>
             <option value="initiated">Initiated</option>
+            <option value="submitted">Submitted</option>
             <option value="captured">Captured</option>
             <option value="refunded">Refunded</option>
             <option value="failed">Failed</option>
           </Select>
         </div>
         <div className="flex items-end justify-end md:col-span-2 gap-2">
+          <Button onClick={()=> setOpenOffline(true)}><Plus size={16}/> Record Offline</Button>
           <Button variant="ghost" onClick={()=> qc.invalidateQueries({ queryKey:['admin-payments'] })}>Refresh</Button>
         </div>
       </header>
@@ -74,19 +94,31 @@ export default function ADPayments(){
                 <td className="p-3">
                   <div className="font-mono text-xs">{p.orderId || p.subscriptionId || '—'}</div>
                 </td>
-                <td className="p-3">{p.studentEmail || '—'}</td>
+                <td className="p-3">{p.studentEmail || p.student?.email || '—'}</td>
                 <td className="p-3">₹{((p.amount||0)/100).toFixed(2)}</td>
                 <td className="p-3">{p.method || '—'}</td>
                 <td className="p-3">
                   <span className={
                     p.status==='captured' ? 'text-green-700 bg-green-50 rounded px-2 py-0.5' :
                     p.status==='initiated' ? 'text-amber-700 bg-amber-50 rounded px-2 py-0.5' :
+                    p.status==='submitted' ? 'text-indigo-700 bg-indigo-50 rounded px-2 py-0.5' :
                     p.status==='refunded' ? 'text-slate-700 bg-slate-100 rounded px-2 py-0.5' :
                     'text-red-700 bg-red-50 rounded px-2 py-0.5'
                   }>{p.status}</span>
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-2">
+                    {p.status==='submitted' && (
+                      <Button
+                        variant="ghost"
+                        className="h-8 px-2 text-xs"
+                        onClick={()=> verifyMut.mutate(p.id)}
+                        disabled={verifyMut.isPending}
+                        title="Verify offline payment"
+                      >
+                        <CheckCircle2 size={16}/> Verify
+                      </Button>
+                    )}
                     {p.status==='captured' && (
                       <Button variant="danger" onClick={()=> setTarget(p)}><RotateCcw size={16}/> Refund</Button>
                     )}
@@ -128,6 +160,13 @@ export default function ADPayments(){
           </div>
         )}
       </Modal>
+
+      {/* Offline payment entry */}
+      <OfflinePaymentModal
+        open={openOffline}
+        onClose={()=> setOpenOffline(false)}
+        onSubmit={(payload)=> createOfflineMut.mutateAsync(payload).then(()=>{})}
+      />
     </div>
   )
 }

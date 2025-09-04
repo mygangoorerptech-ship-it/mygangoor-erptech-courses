@@ -1,5 +1,4 @@
 // mygf/src/components/dashboard/RecentCertificatesCard.tsx
-import React from "react";
 import Card from "./ui/Card";
 import type { CertificateItem } from "./types";
 

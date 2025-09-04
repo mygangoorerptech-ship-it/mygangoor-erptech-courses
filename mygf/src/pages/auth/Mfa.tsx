@@ -1,6 +1,7 @@
 // mygf/src/pages/auth/Mfa.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import NavBar from "../../components/home/NavBar";
 import { verifyMfa, resendEmailOtp, totpSetup, totpVerify } from "../../api/auth";
 import { useAuth } from "../../auth/store";
 
@@ -17,7 +18,7 @@ const STORAGE_KEY = "mfaSession";
    if (role === "superadmin") return "/superadmin/overview";
    if (role === "admin") return "/admin/overview";
    if (role && role.startsWith("org")) return "/dashboard";
-   if (role === "vendor") return "/dashboard";
+   if (role === "vendor") return "/vendor/overview";
    return "/dashboard";
  }
 
@@ -140,6 +141,11 @@ export default function Mfa() {
   };
 
   return (
+    <>
+          {/* Full-bleed nav */}
+      <div className="relative z-20">
+        <NavBar />
+      </div> 
     <div className="min-h-screen grid place-items-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-4">
         <h1 className="text-xl font-semibold">Multi-Factor Authentication</h1>
@@ -190,5 +196,6 @@ export default function Mfa() {
         )}
       </div>
     </div>
+        </>
   );
 }

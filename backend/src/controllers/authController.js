@@ -348,25 +348,28 @@ export async function acceptInvite(req, res) {
     accepted: false,
     expiresAt: { $gt: new Date() },
   });
-  if (!inv) {
-    return res.status(400).json({ ok: false, message: "Invalid or expired invitation" });
-  }
+  if (!inv) return res.status(400).json({ ok: false, message: "Invalid or expired invitation" });
 
+  // --- Normalize MFA policy from either style of stored fields ---
+  const effMfaRequired =
+    inv.mfaRequired ??
+    (typeof inv.mfa?.required === "boolean" ? inv.mfa.required : undefined) ??
+    false;
+
+  const effMfaMethod =
+    inv.mfaMethod ??
+    (inv.mfa?.method ? String(inv.mfa.method) : null) ??
+    null;
+
+  const mfaPolicy = effMfaRequired
+    ? { required: true, method: effMfaMethod || "otp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null }
+    : { required: false, method: null,               totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
+
+  // Students: verified after successful first login/MFA. If no MFA is required, verify now.
+  const verifiedNow = !mfaPolicy.required;
+
+  // --- Create or update the user with ORG MEMBERSHIP from the invite ---
   const passwordHash = await bcrypt.hash(password, 12);
-
-  // Build MFA policy from invitation; fallbacks by role
-  const mfaPolicy = (() => {
-    if (inv.mfaRequired) {
-      return { required: true, method: inv.mfaMethod || "otp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
-    }
-    // default behavior if no explicit requirement came with the invite:
-    if (inv.role === "admin")  return { required: false, method: null, totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
-    if (inv.role === "vendor") return { required: true,  method: "totp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
-    // students optional
-    return { required: false, method: null, totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
-  })();
-
-  const verifiedNow = !mfaPolicy.required; // students w/o MFA become verified immediately
 
   let user = await User.findOne({ email: inv.email });
   if (!user) {
@@ -377,31 +380,35 @@ export async function acceptInvite(req, res) {
       role: inv.role,
       status: "active",
       isVerified: verifiedNow,
-      orgId: inv.orgId || null,
+      orgId: inv.orgId || null,           // <-- org membership
       invitedBy: inv.invitedBy || null,
-      managerId: inv.managerId || null, // vendor -> admin mapping (if present)
+      managerId: inv.managerId || null,
       mfa: mfaPolicy,
     });
   } else {
     user.name = name;
     user.passwordHash = passwordHash;
     user.role = inv.role;
-    user.orgId = inv.orgId || null;
+    user.orgId = inv.orgId || null;      // <-- ensure membership
     user.managerId = inv.managerId || null;
     user.mfa = mfaPolicy;
     user.isVerified = verifiedNow;
     await user.save();
   }
 
+  // Mark invite consumed
   inv.accepted = true;
   await inv.save();
 
+  // --- Issue cookies with orgId embedded so the session immediately sees membership ---
   const device = req.get("User-Agent") || "unknown";
   const { access, refresh, jti, refreshExp } = mintTokens(user, device);
   await saveRefresh(user.id, jti, refreshExp, device);
+  setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
 
   return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
 }
+
 
 export async function check(req, res) {
   try {
@@ -410,38 +417,17 @@ export async function check(req, res) {
     const headerTok = header.startsWith("Bearer ") ? header.slice(7) : null;
     const token = accessCookie || headerTok;
 
-    // 1) If access token is valid, return user
-    if (token) {
-      try {
-        const { sub: uid } = jwt.verify(token, JWT_ACCESS_SECRET);
-        const user = await User.findById(uid);
-        if (user) return res.json({ ok: true, user });
-      } catch { /* fall through to refresh */ }
+    if (!token) return res.status(401).json({ ok: false });
+
+    try {
+      const { sub: uid } = jwt.verify(token, JWT_ACCESS_SECRET);
+      const user = await User.findById(uid);
+      if (!user) return res.status(401).json({ ok: false });
+      return res.json({ ok: true, user });
+    } catch {
+      // ✋ Do NOT rotate refresh here. Just say “not authorized”.
+      return res.status(401).json({ ok: false });
     }
-
-    // 2) Try refresh-based rehydration (survive server restarts)
-    const rt = req.cookies?.["__Host-refresh"] || req.cookies?.sr;
-    if (!rt) return res.status(401).json({ ok: false });
-
-    let payload;
-    try { payload = jwt.verify(rt, JWT_REFRESH_SECRET); }
-    catch { return res.status(401).json({ ok: false }); }
-
-    const { sub: userId, jti: oldJti } = payload || {};
-    if (!userId || !oldJti) return res.status(401).json({ ok: false });
-
-    const dbTok = await findRefresh(oldJti);
-    if (!dbTok || dbTok.revokedAt) return res.status(401).json({ ok: false });
-
-    const device = req.get("User-Agent") || dbTok.device || "unknown";
-    const user = await User.findById(userId).lean();
-    if (!user) return res.status(401).json({ ok: false });
-
-    const { access, refresh, jti, refreshExp } = mintTokens(user, device);
-    await revokeRefresh(oldJti, jti);
-    await saveRefresh(userId, jti, refreshExp, device);
-    setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
-    return res.json({ ok: true, user });
   } catch {
     return res.status(401).json({ ok: false });
   }

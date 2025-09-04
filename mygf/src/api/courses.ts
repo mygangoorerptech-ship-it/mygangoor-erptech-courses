@@ -1,3 +1,4 @@
+// src/api/courses.ts
 import { api } from './client'
 import type { Course, CourseStatus } from '../admin/types/course'
 

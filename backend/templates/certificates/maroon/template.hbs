@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{titleText}}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <!-- Styles are loaded from style.css and inlined by the renderer -->
+</head>
+<body>
+  <div class="page">
+    <div class="frame"></div>
+    <div class="inner-border"></div>
+
+    <!-- Gold corners -->
+    <div class="corner lt"></div>
+    <div class="corner lb"></div>
+    <div class="corner rt"></div>
+    <div class="corner rb"></div>
+
+    <div class="content-wrap">
+      <!-- LEFT MAIN AREA -->
+      <section class="main">
+        <div class="title">{{titleText}}</div>
+        <div class="award-line">{{awardPrefix}}</div>
+        <div class="recipient">{{student.name}}</div>
+        <div class="desc">{{description}}</div>
+
+        <div class="signatures">
+          <div class="sig">
+            {{#if signers.0.signatureUrl}}
+              <img src="{{signers.0.signatureUrl}}" alt="signature-1"/>
+            {{/if}}
+            <div class="line"></div>
+            <div class="name">{{signers.0.name}}</div>
+            <div class="role">{{signers.0.role}}</div>
+          </div>
+          <div class="sig">
+            {{#if signers.1.signatureUrl}}
+              <img src="{{signers.1.signatureUrl}}" alt="signature-2"/>
+            {{/if}}
+            <div class="line"></div>
+            <div class="name">{{signers.1.name}}</div>
+            <div class="role">{{signers.1.role}}</div>
+          </div>
+        </div>
+
+        <div class="foot">
+          Visit our website to know more:
+          <span class="muted">{{websiteUrl}}</span>
+        </div>
+      </section>
+
+      <!-- RIGHT VERTICAL RIBBON -->
+      <aside class="ribbon">
+        <div class="logo">
+          {{#if org.logoUrl}}
+            <img src="{{org.logoUrl}}" alt="logo"/>
+          {{else}}
+            <!-- fallback text -->
+            <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="6"/>
+              <text x="50" y="57" text-anchor="middle" font-size="18" fill="currentColor" font-family="Arial" >LOGO</text>
+            </svg>
+          {{/if}}
+        </div>
+        <div class="org-name">{{org.name}}</div>
+
+        <div class="medal">
+          <small>{{badge.line1}}</small>
+          <small>{{badge.line2}}</small>
+          <span class="year">{{badge.year}}</span>
+        </div>
+
+        <div class="qr">
+          <img src="{{qrDataUrl}}" alt="QR code"/>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom-right meta -->
+    <div class="meta">
+      Certificate ID: <b>{{certificateId}}</b><br/>
+      Issue Date: <b>{{issueDate}}</b>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,5 +1,4 @@
 // mygf/src/components/pages/tracks/CourseCardSkeleton.tsx
-import React from "react";
 
 export default function CourseCardSkeleton() {
   return (

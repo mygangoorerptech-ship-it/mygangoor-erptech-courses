@@ -1,5 +1,4 @@
 // mygf/src/components/course/LevelCard.tsx
-import React from "react";
 import type { CourseLevel } from "./types";
 
 export default function LevelCard({
@@ -7,7 +6,6 @@ export default function LevelCard({
   index,
   isUnlocked,
   isCompleted,
-  isCurrent,
   onLevelClick,
 }: {
   level: CourseLevel;
@@ -59,7 +57,9 @@ export default function LevelCard({
           <div className="flex items-center">
             <i className="fas fa-tasks text-orange-500 mr-2" />
             <span className="text-sm font-medium text-orange-800">
-              Assignment Required
+              {typeof level.assignment === "string" && level.assignment.trim()
+                ? level.assignment
+                : "Assignment Required"}
             </span>
           </div>
         </div>

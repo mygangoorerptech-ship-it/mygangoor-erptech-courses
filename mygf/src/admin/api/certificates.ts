@@ -1,113 +1,61 @@
-// src/api/certificates.ts
-import { api } from './client'
-import { USE_MOCK } from './env'
-import { CertificatesDB } from './mockCertificates'
-import type { Certificate, CertificateFilters, CertificateStatus, CertificateTemplate } from '../types/certificate'
+// mygf/src/admin/api/certificates.ts
+import { api } from '../../api/client';
 
-export function listCertificates(filters: CertificateFilters){
-  if (USE_MOCK) return CertificatesDB.list(filters)
-  return api.get('/certificates', { params: filters }).then(r => r.data as Certificate[])
+export async function listCertTemplates() {
+  const r = await api.get('/cert-templates');
+  return r.data;
 }
 
-export function createCertificate(payload: Omit<Certificate,'id'|'createdAt'|'updatedAt'>){
-  if (USE_MOCK) {
-    return CertificatesDB.create(payload).then(rec => {
-      return rec
-    })
+export async function generateCertificate(payload: { templateId: string; studentId: string; courseId: string }) {
+  try {
+    const r = await api.post('/certificates/generate', payload, { responseType: 'blob' });
+    return r.data;
+  } catch (err) {
+    // Log detailed error information to the console for debugging.
+    console.error('generateCertificate API error:', err);
+    throw err;
   }
-  return api.post('/certificates', payload).then(r => r.data as Certificate)
 }
 
-export function updateCertificate(id: string, patch: Partial<Certificate>){
-  if (USE_MOCK) {
-    return CertificatesDB.update(id, patch).then(rec => {
-      return rec
-    })
-  }
-  return api.patch(`/certificates/${id}`, patch).then(r => r.data as Certificate)
-}
-
-export function deleteCertificate(id: string){
-  if (USE_MOCK) {
-    return CertificatesDB.delete(id).then(res => {
-      return res
-    })
-  }
-  return api.delete(`/certificates/${id}`).then(r => r.data as any)
-}
-
-export function setCertificateStatus(id: string, status: CertificateStatus){
-  if (USE_MOCK) {
-    return CertificatesDB.setStatus(id, status).then(rec => {
-      return rec
-    })
-  }
-  return api.post(`/certificates/${id}/status`, { status }).then(r => r.data as Certificate)
-}
-
-const TINY_PNG =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAASsJTYQAAAAASUVORK5CYII='
-
-export function listCertificateTemplates(){
-  if (USE_MOCK) {
-    const anyDB = CertificatesDB as any
-    const stamp = () => new Date().toISOString()
-
-    if (typeof anyDB.listTemplates === 'function') {
-      // normalize DB results so they always have createdAt/updatedAt
-      return (anyDB.listTemplates() as Promise<CertificateTemplate[]>)
-        .then(list => list.map(t => ({
-          ...t,
-          createdAt: t.createdAt ?? stamp(),
-          updatedAt: t.updatedAt ?? stamp(),
-        })))
-    }
-
-    // Fallback set (previews + defaults) WITH timestamps
-    const now = stamp()
-    const fallback: CertificateTemplate[] = [
-      {
-        id: 'tpl-classic',
-        name: 'Classic',
-        previewDataUrl: TINY_PNG,
-        defaults: {
-          titleText: 'Certificate of Completion',
-          subtitleText: 'Presented to {student_name}',
-          bodyText: 'For completing {course_title} on {date}',
-          issuerName: 'Your Academy',
-          signatureName: 'Instructor',
-          dateFormat: 'YYYY-MM-DD'
-        },
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'tpl-modern',
-        name: 'Modern',
-        previewDataUrl: TINY_PNG,
-        defaults: {
-          titleText: 'Course Certificate',
-          subtitleText: '{student_name}',
-          bodyText: 'has successfully completed {course_title} ({date})',
-          issuerName: 'Training Team',
-          signatureName: 'Lead Instructor',
-          dateFormat: 'DD MMM, YYYY'
-        },
-        createdAt: now,
-        updatedAt: now,
-      }
-    ]
-    return Promise.resolve(fallback)
+// --- PDF fetcher for stored certificate URLs ---
+// Returns a Blob and best-effort filename (Content-Disposition ➜ URL basename)
+export async function fetchCertificateBlobFromUrl(url: string): Promise<{ blob: Blob; filename?: string }> {
+  // data URL -> turn into Blob
+  if (url.startsWith("data:")) {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return { blob, filename: "certificate.pdf" };
   }
 
-  return api.get('/certificates/templates').then(r => r.data as CertificateTemplate[])
-}
+  const takeBasename = (u: string) => {
+    try {
+      const parsed = new URL(u, window.location.origin);
+      const last = (parsed.pathname.split("/").pop() || "").trim();
+      // only accept if it looks like a file with an extension
+      if (/\.[a-z0-9]{2,8}$/i.test(last)) return last;
+    } catch {}
+    return undefined;
+  };
 
-export function addDemoCertificate(templateId: string){
-  if (USE_MOCK) {
-    return CertificatesDB.addDemo(templateId).then(rec => {
-      return rec
-    })
+  const isAbsolute = /^https?:\/\//i.test(url);
+
+  if (isAbsolute) {
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error(`Failed to fetch certificate (${res.status})`);
+    const cd = res.headers.get("Content-Disposition") || "";
+    let filename = /filename\*=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd || "")?.[1] || /filename="?([^"]+)"?/i.exec(cd || "")?.[1];
+    if (!filename) filename = takeBasename(url);
+    const blob = await res.blob();
+    return { blob, filename };
   }
-  return api.post('/certificates/demo', { templateId }).then(r => r.data as Certificate)
+
+  // Relative path (e.g. /api/uploads/abc.pdf) -> call through axios base /api
+  const path = url.startsWith("/api/") ? url.slice(5) : url; // strip '/api/'
+  const r = await api.get(`/${path.replace(/^\//, "")}`, { responseType: "blob" });
+  // @ts-ignore
+  const cd = r.headers?.["content-disposition"] as string | undefined;
+  let filename =
+    (cd && (/filename\*=UTF-8''([^;]+)|filename="?([^"]+)"?/i.exec(cd)?.[1] || /filename="?([^"]+)"?/i.exec(cd)?.[1])) ||
+    takeBasename(url);
+  return { blob: r.data as Blob, filename };
 }

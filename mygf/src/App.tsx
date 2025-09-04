@@ -1,8 +1,10 @@
 //`src/App.tsx`
 import { Routes, Route, Navigate } from "react-router-dom";
+import RequireOrgUser from "./auth/RequireOrgUser";
 
 // ---------- Public (student/user) screens ----------
-import HomeSection from "./components/home/HomeSection";
+// import HomeSection from "./components/home/HomeSection";
+import HomeLanding from "./components/home/HomeLanding";
 import TracksAndCollectionsSection from "./components/pages/TracksAndCollectionsSection";
 import SignIn from "./components/screens/SignIn";
 import SignUp from "./components/screens/SignUp";
@@ -12,6 +14,7 @@ import ResetPassword from "./components/screens/ResetPassword";
 import AboutSection from "./components/about/AboutSection";
 import StudentDashboard from "./components/dashboard/StudentDashboard";
 import Mfa from "./pages/auth/Mfa";
+import ReceiptClaim from "./components/screens/ReceiptClaim";
 
 // ---------- Admin area (already present under src/admin) ----------
 import SuperadminLayout from "./admin/layouts/SuperadminLayout";
@@ -35,6 +38,7 @@ import SAPayouts from "./admin/pages/superadmin/Payouts";
 import SAPayoutDetail from "./admin/pages/superadmin/PayoutDetail";
 import SAReconciliation from "./admin/pages/superadmin/Reconciliation";
 import SASettings from "./admin/pages/superadmin/Settings";
+import SAReports from "./admin/pages/superadmin/Reports";
 import SA_Assessments from "./admin/pages/superadmin/Assessments";
 
 // Admin pages
@@ -61,6 +65,9 @@ import ADUsers from "./admin/pages/admin/Users";
 //vendor pages
 import VEOverview from "./admin/pages/vendor/Overview";
 import VEAssessments from "./admin/pages/vendor/Assessments";
+import VEPayments from "./admin/pages/vendor/Payments";
+import VECourses from "./admin/pages/vendor/Courses";
+import VEReports from "./admin/pages/vendor/Reports";
 
 // ---------- Centralized guards ----------
 import Shell from "./shell";
@@ -72,15 +79,26 @@ export default function App() {
       <Route path="/" element={<Navigate to="/home" replace />} />
 
       {/* Public routes */}
-      <Route path="/home" element={<HomeSection />} />
-      <Route path="/tracks" element={<TracksAndCollectionsSection />} />
-      <Route path="/course/:courseId" element={<CourseDetail />} />
+      {/* <Route path="/home" element={<HomeSection />} /> */}
+      <Route path="/home" element={<HomeLanding />} />
+      {/* ⬇️ Protected: orguser only. Other roles untouched. */}
+<Route path="/tracks" element={<TracksAndCollectionsSection />} />
+
+<Route
+  path="/course/:courseId"
+  element={
+    <RequireOrgUser loading={<TracksGateLoader />}>
+      <CourseDetail />
+    </RequireOrgUser>
+  }
+/>
       <Route path="/about" element={<AboutSection />} />
       <Route path="/login" element={<SignIn />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
+      <Route path="/claim-receipt" element={<ReceiptClaim />} />
 
       {/* Student dashboard (protected by Shell) */}
       <Route
@@ -121,6 +139,7 @@ export default function App() {
         <Route path="payouts/:id" element={<SAPayoutDetail />} />
         <Route path="reconciliation" element={<SAReconciliation />} />
         <Route path="settings" element={<SASettings />} />
+        <Route path="reports" element={<SAReports />} />
         <Route path="assessments" element={<SA_Assessments />} />
       </Route>
 
@@ -166,11 +185,22 @@ export default function App() {
       >
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<VEOverview />} />
+        <Route path="courses" element={<VECourses />} />
+        <Route path="reports" element={<VEReports />} />
         <Route path="assessments" element={<VEAssessments />} />
+        <Route path="payments" element={<VEPayments />} />
         </Route>
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
+  );
+}
+
+function TracksGateLoader() {
+  return (
+    <div className="min-h-[40vh] grid place-items-center text-slate-500">
+      Loading…
+    </div>
   );
 }

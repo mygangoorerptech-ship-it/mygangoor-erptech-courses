@@ -1,5 +1,4 @@
 // mygf/src/components/dashboard/QuickStatsCard.tsx
-import React from "react";
 import Card from "./ui/Card";
 import type { QuickStat } from "./types";
 

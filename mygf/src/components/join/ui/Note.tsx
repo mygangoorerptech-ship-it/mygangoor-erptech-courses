@@ -1,5 +1,4 @@
 // mygf/src/components/join/ui/Note.tsx
-import React from "react";
 import { ShieldCheck } from "lucide-react";
 
 export default function Note({ text }: { text: string }) {

@@ -8,7 +8,7 @@ const r = Router();
 r.use(requireAuth);
 r.use(requireAnyRole("superadmin", "admin", "vendor"));
 
-r.get("/assessments", list);
+r.get("/", list);
 r.post("/assessments", create);
 r.get("/assessments/by-group/:groupId", listByGroup);
 r.patch("/assessments/:id", update);

@@ -1,0 +1,19 @@
+{
+  "id": "maroon",
+  "title": "Maroon Gold Certificate",
+  "preview": "preview.png",
+  "requiredFields": [
+    "titleText",
+    "awardPrefix",
+    "student.name",
+    "description",
+    "signers",
+    "org.name",
+    "badge.line1",
+    "badge.line2",
+    "badge.year",
+    "certificateId",
+    "issueDate",
+    "websiteUrl"
+  ]
+}

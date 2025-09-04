@@ -10,6 +10,29 @@ const ALLOWED = [
 ];
 const pick = (o, keys) => Object.fromEntries(Object.entries(o ?? {}).filter(([k]) => keys.includes(k)));
 
+// NEW: return minimal, safe info for any authed user
+export async function brief(req, res) {
+  const id = req.params.id;
+  const doc = await Organization.findById(id)
+    .select("name code status deletedAt") // only safe fields
+    .lean();
+
+  if (!doc || doc.deletedAt) {
+    return res.status(404).json({ ok: false, message: "Organization not found" });
+  }
+
+  return res.json({
+    ok: true,
+    organization: {
+      id: String(doc._id),
+      name: doc.name,
+      code: doc.code,
+      status: doc.status,
+    },
+  });
+}
+
+
 export async function list(req, res) {
   const { q, status, suspended } = req.query;
   const where = { deletedAt: null };

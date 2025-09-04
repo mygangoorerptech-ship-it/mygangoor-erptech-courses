@@ -1,5 +1,4 @@
 // mygf/src/components/pages/tracks/FilterChips.tsx
-import React from "react";
 import { CHIP_OPTIONS, type Chip } from "./types";
 
 export default function FilterChips({

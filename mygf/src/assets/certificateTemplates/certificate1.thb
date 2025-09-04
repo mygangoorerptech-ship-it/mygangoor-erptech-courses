@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{titleText}}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <style>
+    /* ========= THEME ========= */
+    :root{
+      --maroon:#7b1230;      /* tweak to match your brand */
+      --gold:#d9a441;
+      --ink:#3b3b3b;
+      --muted:#6b6b6b;
+      --bg:#ffffff;
+    }
+
+    /* ========= PRINT SIZE (A4 landscape) ========= */
+    @page{
+      size: A4 landscape;
+      margin: 0;
+    }
+    html,body{
+      height:100%;
+      background: var(--bg);
+    }
+    body{
+      margin:0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* ========= CANVAS ========= */
+    .page{
+      width: 297mm; height: 210mm; position: relative; overflow: hidden;
+      display: flex; align-items: stretch; justify-content: stretch;
+      background:
+        repeating-linear-gradient( 135deg,
+          #f5f6f7 0 2.2mm,
+          #ffffff 2.2mm 6.2mm
+        );
+    }
+
+    /* Outer thick border */
+    .frame{
+      position:absolute; inset:0;
+      box-shadow: inset 0 0 0 8.5mm var(--maroon);
+    }
+
+    /* Inner dashed border */
+    .inner-border{
+      position:absolute; inset: 8.5mm 8.5mm 8.5mm 8.5mm;
+      box-shadow: inset 0 0 0 0.9mm var(--bg);
+    }
+    .inner-border::after{
+      content:"";
+      position:absolute; inset: 6mm;
+      border: 0.6mm dashed var(--maroon);
+      border-radius: 1mm;
+    }
+
+    /* Gold corner ornaments (L-shapes) */
+    .corner{ position:absolute; width:14mm; height:14mm; }
+    .corner::before, .corner::after{
+      content:""; position:absolute; background: var(--gold);
+    }
+    /* top/left stroke */
+    .corner.lt{ left:14mm; top:14mm; }
+    .corner.lt::before{ width:8mm; height:1.6mm; left:-6mm; top:-1.6mm; }
+    .corner.lt::after{ width:1.6mm; height:8mm; left:-1.6mm; top:-6mm; }
+    /* bottom/left */
+    .corner.lb{ left:14mm; bottom:14mm; }
+    .corner.lb::before{ width:8mm; height:1.6mm; left:-6mm; bottom:-1.6mm; }
+    .corner.lb::after{ width:1.6mm; height:8mm; left:-1.6mm; bottom:-6mm; }
+    /* top/right */
+    .corner.rt{ right:14mm; top:14mm; }
+    .corner.rt::before{ width:8mm; height:1.6mm; right:-6mm; top:-1.6mm; }
+    .corner.rt::after{ width:1.6mm; height:8mm; right:-1.6mm; top:-6mm; }
+    /* bottom/right */
+    .corner.rb{ right:14mm; bottom:14mm; }
+    .corner.rb::before{ width:8mm; height:1.6mm; right:-6mm; bottom:-1.6mm; }
+    .corner.rb::after{ width:1.6mm; height:8mm; right:-1.6mm; bottom:-6mm; }
+
+    /* ========= LAYOUT: LEFT CONTENT + RIGHT RIBBON ========= */
+    .content-wrap{
+      position:absolute; inset: 18mm 24mm 18mm 24mm;
+      display:grid; grid-template-columns: 1fr 62mm; gap: 14mm;
+      z-index:2;
+    }
+
+    /* RIGHT RIBBON */
+    .ribbon{
+      background: var(--maroon);
+      border-radius: 1.5mm;
+      position: relative;
+      display:flex; flex-direction: column; align-items: center;
+      justify-content:flex-start;
+      padding: 10mm 6mm 6mm;
+      box-shadow: inset 0 0 0 1.2mm #531122, inset 0 0 0 2.2mm var(--gold);
+    }
+    .ribbon .logo{
+      width: 34mm; height: 34mm;
+      border-radius: 50%;
+      background:#fff;
+      display:flex; align-items:center; justify-content:center;
+      overflow:hidden;
+      margin-bottom: 10mm;
+    }
+    .ribbon .logo img{
+      width:80%; height:auto; display:block;
+      object-fit: contain;
+    }
+    .ribbon .org-name{
+      color:#fff; font: 600 4.2mm/1.3 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      text-align:center; letter-spacing:.2mm; margin-bottom: 14mm;
+    }
+    /* Medallion */
+    .medal{
+      width: 40mm; height: 40mm; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffe7a8, #d8aa3f 60%, #b88924 100%);
+      border: 1mm solid #b88924;
+      display:flex; align-items:center; justify-content:center;
+      text-align:center; padding: 5mm;
+      color:#5b3d00; font-weight:700; line-height:1.1;
+      box-shadow: 0 1mm 3mm rgba(0,0,0,.15), inset 0 0 0 1mm #f6d57b;
+    }
+    .medal small{ display:block; font-weight:600; font-size:3.3mm; letter-spacing:.25mm; }
+    .medal .year{ display:block; font-weight:800; font-size:4mm; margin-top:1mm; }
+
+    /* QR directly under medallion */
+    .qr{
+      margin-top: 10mm;
+      width: 33mm; height: 33mm;
+      background:#fff; padding: 2mm; border-radius: 1mm;
+      box-shadow: 0 0 0 0.8mm var(--gold);
+    }
+    .qr img{ width:100%; height:100%; display:block; object-fit:contain; }
+
+    /* ========= LEFT MAIN CONTENT ========= */
+    .main{
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
+      text-align:center;
+    }
+
+    /* Fonts (use your own WOFF2 in production via @font-face; keep safe fallbacks) */
+    .title{
+      color:var(--maroon);
+      font: 700 15mm/1.1 "Georgia", "Times New Roman", Times, serif;
+      letter-spacing: .6mm;
+      text-transform: uppercase;
+      margin-top: 6mm;
+      margin-bottom: 10mm;
+    }
+    .award-line{
+      color:var(--muted);
+      font: 500 4.5mm/1.2 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      margin-bottom: 6mm;
+    }
+    .recipient{
+      color:var(--maroon);
+      font: 800 18mm/1 "Georgia", "Times New Roman", Times, serif;
+      letter-spacing: .2mm;
+      margin-bottom: 6mm;
+    }
+    .desc{
+      max-width: 150mm; color:#444;
+      font: 400 4.5mm/1.6 "Inter", system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      margin-bottom: 16mm;
+    }
+
+    /* Signatures row */
+    .signatures{
+      width:100%;
+      display:grid; grid-template-columns: 1fr 1fr; gap: 18mm;
+      align-items:end; margin-top:auto;
+    }
+    .sig{
+      display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+    }
+    .sig img{
+      height: 16mm; width:auto; object-fit:contain; margin-bottom: 4mm;
+    }
+    .sig .line{
+      width: 80mm; border-top: 0.6mm dashed #bdbdbd; margin-bottom: 4mm;
+    }
+    .sig .name{
+      font: 700 4.6mm/1.3 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:#222;
+    }
+    .sig .role{
+      font: 500 3.9mm/1.2 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color: var(--muted);
+    }
+
+    /* Foot line (website) */
+    .foot{
+      margin-top: 8mm;
+      font: 500 4mm/1.4 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color: var(--maroon);
+    }
+    .foot .muted{ color:#a37a7a; }
+
+    /* Certificate meta bottom-right */
+    .meta{
+      position:absolute; right: 28mm; bottom: 22mm; text-align:left;
+      font: 600 3.8mm/1.5 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:#a37a7a;
+    }
+    .meta b{ color: #5b1b29; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="frame"></div>
+    <div class="inner-border"></div>
+
+    <!-- Gold corners -->
+    <div class="corner lt"></div>
+    <div class="corner lb"></div>
+    <div class="corner rt"></div>
+    <div class="corner rb"></div>
+
+    <div class="content-wrap">
+      <!-- LEFT MAIN AREA -->
+      <section class="main">
+        <div class="title">{{titleText}}</div>
+        <div class="award-line">{{awardPrefix}}</div>
+        <div class="recipient">{{student.name}}</div>
+        <div class="desc">{{description}}</div>
+
+        <div class="signatures">
+          <div class="sig">
+            {{#if signers.0.signatureUrl}}
+              <img src="{{signers.0.signatureUrl}}" alt="signature-1"/>
+            {{/if}}
+            <div class="line"></div>
+            <div class="name">{{signers.0.name}}</div>
+            <div class="role">{{signers.0.role}}</div>
+          </div>
+          <div class="sig">
+            {{#if signers.1.signatureUrl}}
+              <img src="{{signers.1.signatureUrl}}" alt="signature-2"/>
+            {{/if}}
+            <div class="line"></div>
+            <div class="name">{{signers.1.name}}</div>
+            <div class="role">{{signers.1.role}}</div>
+          </div>
+        </div>
+
+        <div class="foot">
+          Visit our website to know more:
+          <span class="muted">{{websiteUrl}}</span>
+        </div>
+      </section>
+
+      <!-- RIGHT VERTICAL RIBBON -->
+      <aside class="ribbon">
+        <div class="logo">
+          {{#if org.logoUrl}}
+            <img src="{{org.logoUrl}}" alt="logo"/>
+          {{else}}
+            <!-- fallback text -->
+            <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="6"/>
+              <text x="50" y="57" text-anchor="middle" font-size="18" fill="currentColor" font-family="Arial" >LOGO</text>
+            </svg>
+          {{/if}}
+        </div>
+        <div class="org-name">{{org.name}}</div>
+
+        <div class="medal">
+          <small>{{badge.line1}}</small>
+          <small>{{badge.line2}}</small>
+          <span class="year">{{badge.year}}</span>
+        </div>
+
+        <div class="qr">
+          <img src="{{qrDataUrl}}" alt="QR code"/>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Bottom-right meta -->
+    <div class="meta">
+      Certificate ID: <b>{{certificateId}}</b><br/>
+      Issue Date: <b>{{issueDate}}</b>
+    </div>
+  </div>
+</body>
+</html>

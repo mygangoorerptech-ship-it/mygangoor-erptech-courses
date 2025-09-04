@@ -5,7 +5,11 @@ import type { Course, CourseFilters, CourseStatus } from '../types/course'
 // Admin + Vendor org-scoped surface -> /courses
 export async function listCourses(filters: CourseFilters) {
   const r = await api.get('/courses', { params: filters })
-  return r.data as Course[]
+  const data = r.data
+  if (Array.isArray(data)) {
+    return { items: data as Course[], total: data.length, page: 1, pageSize: data.length }
+  }
+  return data as { items: Course[]; total: number; page: number; pageSize: number }
 }
 
 export async function createCourse(payload: Partial<Course>) {

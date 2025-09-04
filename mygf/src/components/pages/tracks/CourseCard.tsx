@@ -2,33 +2,90 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import type { Course } from "./types";
-import VideoPreviewModal from "./models/VideoPreviewModal"; // <-- add this
+import VideoPreviewModal from "./models/VideoPreviewModal";
+// ⬇️ use your paise→INR formatter
+import { formatINRFromPaise } from "../../../admin/utils/currency";
 
 export default function CourseCard({
   course,
   isWishlisted,
   onToggleWishlist,
+  // NEW:
+  isPremium = false,
+  onRequireEnroll,
 }: {
   course: Course;
   isWishlisted: boolean;
   onToggleWishlist: (c: Course) => void;
+  // NEW:
+  isPremium?: boolean;
+  onRequireEnroll?: (c: Course) => void;
 }) {
   const [showPreview, setShowPreview] = React.useState(false);
+  const [imgLoaded, setImgLoaded] = React.useState(false);
+  const [imgError, setImgError] = React.useState(false);
   const navigate = useNavigate();
+    // --- Price in paise (prefer precomputed from fetch) ---
+  const mrpPaiseFromFetch = (course as any).mrpPaise as number | undefined;
+  const salePaiseFromFetch = (course as any).salePaise as number | undefined;
+
+  const pricePaise =
+    typeof mrpPaiseFromFetch === "number"
+      ? mrpPaiseFromFetch
+      : typeof course.pricePaise === "number"
+      ? course.pricePaise
+      : typeof (course as any).price === "number"
+      ? Math.round((course as any).price * 100)
+      : null;
+
+  const discount = typeof course.discountPercent === "number" ? course.discountPercent : 0;
+
+  const salePaise =
+    typeof salePaiseFromFetch === "number"
+      ? salePaiseFromFetch
+      : pricePaise != null && discount > 0
+      ? Math.max(0, Math.round(pricePaise * (1 - discount / 100)))
+      : pricePaise;
+
+  const hasPrice = typeof pricePaise === "number" && pricePaise > 0;
+  const isFree = !hasPrice;
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/course/${course.id}`, { state: { course } });
+    // Gate navigation: premium/free -> navigate; otherwise -> enroll modal
+    if (isPremium || isFree) {
+      navigate(`/course/${course.id}`, { state: { course } });
+    } else {
+      onRequireEnroll?.(course);
+    }
   };
 
   return (
     <article
-    onClick={handleCardClick}
-    className="group relative overflow-hidden border border-slate-300 bg-white/80 shadow-sm hover:shadow-md focus-within:ring-2 focus-within:ring-slate-300">
+      onClick={handleCardClick}
+      className="group relative overflow-hidden border border-slate-300 bg-white/80 shadow-sm hover:shadow-md focus-within:ring-2 focus-within:ring-slate-300"
+    >
       {/* Media header */}
       <div className="relative h-44">
-        <img src={course.cover} alt={course.title} className="h-full w-full object-cover" />
+        {/* Skeleton if no cover / not loaded / failed */}
+        {(!course.cover || !imgLoaded || imgError) && (
+          <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-slate-100 to-slate-200" />
+        )}
+
+        {/* Real image (lazy) */}
+        {course.cover && (
+          <img
+            src={course.cover}
+            alt={course.title}
+            loading="lazy"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => setImgError(true)}
+            className={`h-full w-full object-cover transition-opacity duration-300 ${
+              imgLoaded && !imgError ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        )}
 
         {/* soft lights */}
         <div className="pointer-events-none absolute inset-0 opacity-70">
@@ -36,24 +93,17 @@ export default function CourseCard({
           <span className="absolute right-10 top-10 h-6 w-6 rounded-full bg-white/20 blur" />
         </div>
 
-        {/* Pills except 'Free' */}
-        {course.pill && course.pill !== "Free" && (
-          <span
-            className={[
-              "absolute left-3 top-3 px-3 py-1 text-xs font-semibold border border-white/60 text-white/90 backdrop-blur-md",
-              course.pill === "Top Rated" ? "bg-rose-500/90" : "bg-cyan-500/90",
-            ].join(" ")}
-          >
+        {/* Pill = Category (no fallback) */}
+        {course.pill && (
+          <span className="absolute left-3 top-3 px-3 py-1 text-xs font-semibold border border-white/60 text-white/90 backdrop-blur-md bg-slate-900/70">
             {course.pill}
           </span>
         )}
 
-        {/* Wishlist heart */}
+        {/* Wishlist */}
         <button
-          className={`absolute right-3 top-3 z-20 inline-flex items-center justify-center h-9 w-9 border backdrop-blur-sm transition-colors ${
-            isWishlisted
-              ? "text-rose-600 border-rose-400 bg-white/60"
-              : "text-white border-white/50 bg-white/25 hover:bg-white/35"
+          className={`absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center border backdrop-blur-sm transition-colors ${
+            isWishlisted ? "text-rose-600 border-rose-400 bg-white/60" : "text-white border-white/50 bg-white/25 hover:bg-white/35"
           }`}
           onClick={(e) => {
             e.preventDefault();
@@ -66,27 +116,91 @@ export default function CourseCard({
             <path d="M12.1 21s-6.6-4.3-9.1-7.6C1.3 11.5 2 8.3 4.7 7c1.8-.9 4-.3 5.3 1.2 1.3-1.5 3.5-2.1 5.3-1.2 2.7 1.3 3.4 4.5 1.7 6.4-2.5 3.3-9 7.6-9 7.6z" />
           </svg>
         </button>
+
+        {/* Lock overlay for PAID courses only when NOT premium */}
+        {hasPrice && !(isPremium || isFree) && (
+          <div className="pointer-events-none absolute left-3 bottom-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-black/30 backdrop-blur-sm">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="4" y="10" width="16" height="10" rx="2" />
+              <path d="M7 10V7a5 5 0 0 1 10 0v3" />
+            </svg>
+          </div>
+        )}
+
+        {/* Premium stamp when premium/free */}
+        {(isPremium || isFree) && (
+          <div className="pointer-events-none absolute left-3 bottom-3 z-20 inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-1 text-xs font-semibold text-white">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+              <path d="M20 6l-11 11-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Premium
+          </div>
+        )}
       </div>
 
       {/* Body */}
       <div className="relative z-10 p-4">
-        <p className="text-xs uppercase tracking-wider text-slate-500">{course.track}</p>
-        <h3 className="mt-1 line-clamp-2 text-slate-900 font-semibold">{course.title}</h3>
+        {/* track shows slug (no fallback) */}
+        {course.track && <p className="text-xs uppercase tracking-wider text-slate-500">{course.track}</p>}
+        <h3 className="mt-1 line-clamp-2 font-semibold text-slate-900">{course.title}</h3>
 
-        {/* Rating + Level */}
+        {/* Price row (hidden when premium/free) */}
+        {!(isPremium || isFree) && hasPrice && salePaise != null && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {discount > 0 && (
+              <span className="rounded-md border border-rose-200 bg-rose-100 px-2 py-0.5 text-[10px] font-bold leading-4 text-rose-700">
+                {discount}% OFF
+              </span>
+            )}
+            <span className="text-lg sm:text-xl font-extrabold text-slate-900">
+              {formatINRFromPaise(salePaise)}
+            </span>
+            {discount > 0 && pricePaise != null && (
+              <span className="text-sm text-slate-400 line-through">
+                {formatINRFromPaise(pricePaise)}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* If premium/free, show a subtle pill instead of price */}
+        {(isPremium || isFree) && (
+          <div className="mt-2">
+            <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-sm font-semibold text-emerald-700">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                <path d="M20 6l-11 11-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Get Certified
+            </span>
+          </div>
+        )}
+
+        {/* Rating + Level (demo keeps) */}
         <div className="mt-2 flex items-center justify-between">
           <div className="flex items-center gap-1 text-sm text-slate-700">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-            <span className="font-medium">{course.rating.toFixed(1)}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+            <span className="font-medium">{Number(course.rating ?? 0).toFixed(1)}</span>
             {typeof course.ratingCount === "number" && <span className="text-xs text-slate-500">({course.ratingCount})</span>}
           </div>
-          <span className="text-xs px-2 py-1 border border-slate-300 text-slate-700">{course.level}</span>
+          <span className="px-2 py-1 text-xs text-slate-700 border border-slate-300">{course.level}</span>
         </div>
 
         {/* Footer actions */}
         <div className="mt-4 flex items-center justify-between">
           <button
-            className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-300"
+            className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
             aria-label={`Preview ${course.title}`}
             onClick={(e) => {
               e.preventDefault();
@@ -107,8 +221,7 @@ export default function CourseCard({
       <VideoPreviewModal
         open={showPreview}
         title={course.title}
-        // You can add course.previewUrl later; this keeps it static for demo
-        videoUrl={undefined}
+        videoUrl={course.previewUrl ?? undefined}
         onClose={() => setShowPreview(false)}
       />
     </article>

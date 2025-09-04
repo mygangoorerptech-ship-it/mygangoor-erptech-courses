@@ -1,184 +1,209 @@
 // mygf/src/components/home/NavBar.tsx
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import GradientIcon from "./icons/GradientIcon";
-import { JoinNowModal } from "../join";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { useAuthHydration } from "../../hooks/useAuthHydration";
-
-type IconId = "home" | "certificates" | "about" | "login";
-
-interface NavItem {
-  label: string;
-  href?: string;
-  iconId: IconId;
-  onClick?: () => void;
-}
+import { useAuth, selectAuthLite, type Role } from "../../auth/store"; // ← use the shared store + selector
+import { useAuthHydration } from "../../hooks/useAuthHydration";        // ← optional, safe helper
+import { JoinNowModal } from "../join";
 
 export default function NavBar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
   const navigate = useNavigate();
 
-  const { user } = useAuthHydration();
-  const isAuthenticated = !!user;
+  // ✅ pull a typed, minimal slice; no "any", no TS warnings
+  const { user, role, isAuthenticated } = useAuth(selectAuthLite);
 
-  const navItems: NavItem[] = [
-    { label: "Home", iconId: "home", onClick: () => navigate("/") },
-    { label: "Dashboard", iconId: "certificates", onClick: () => navigate("/dashboard") },
-    { label: "About", iconId: "about", onClick: () => navigate("/about") },
-  ];
+  // (optional) ensure cookie session is hydrated once; safe to call here
+  useAuthHydration();
 
-  // Hide "Dashboard" for guests
-  const visibleNavItems = navItems.filter(
-    (item) => isAuthenticated || item.label !== "Dashboard"
-  );
+  const isAuthed = isAuthenticated || !!user;
+
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setJoinOpen(true);
+    (window as any).app = (window as any).app || {};
+    (window as any).app.openJoinForm = handler;
+    return () => {
+      if ((window as any).app?.openJoinForm === handler) delete (window as any).app.openJoinForm;
+    };
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    if (mobileOpen) {
+      document.addEventListener("keydown", onKey);
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  const goLoginOrDashboard = () => {
+    if (isAuthed) {
+      if (role && /^org/i.test(String(role))) {
+        navigate("/dashboard");
+        return;
+      }
+      switch (role as Role | undefined) {
+        case "superadmin": navigate("/superadmin"); break;
+        case "admin":      navigate("/admin"); break;
+        case "vendor":     navigate("/vendor"); break;
+        case "student":    navigate("/dashboard"); break;
+        default:           navigate("/dashboard");
+      }
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const openJoinForm = () => {
+    if (!isAuthed) {
+      navigate("/login");
+      return;
+    }
+    setJoinOpen(true);
+  };
+
+  const goHome = (e?: React.MouseEvent) => { e?.preventDefault?.(); setMobileOpen(false); navigate("/home"); };
+  const goAbout = (e?: React.MouseEvent) => { e?.preventDefault?.(); setMobileOpen(false); navigate("/about"); };
+  const goDashOrLogin = () => { setMobileOpen(false); goLoginOrDashboard(); };
+  const openJoin = () => { setMobileOpen(false); openJoinForm(); };
 
   return (
-    <header className="sticky top-0 z-50 bg-cadetBlue/90 backdrop-blur border-b border-blue-300/40">
-      <nav className="flex items-center justify-between px-4 sm:px-8 py-4">
-        <div className="font-bold text-xl bg-gradient-to-r from-yellow-300 via-pink-500 to-red-500 bg-clip-text text-transparent tracking-tight">
-          🎓 MYGF
-        </div>
-
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-6 relative">
-          {visibleNavItems.map(({ label, href, iconId, onClick }) => (
-            <div key={label} className="relative group">
-              {onClick ? (
-                <button
-                  onClick={onClick}
-                  className="flex items-center gap-2 px-3 py-2 border border-blue-300/40 hover:border-blue-500/60 rounded-md bg-gradient-to-r from-cyan-200 via-blue-400 to-purple-500 bg-clip-text text-transparent hover:bg-white/10 transition-all duration-300"
-                >
-                  <GradientIcon iconId={iconId} />
-                  <span className="text-sm font-medium">{label}</span>
-                </button>
-              ) : (
-                <a
-                  href={href}
-                  className="flex items-center gap-2 px-3 py-2 border border-blue-300/40 hover:border-blue-500/60 rounded-md bg-gradient-to-r from-cyan-200 via-blue-400 to-purple-500 bg-clip-text text-transparent hover:bg-white/10 transition-all duration-300"
-                >
-                  <GradientIcon iconId={iconId} />
-                  <span className="text-sm font-medium">{label}</span>
-                </a>
-              )}
+    <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-pink-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Brand */}
+          <div className="flex items-center">
+            <div className="text-2xl font-bold bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">
+              ECA Academy
             </div>
-          ))}
+          </div>
 
-          {/* Right action: only Login for guests (no duplicate Dashboard for authed) */}
-          {!isAuthenticated && (
-            <Link
-              to="/login"
-              className="flex items-center gap-2 px-3 py-2 border border-blue-300/40 hover:border-blue-500/60 rounded-md bg-gradient-to-r from-pink-300 via-red-400 to-yellow-300 bg-clip-text text-transparent hover:bg-white/10 transition-all duration-300"
+          {/* Desktop links */}
+          <div className="hidden md:flex space-x-8">
+            <a
+              href="/home"
+              onClick={goHome}
+              className="nav-link text-gray-700 hover:text-pink-500 flex items-center gap-2"
             >
-              <GradientIcon iconId="login" />
-              <span className="text-sm font-medium">Login</span>
-            </Link>
-          )}
+              <i className="fa-solid fa-house-chimney" /><span>Home</span>
+            </a>
+            <a
+              href="/about"
+              onClick={goAbout}
+              className="nav-link text-gray-700 hover:text-pink-500 flex items-center gap-2"
+            >
+              <i className="fa-solid fa-circle-info" /><span>About</span>
+            </a>
+          </div>
 
-          {/* Join Now (opens modal) */}
+          {/* CTAs */}
+          <div className="flex items-center gap-3">
+            {/* hide these on mobile; they exist in the drawer */}
+            <button
+              onClick={goLoginOrDashboard}
+              className="hidden md:inline-flex text-gray-700 hover:text-pink-500 transition-colors items-center gap-2"
+            >
+              <i className="fa-solid fa-right-to-bracket" />
+              {isAuthed ? "Dashboard" : "Login"}
+            </button>
+            <button
+              type="button"
+              onClick={openJoinForm}
+              className="hidden md:inline-flex group items-center gap-2 rounded-full bg-gradient-to-br from-amber-500 via-red-500 to-pink-500 text-white px-5 py-2 font-semibold shadow-md shadow-rose-700/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
+            >
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="group-hover:rotate-12 transition-transform text-yellow-200">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              <span>Join Form</span>
+            </button>
+
+            {/* Mobile menu button */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="md:hidden ml-1 inline-flex items-center justify-center rounded-xl border border-pink-100 bg-white/70 px-3 py-2 shadow-sm hover:bg-white transition"
+              aria-label="Open menu"
+            >
+              <i className="fa-solid fa-bars text-gray-700" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile drawer + backdrop */}
+      <div
+        onClick={() => setMobileOpen(false)}
+        className={`fixed inset-0 z-[60] bg-black/30 transition-opacity duration-300 ${mobileOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}
+        aria-hidden={!mobileOpen}
+      />
+      <aside
+        role="dialog"
+        aria-modal="true"
+        className={`fixed top-0 right-0 z-[61] h-screen w-80 max-w-[85%] bg-white border-l border-pink-100 shadow-2xl transform transition-transform duration-300 ease-in-out
+        ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="h-16 px-4 flex items-center justify-between border-b border-pink-100">
+          <div className="text-lg font-semibold bg-gradient-to-r from-pink-500 to-blue-500 bg-clip-text text-transparent">
+            Menu
+          </div>
           <button
-            type="button"
-            onClick={() => setJoinOpen(true)}
-            className="group flex items-center gap-2 rounded-full bg-gradient-to-br from-amber-500 via-red-500 to-pink-500 text-white px-5 py-2 font-semibold shadow-md shadow-rose-700/40 hover:scale-[1.03] active:scale-[0.98] transition-all duration-200"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            className="inline-flex items-center justify-center rounded-lg border border-pink-100 bg-white/70 p-2 hover:bg-white transition"
           >
-            <svg
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              className="group-hover:rotate-12 transition-transform text-yellow-200"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            <span>Join Now</span>
+            <i className="fa-solid fa-xmark text-gray-700" />
           </button>
         </div>
 
-        {/* Mobile Toggle */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden rounded-md bg-white/10 text-blue-800 px-3 py-2 border border-blue-300/30 hover:bg-white/15 transition"
-          aria-label="Toggle menu"
-        >
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-blue-800"
-          >
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-      </nav>
-
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-gradient-to-br from-white via-blue-50 to-blue-100 text-slate-900 px-4 py-3 space-y-2">
-          {visibleNavItems.map((item) =>
-            item.onClick ? (
-              <button
-                key={item.label}
-                onClick={() => {
-                  item.onClick?.();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-left flex items-center gap-2 px-4 py-2 rounded-md hover:bg-blue-200/50"
-              >
-                <GradientIcon iconId={item.iconId} uniqueSuffix="mobile" />
-                <span>{item.label}</span>
-              </button>
-            ) : (
-              <a
-                key={item.label}
-                href={item.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-blue-200/50"
-              >
-                <GradientIcon iconId={item.iconId} uniqueSuffix="mobile" />
-                <span>{item.label}</span>
-              </a>
-            )
-          )}
-
-          {/* Only show Login for guests; no extra Dashboard for authed */}
-          {!isAuthenticated && (
-            <Link
-              to="/login"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-blue-200/50"
-            >
-              <GradientIcon iconId="login" uniqueSuffix="mobile" />
-              <span>Login</span>
-            </Link>
-          )}
-
-          {/* Join Now (mobile) */}
+        <nav className="px-4 py-3">
           <button
-            type="button"
-            onClick={() => {
-              setJoinOpen(true);
-              setMobileMenuOpen(false);
-            }}
-            className="w-full mt-1 group flex items-center justify-center gap-2 rounded-full bg-gradient-to-br from-amber-500 via-red-500 to-pink-500 text-white px-5 py-2 font-semibold shadow-md shadow-rose-700/40 transition-all duration-200"
+            onClick={goHome}
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
           >
-            <span>Join Now</span>
+            <i className="fa-solid fa-house-chimney text-pink-500" />
+            <span>Home</span>
           </button>
-        </div>
-      )}
+          <button
+            onClick={goAbout}
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+          >
+            <i className="fa-solid fa-circle-info text-blue-500" />
+            <span>About</span>
+          </button>
 
-      {/* Modal mount via portal */}
-      {joinOpen &&
-        createPortal(<JoinNowModal onClose={() => setJoinOpen(false)} />, document.body)}
-    </header>
+          <div className="my-3 h-px bg-pink-100" />
+
+          <button
+            onClick={goDashOrLogin}
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+          >
+            <i className="fa-solid fa-right-to-bracket text-gray-600" />
+            <span>{isAuthed ? "Dashboard" : "Login"}</span>
+          </button>
+
+          <button
+            onClick={openJoin}
+            className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-pink-500 to-blue-500 text-white px-4 py-3 font-semibold shadow hover:shadow-lg transition"
+          >
+            <i className="fa-solid fa-user-plus" />
+            <span>Join Form</span>
+          </button>
+        </nav>
+
+        <div className="mt-auto px-4 py-4 text-xs text-gray-500">
+          © {new Date().getFullYear()} ECA Academy
+        </div>
+      </aside>
+
+      {/* Modal mount via portal (unchanged) */}
+      {joinOpen && createPortal(<JoinNowModal onClose={() => setJoinOpen(false)} />, document.body)}
+    </nav>
   );
 }

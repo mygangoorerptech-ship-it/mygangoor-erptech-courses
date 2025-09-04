@@ -7,7 +7,8 @@ import type { Role } from '../../auth/store';
 function routeForRole(role?: string){
   if (role === 'superadmin' || role === 'admin') return '/admin';
   if (role && role.startsWith('org')) return '/dashboard';
-  if (role === 'vendor' || role === 'student') return '/dashboard';
+  if (role === 'vendor') return '/vendor';
+  if (role === 'student') return '/dashboard';
   return '/home';
 }
 

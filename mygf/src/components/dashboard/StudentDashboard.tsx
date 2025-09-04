@@ -1,5 +1,5 @@
 // mygf/src/components/dashboard/StudentDashboard.tsx
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import NavBar from "../home/NavBar";
 import DashboardHeader from "./DashboardHeader";
 import WelcomeBanner from "./WelcomeBanner";
@@ -8,9 +8,10 @@ import CourseProgressList from "./CourseProgressList";
 import QuickStatsCard from "./QuickStatsCard";
 import RecentCertificatesCard from "./RecentCertificatesCard";
 import LearningStreakCard from "./LearningStreakCard";
-import type { CourseProgress, CertificateItem, QuickStat } from "./types";
+import type { CertificateItem, QuickStat } from "./types";
 import Footer from "../common/Footer";
 import { useAuthHydration } from "../../hooks/useAuthHydration";
+import { api } from "../../api/client";
 
 function formatDate(d?: string | Date | null) {
   if (!d) return "—";
@@ -48,7 +49,49 @@ export default function StudentDashboard() {
     status: uStatus,
     createdAt: uCreatedAt,
     isVerified: uVerified,
+    orgId: uOrgId,
   } = (user as any) || {};
+
+    // Backend-fetched extras
+  const [orgName, setOrgName] = useState<string | null>(null);
+  const [dobRaw, setDobRaw] = useState<string | null>(null);
+
+  useEffect(() => {
+    let aborted = false;
+
+    // 1) DOB from latest student payment (if any)
+    (async () => {
+      try {
+        const res = await api.get("/student/payments/latest", { withCredentials: true });
+        const dob = res?.data?.payment?.dob ?? null;
+        if (!aborted) setDobRaw(dob);
+      } catch {
+        if (!aborted) setDobRaw(null); // keep placeholder if none
+      }
+    })();
+
+    // 2) Organization name (if student belongs to an org)
+(async () => {
+  if (!uOrgId) {
+    setOrgName(null);
+    return;
+  }
+  try {
+    // ⬇️ changed path to the brief endpoint (no role issue)
+    const res = await api.get(`/organizations/${uOrgId}/brief`, { withCredentials: true });
+    const name =
+      (res?.data?.organization && res.data.organization.name) ||
+      res?.data?.name ||
+      null;
+    setOrgName(name);
+  } catch {
+    setOrgName(null);
+  }
+})();
+    return () => {
+      aborted = true;
+    };
+  }, [uOrgId]);
 
   const profile = useMemo(() => {
     const name = uName || "Student";
@@ -60,60 +103,35 @@ export default function StudentDashboard() {
       ? { text: "Verified", bg: "bg-green-100", textColor: "text-green-800" }
       : { text: "Unverified", bg: "bg-amber-100", textColor: "text-amber-800" };
 
-    const statusBadges: Array<{ text: string; bg: string; textColor: string }> = [
-      verifiedBadge,
-      { text: "Premium Member", bg: "bg-blue-100", textColor: "text-blue-800" },
-    ];
+    const statusBadges: Array<{ text: string; bg: string; textColor: string }> = [verifiedBadge];
+
+    // Replace previous "Premium Member" with Organization name; hide if no org
+    if (orgName) {
+      statusBadges.push({
+        text: orgName,
+        bg: "bg-blue-100",
+        textColor: "text-blue-800",
+      });
+    }
 
     // Account status maps DB status -> component type
     const accountStatus: "Active" | "Suspended" =
       uStatus === "active" ? "Active" : "Suspended";
+
+        // DOB display: keep header, and show fallback if null
+    const dobDisplay = dobRaw ? formatDate(dobRaw) : "-- / -- / ----";
 
     return {
       initials: initialsFrom(name, handle),
       name,
       handle,
       statusBadges,
-      dob: "March 15, 1998",          // dummy (unchanged)
+      dob: dobDisplay,
       registrationDate,               // real (createdAt)
       paymentStatus: "Paid" as const, // dummy (unchanged)
       accountStatus,                  // real (status)
     };
-  }, [uName, uEmail, uStatus, uCreatedAt, uVerified]);
-
-  // Keep existing demo data for the other cards
-  const courseProgress: CourseProgress[] = [
-    {
-      id: "c1",
-      title: "Web Development Fundamentals",
-      percent: 100,
-      gradient: { from: "from-blue-50", to: "to-blue-100" },
-      barColor: "bg-blue-600",
-      trackColor: "bg-blue-200",
-      status: "Completed",
-      showCertificate: true,
-    },
-    {
-      id: "c2",
-      title: "React.js Advanced",
-      percent: 85,
-      gradient: { from: "from-green-50", to: "to-green-100" },
-      barColor: "bg-green-600",
-      trackColor: "bg-green-200",
-      status: "In Progress",
-      remaining: "3 lessons remaining",
-    },
-    {
-      id: "c3",
-      title: "Database Design",
-      percent: 45,
-      gradient: { from: "from-purple-50", to: "to-purple-100" },
-      barColor: "bg-purple-600",
-      trackColor: "bg-purple-200",
-      status: "In Progress",
-      remaining: "8 lessons remaining",
-    },
-  ];
+  }, [uName, uEmail, uStatus, uCreatedAt, uVerified, orgName, dobRaw]);
 
   const quickStats: QuickStat[] = [
     { id: "s1", label: "Total Courses", value: "12", iconClass: "fas fa-book", iconBg: "bg-blue-100", iconColor: "text-blue-600", valueColor: "text-blue-600" },
@@ -134,7 +152,7 @@ export default function StudentDashboard() {
         <NavBar />
       </div>
 
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans">
+      <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans pt-16 sm:pt-20">
         <DashboardHeader />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <WelcomeBanner name={profile.name} />
@@ -151,7 +169,7 @@ export default function StudentDashboard() {
                 paymentStatus={profile.paymentStatus}
                 accountStatus={profile.accountStatus}
               />
-              <CourseProgressList items={courseProgress} />
+              <CourseProgressList />
             </div>
 
             <div className="space-y-6">

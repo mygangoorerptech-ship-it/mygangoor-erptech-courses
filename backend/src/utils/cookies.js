@@ -33,13 +33,25 @@ export function setAuthCookies(req, res, { accessToken, refreshToken }) {
 
   res.cookie(sessionName, accessToken, {
     ...base,
-    maxAge: 15 * 60 * 1000, // 15m
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 15m
   });
 
   res.cookie(refreshName, refreshToken, {
     ...base,
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30d
   });
+
+    // DEV-ONLY: mirror the access token into a readable cookie so the SPA can send Authorization 
+  // Never enable this in production. 
+  if (process.env.NODE_ENV !== "production") { 
+    res.cookie("access", accessToken, { 
+      httpOnly: false,          // readable by frontend 
+      secure: false,            // dev http/https both OK 
+      sameSite: "lax", 
+      path: "/", 
+      maxAge: 15 * 60 * 1000, 
+    }); 
+  }
 }
 
 export function clearAuthCookies(res) {
@@ -56,4 +68,5 @@ export function clearAuthCookies(res) {
   clear("__Host-refresh");
   clear("sid");
   clear("sr");
+  clear("access");
 }

@@ -1,6 +1,4 @@
 //mygf/src/components/course/SuccessAnimation.tsx
-import React from "react";
-
 export default function SuccessAnimation({ isVisible }: { isVisible: boolean }) {
   if (!isVisible) return null;
   return (

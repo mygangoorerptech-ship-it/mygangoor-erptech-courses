@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -19,10 +20,16 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "qrcode": "^1.5.4",
+    "handlebars": "^4.7.8",
+    "dayjs": "^1.11.9",
+    "puppeteer": "^21.3.8",
     "speakeasy": "^2.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/handlebars": "^4.0.40",
+    "@types/qrcode": "^1.5.5",
     "nodemon": "^3.1.9"
   }
 }

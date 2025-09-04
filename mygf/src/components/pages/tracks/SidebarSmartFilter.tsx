@@ -1,5 +1,4 @@
 // mygf/src/components/pages/tracks/SidebarSmartFilter.tsx
-import React from "react";
 import type { Availability, Course } from "./types";
 
 function RadioRow({
@@ -80,7 +79,7 @@ export default function SidebarSmartFilter({
 
             {/* Wishlist preview (demo) */}
             <div className="mt-6">
-                <h3 className="text-sm font-semibold text-slate-700">Wishlist (demo)</h3>
+                <h3 className="text-sm font-semibold text-slate-700">Wishlist</h3>
                 {wishlist.length === 0 ? (
                     <p className="mt-2 text-xs text-slate-500">Click the heart on any course to add it here.</p>
                 ) : (

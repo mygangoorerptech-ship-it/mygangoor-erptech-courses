@@ -8,12 +8,12 @@ import { api } from '../../api/client';
 import { ensureCsrfToken, getCsrfToken } from '../../config/csrf';
 import { GoogleLogin } from '@react-oauth/google';
 
-function routeForRole(role?: string){
-  if(role === "superadmin") return "/superadmin";
-  if(role === "admin") return "/admin";
-  if(role && role.startsWith("org")) return "/dashboard";
-  if(role === "vendor") return "/dashboard";
-  if(role === "student") return "/dashboard";
+function routeForRole(role?: string) {
+  if (role === "superadmin") return "/superadmin";
+  if (role === "admin") return "/admin";
+  if (role && role.startsWith("org")) return "/dashboard";
+  if (role === "vendor") return "/vendor";
+  if (role === "student") return "/dashboard";
   return "/home";
 }
 
@@ -104,7 +104,11 @@ const SignIn: React.FC = () => {
   return (
     <>
       <NavBar />
-      <div className="relative flex items-center justify-center min-h-screen px-4 bg-gradient-to-b from-slate-50 via-sky-50 to-slate-100">
+            <div
+        className="relative flex items-center justify-center min-h-screen px-4
+                   pt-24 md:pt-28
+                   bg-gradient-to-b from-slate-50 via-sky-50 to-slate-100"
+      >
         {/* Decorative backdrop */}
         <AuthBackdrop />
 
@@ -205,7 +209,8 @@ const SignIn: React.FC = () => {
                       navigate(from, { replace: true });
                       return;
                     }
-                    navigate('/dashboard');
+                    const base = routeForRole(data?.user?.role);
+                    navigate(base, { replace: true });
                   } catch (err: any) {
                     alert(err?.response?.data?.message || 'Google login failed');
                   }

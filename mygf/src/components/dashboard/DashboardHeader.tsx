@@ -1,5 +1,5 @@
 //mygf/src/components/dashboard/DashboardHeader.tsx
-import React, { useCallback } from "react";
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout as apiLogout } from "../../api/auth";
 import { useAuth } from "../../auth/store";

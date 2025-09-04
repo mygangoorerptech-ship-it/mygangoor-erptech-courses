@@ -1,5 +1,4 @@
 // mygf/src/components/pages/tracks/SidebarSkeleton.tsx
-import React from "react";
 
 export default function SidebarSkeleton() {
   return (

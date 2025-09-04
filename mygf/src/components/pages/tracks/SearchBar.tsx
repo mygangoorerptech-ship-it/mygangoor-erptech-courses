@@ -1,6 +1,4 @@
 // mygf/src/components/pages/tracks/SearchBar.tsx
-import React from "react";
-
 export default function SearchBar({
   value,
   onChange,

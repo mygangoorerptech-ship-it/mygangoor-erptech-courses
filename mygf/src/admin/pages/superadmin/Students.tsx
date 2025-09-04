@@ -2,7 +2,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Student, StudentFilters, StudentStatus } from '../../types/student'
-import { listStudents, createStudent, updateStudent, deleteStudent, setStudentStatus, bulkUpsertStudents } from '../../api/students'
+import { listStudents, createStudent, updateStudent, deleteStudent, setStudentStatus, bulkUpsertStudents } from '../../api/studentss'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'

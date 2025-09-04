@@ -1,10 +1,11 @@
+// mygf/src/admin/pages/admin/Subscriptions.tsx
 import React, { useMemo, useState } from 'react'
 import { useAuth } from '../../auth/store'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Subscription, SubscriptionStatus } from '../../types/subscription'
 import { listSubscriptions, createSubscription, updateSubscription, deleteSubscription, refundSubscription, cancelSubscription } from '../../api/subscriptions'
-import { listSaCourses } from '../../api/saCourses' // use mock courses lookups
-import { listStudents } from '../../api/students'
+import { listAdCourses as listCourses } from '../../api/adCourses'
+import { listStudents } from '../../api/studentss'
 import type { Course } from '../../types/course'
 import type { Student } from '../../types/student'
 import { Input, Label, Select } from '../../components/Input'
@@ -26,7 +27,7 @@ export default function ADSubscriptions(){
     queryKey:['ad-subs', filters, myOrgId],
     queryFn: ()=> listSubscriptions({ ...filters, orgId: myOrgId })
   })
-  const coursesQ = useQuery({ queryKey:['ad-courses:lookup', myOrgId], queryFn: ()=> listSaCourses({ orgId: myOrgId } as any) })
+  const coursesQ = useQuery({ queryKey:['ad-courses:lookup', myOrgId], queryFn: ()=> listCourses({ orgId: myOrgId } as any) })
   const studentsQ = useQuery({ queryKey:['ad-students:lookup', myOrgId], queryFn: ()=> listStudents({ orgId: myOrgId } as any) })
 
   const rows = subsQ.data ?? []

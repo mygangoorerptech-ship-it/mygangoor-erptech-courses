@@ -1,0 +1,6 @@
+{
+  "id": "classic",
+  "title": "Classic Certificate",
+  "preview": "preview.png",
+  "requiredFields": ["student.name", "course.title", "issuedOn", "issuer", "qrUrl"]
+}

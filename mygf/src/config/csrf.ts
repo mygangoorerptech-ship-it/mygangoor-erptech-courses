@@ -1,28 +1,32 @@
 // src/config/csrf.ts
-let csrfToken: string | null = null;
+let _cached: string | null = null;
 
+function readCookie(name: string) {
+  const m = document.cookie.match(
+    '(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'
+  );
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+export function getCsrfToken(): string | null {
+  const hostTok = readCookie('__Host-csrf');
+  const devTok = readCookie('csrf');
+  const c = hostTok || devTok || null;
+  if (c && c !== _cached) _cached = c;
+  return _cached;
+}
+
+export function invalidateCsrfToken(): void {
+  _cached = null;
+}
+
+/** Ensure we have a fresh CSRF cookie (no axios; avoids interceptor recursion) */
 export async function ensureCsrfToken(force = false): Promise<void> {
-  if (csrfToken && !force) return;
+  if (!force && getCsrfToken()) return;
   try {
-    // hit same-origin /csrf so cookie is set and we get the token
-    const res = await fetch('/csrf', { credentials: 'include' });
-
-    // be tolerant: token may come as JSON { token } or as plain text
-    const text = await res.text();
-    let data: any;
-    try { data = JSON.parse(text); } catch { data = text; }
-
-    csrfToken = (typeof data === 'string' ? data : data?.token) || null;
+    await fetch('/csrf', { credentials: 'include', method: 'GET' });
   } catch {
-    csrfToken = null;
+    // ignore; caller may still proceed with no token if BE accepts header-only from same-origin
   }
-}
-
-export function getCsrfToken(): string {
-  return csrfToken || '';
-}
-
-// optional helper if you ever want to clear it manually
-export function resetCsrfToken(): void {
-  csrfToken = null;
+  getCsrfToken();
 }

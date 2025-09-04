@@ -1,11 +1,15 @@
 //backend/src/routes/organizations.js
 import { Router } from "express";
-import { list, create, update, setStatus, suspend, destroy, bulkUpsert, bulkUploadFile, template } from "../controllers/organizationsController.js";
+import { list, create, update, setStatus, suspend, destroy, bulkUpsert, bulkUploadFile, template, brief } from "../controllers/organizationsController.js";
 import { requireAuth, requireAnyRole } from "../middleware/authz.js";
 import multer from "multer";
 
 const r = Router();
 r.use(requireAuth);
+
+// ⬇️ NEW public (to any authed user) read-only route
+r.get("/:id/brief", brief);
+
 r.use(requireAnyRole(["superadmin"])); // protect all
 
 // file upload (memory)

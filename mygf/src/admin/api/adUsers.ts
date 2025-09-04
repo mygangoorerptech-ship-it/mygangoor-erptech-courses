@@ -30,34 +30,40 @@ export type UpdateAdminUserPayload = Partial<CreateAdminUserPayload> & {
   status?: UserStatus
 }
 
-export function listAdUsers(filters: AdminUserFilters) {
-  return api.get('/ad/users', { params: filters }).then(r => r.data as AdminUser[])
+export async function listAdUsers(filters: AdminUserFilters) {
+  const r = await api.get('/ad/users', { params: filters });
+  return r.data as AdminUser[];
 }
 
-export function createAdUser(payload: CreateAdminUserPayload) {
+export async function createAdUser(payload: CreateAdminUserPayload) {
   // vendor → returns AdminUser, student invite → { ok: true }
-  return api.post('/ad/users', payload).then(r => r.data as AdminUser | { ok: true })
+  const r = await api.post('/ad/users', payload);
+  return r.data as AdminUser | { ok: true; };
 }
 
-export function updateAdUser({ id, patch }: { id: string; patch: UpdateAdminUserPayload }) {
-  return api.patch(`/ad/users/${id}`, patch).then(r => r.data as AdminUser)
+export async function updateAdUser({ id, patch }: { id: string; patch: UpdateAdminUserPayload }) {
+  const r = await api.patch(`/ad/users/${id}`, patch);
+  return r.data as AdminUser;
 }
 
-export function deleteAdUser(id: string) {
-  return api.delete(`/ad/users/${id}`).then(r => r.data as any)
+export async function deleteAdUser(id: string) {
+  const r = await api.delete(`/ad/users/${id}`);
+  return r.data as any;
 }
 
-export function setAdUserStatus(id: string, status: UserStatus) {
-  return api.post(`/ad/users/${id}/status`, { status }).then(r => r.data as AdminUser)
+export async function setAdUserStatus(id: string, status: UserStatus) {
+  const r = await api.post(`/ad/users/${id}/status`, { status });
+  return r.data as AdminUser;
 }
 
-export function setAdUserRole(id: string, role: AdminUserRole) {
-  return api.post(`/ad/users/${id}/role`, { role }).then(r => r.data as AdminUser)
+export async function setAdUserRole(id: string, role: AdminUserRole) {
+  const r = await api.post(`/ad/users/${id}/role`, { role });
+  return r.data as AdminUser;
 }
 
-export function bulkUpsertAdUsers(
+export async function bulkUpsertAdUsers(
   rows: Array<Partial<AdminUser> & { email?: string; role?: AdminUserRole }>
 ) {
-  return api.post('/ad/users/bulk-upsert', { rows })
-    .then(r => r.data as { created: number; updated: number; total: number })
+  const r = await api.post('/ad/users/bulk-upsert', { rows });
+  return r.data as { created: number; updated: number; total: number; };
 }

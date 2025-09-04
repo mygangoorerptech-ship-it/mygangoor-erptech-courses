@@ -1,3 +1,6 @@
+//mygf/src/admin/pages/admin/Reports.tsx
+import Reports from '../../features/reports/Reports';
 
-import Placeholder from '../common/Placeholder'
-export default function Reports(){return <Placeholder title="Reports" description="Admin area placeholder. Wire real UI to APIs here."/>}
+export default function ADReportsPage() {
+  return <Reports />;
+}

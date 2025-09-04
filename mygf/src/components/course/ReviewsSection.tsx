@@ -1,5 +1,5 @@
 // mygf/src/components/course/ReviewsSection.tsx
-import React, { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { Review } from "./types";
 
 type Props = {

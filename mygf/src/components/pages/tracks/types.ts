@@ -5,13 +5,25 @@ export type Availability = "any" | "available" | "unavailable";
 export type Course = {
   id: string;
   title: string;
-  track: "Programming" | "Design" | "Data";
+
+  // track is now the real slug; pill is the real category
+  track?: string | null;        // slug (no fallback)
+  pill?: string | null;         // category (no fallback)
+
+  // Demo carry-overs to keep card rhythm
   level: Level;
   durationHours: number;
+
   rating: number;
   ratingCount?: number;
-  cover?: string; // <-- new field
-  pill?: "Preview" | "Top Rated" | "Free";
+  cover?: string;               // parent/bundle cover (may be undefined)
+  price?: number | null;        // (legacy rupees, optional)
+  pricePaise?: number | null;   // ✅ canonical paise field
+  discountPercent?: number;
+  category?: string | null;
+  tags?: string[];
+  previewUrl?: string | null | undefined;
+  description?: string;
 };
 
 export const CHIP_OPTIONS = ["All", "Latest", "Design"] as const;

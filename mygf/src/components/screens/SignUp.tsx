@@ -16,19 +16,19 @@ const AuthBackdrop: React.FC = () => (
 );
 
 // same helper used in SignIn
-function routeForRole(role?: string){
+function routeForRole(role?: string) {
   if (role === "superadmin") return "/superadmin";
   if (role === "admin") return "/admin";
   if (role && role.startsWith("org")) return "/dashboard";
-  if (role === "vendor") return "/dashboard";
+  if (role === "vendor") return "/vendor";
   if (role === "student") return "/dashboard";
   return "/home";
 }
 
 type PrecheckResp = {
-  mode: 'signin'|'signup';
+  mode: 'signin' | 'signup';
   reason?: string;
-  mfa?: { required: boolean; method: 'otp'|'totp'|null };
+  mfa?: { required: boolean; method: 'otp' | 'totp' | null };
 } | null;
 
 const SignUp: React.FC = () => {
@@ -37,10 +37,10 @@ const SignUp: React.FC = () => {
   const { login: doLogin } = useAuth();              // <-- unified store
 
   const [username, setUsername] = useState('');
-  const [email, setEmail]       = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword]   = useState('');
-  const [passwordVisible, setPasswordVisible]   = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [errors, setErrors] = useState({
     username: '', email: '', password: '', confirmPassword: ''
@@ -111,7 +111,8 @@ const SignUp: React.FC = () => {
       }
 
       // Fallback: cookie-based session only (no tokens returned)
-      navigate('/dashboard', { replace: true });
+      const base = routeForRole(data?.user?.role);
+      navigate(base, { replace: true });
     } catch (error: any) {
       // If the email was created elsewhere during the attempt, show “Go to Sign In”
       if (error?.response?.status === 409) {
@@ -125,7 +126,11 @@ const SignUp: React.FC = () => {
   return (
     <>
       <NavBar />
-      <div className="relative flex items-center justify-center min-h-screen px-4 bg-gradient-to-b from-slate-50 via-sky-50 to-slate-100">
+      <div
+  className="relative flex items-center justify-center min-h-screen px-4
+             pt-24 md:pt-28
+             bg-gradient-to-b from-slate-50 via-sky-50 to-slate-100"
+>
         <AuthBackdrop />
 
         <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
@@ -301,7 +306,8 @@ const SignUp: React.FC = () => {
                       navigate(from, { replace: true });
                       return;
                     }
-                    navigate('/dashboard', { replace: true });
+                    const base = routeForRole(data?.user?.role);
+                    navigate(base, { replace: true });
                   } catch (err: any) {
                     alert(err?.response?.data?.message || 'Google login failed');
                   }

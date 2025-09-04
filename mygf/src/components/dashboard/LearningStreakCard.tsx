@@ -1,5 +1,4 @@
 // mygf/src/components/dashboard/LearningStreakCard.tsx
-import React from "react";
 import Card from "./ui/Card";
 
 type Props = {

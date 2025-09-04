@@ -1,99 +1,117 @@
 // src/api/client.ts
-import axios, { AxiosError } from "axios";
-import { SERVER_URL } from "../components/constants";
-import { ensureCsrfToken, getCsrfToken } from "../config/csrf";
+import axios, { AxiosError } from 'axios';
+import { ensureCsrfToken, getCsrfToken, invalidateCsrfToken } from '../config/csrf';
 
-const baseURL = SERVER_URL ? `${SERVER_URL}/api` : "/api";
+// Prefer env var in prod; fallback to same-origin "/api"
+const API_BASE =
+  (import.meta as any)?.env?.VITE_API_URL
+    ? `${(import.meta as any).env.VITE_API_URL}/api`
+    : '/api';
 
 export const api = axios.create({
-  baseURL,
+  baseURL: API_BASE,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+  },
   timeout: 15000,
 });
 
-// ---- ALWAYS attach CSRF header (even on GET) ----
-api.interceptors.request.use(async (config) => {
+// ---------------------------------------------------------------------------
+// Attach Authorization header from dev cookie
+//
+// In development we mirror the access token into a non-HttpOnly cookie named
+// `access`. The server already accepts the token via cookies, but during
+// development the proxy (Vite -> backend) sometimes strips cookies due to
+// SameSite/Secure policies. By explicitly copying the value of the `access`
+// cookie into an `Authorization` bearer header on every request, we ensure
+// protected endpoints always receive a valid token even when cookies are not
+// forwarded. In production this interceptor has no effect because the
+// `access` cookie is never set (NODE_ENV === 'production').
+api.interceptors.request.use((config) => {
   try {
-    await ensureCsrfToken();
-    const token = getCsrfToken();
-    if (token) {
-      (config.headers as any) = config.headers ?? {};
-      (config.headers as any)["X-CSRF-Token"] = token;
+    // Match the `access` cookie value; ignore if not present
+    const match = document.cookie.match(/(?:^|;\s*)access=([^;]+)/);
+    if (match) {
+      const token = decodeURIComponent(match[1]);
+      // If headers exist, set Authorization; otherwise create a typed object
+      if (config.headers) {
+        // Cast because AxiosHeaders doesn’t have index signatures
+        (config.headers as any).Authorization = `Bearer ${token}`;
+      } else {
+        // When headers are undefined, assign a minimal compatible object
+        config.headers = { Authorization: `Bearer ${token}` } as any;
+      }
     }
-  } catch {}
+  } catch {
+    // silently ignore any errors reading cookies (e.g. SSR)
+  }
   return config;
 });
 
-// ---- Helpers for refresh + CSRF retry ----
-let isRefreshing = false;
-const waiters: Array<() => void> = [];
-const waitForRefresh = () => new Promise<void>((resolve) => waiters.push(resolve));
-const releaseWaiters = () => { while (waiters.length) waiters.shift()!(); };
+api.interceptors.request.use(async (config) => {
+  const method = (config.method || 'get').toLowerCase();
+  const urlStr = String(config.url || '');
+  const isUnsafe = ['post', 'put', 'patch', 'delete'].includes(method);
+  const skip = urlStr.includes('/auth/refresh') || urlStr === '/csrf';
 
-async function retryWithFreshCsrf(cfg: any) {
-  if (cfg._csrfRetry) throw new Error("CSRF retry already attempted");
-  cfg._csrfRetry = true;
-  await ensureCsrfToken(true);
-  const t = getCsrfToken();
-  (cfg.headers ??= {});
-  delete (cfg.headers as any)["X-CSRF-Token"];
-  (cfg.headers as any)["X-CSRF-Token"] = t;
-  return api.request(cfg);
-}
+  if (isUnsafe && !skip) {
+    await ensureCsrfToken();
+    const tok = getCsrfToken();
+    if (tok) (config.headers as any)['X-CSRF-Token'] = tok;
+  }
+  return config;
+});
+
+let refreshing = false;
+let waiters: Array<(ok: boolean) => void> = [];
+const enqueue = () => new Promise<boolean>((r) => waiters.push(r));
+const release = (ok: boolean) => {
+  const ws = waiters;
+  waiters = [];
+  ws.forEach((fn) => {
+    try {
+      fn(ok);
+    } catch {}
+  });
+};
+
+const isRefresh = (cfg?: any) => (cfg?.url || '').toString().includes('/auth/refresh');
 
 api.interceptors.response.use(
-  (res) => res,
-  async (error: AxiosError<any>) => {
-    const cfg = (error?.config ?? {}) as any;
-    const status = error?.response?.status as number | undefined;
-    const url: string = (cfg?.url || "").toString();
-    const method = (cfg?.method || "get").toLowerCase();
+  (r) => r,
+  async (err: AxiosError) => {
+    const res = err.response;
+    const cfg: any = err.config || {};
+    const status = res?.status ?? 0;
 
-    const isAuthEndpoint =
-      url.includes("/auth/login") ||
-      url.includes("/auth/mfa") ||
-      url.includes("/auth/totp") ||
-      url.includes("/auth/refresh") ||
-      url.includes("/auth/logout") ||
-      url.includes("/auth/check");
-
-    // CSRF hardening: if unsafe method failed with 403, refresh CSRF and retry once
-    if (status === 403 && ["post","put","patch","delete"].includes(method) && !cfg._csrfRetry) {
-      try {
-        return await retryWithFreshCsrf(cfg);
-      } catch {
-        // fallthrough
-      }
+    if (!cfg || cfg.__retried || isRefresh(cfg) || (status !== 401 && status !== 419)) {
+      throw err;
     }
 
-    // For expected unauth on auth endpoints, reject quietly
-    if (status === 401 && isAuthEndpoint) {
-      return Promise.reject(error); // callers should catch; no extra wrapping
+    if (refreshing) {
+      const ok = await enqueue();
+      if (!ok) throw err;
+      cfg.__retried = true;
+      return api(cfg);
     }
 
-    // 401 -> try refresh once, then retry original request
-    if (status === 401 && !cfg._retry && !isAuthEndpoint) {
-      cfg._retry = true;
-
-      if (isRefreshing) {
-        await waitForRefresh();
-        return api.request(cfg);
-      }
-
-      isRefreshing = true;
-      try {
-        await api.post("/auth/refresh", {}, { withCredentials: true });
-        releaseWaiters();
-        return api.request(cfg);
-      } catch (e) {
-        releaseWaiters();
-        return Promise.reject(e);
-      } finally {
-        isRefreshing = false;
-      }
+    refreshing = true;
+    try {
+      await api.post('/auth/refresh', {});
+      invalidateCsrfToken();
+      await ensureCsrfToken(true);
+      release(true);
+      cfg.__retried = true;
+      const tok = getCsrfToken();
+      if (tok) cfg.headers = { ...(cfg.headers || {}), 'X-CSRF-Token': tok };
+      return api(cfg);
+    } catch {
+      release(false);
+      throw err;
+    } finally {
+      refreshing = false;
     }
-
-    return Promise.reject(error);
   }
 );

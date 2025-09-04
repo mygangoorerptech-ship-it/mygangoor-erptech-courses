@@ -1,5 +1,4 @@
 // mygf/src/components/dashboard/WelcomeBanner.tsx
-import React from "react";
 import { useAuthHydration } from "../../hooks/useAuthHydration";
 
 type Props = {

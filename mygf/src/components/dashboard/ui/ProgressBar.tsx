@@ -1,5 +1,5 @@
 // mygf/src/components/dashboard/ui/ProgressBar.tsx
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   value: number; // 0..100

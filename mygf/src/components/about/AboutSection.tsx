@@ -95,289 +95,322 @@ const TimelineItem: React.FC<{ year: string; title: string; desc: string }> = ({
 const AboutSection: React.FC = () => {
   return (
     <>
-          {/* Full-bleed nav */}
+      {/* Full-bleed nav */}
       <div className="relative z-20">
         <NavBar />
       </div>
-    <section className="relative overflow-hidden bg-gradient-to-b from-white via-slate-50 to-sky-50">
 
-      {/* Background */}
-      <WavyBackdrop />
+      {/* Spacer below fixed navbar */}
+<div className="h-10 sm:h-16" aria-hidden />
 
-      {/* Content */}
-      <main className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
-        {/* Hero */}
-        <div className="text-center max-w-3xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
-            About <span className="bg-gradient-to-r from-indigo-600 to-sky-600 bg-clip-text text-transparent">Mithun Kumar</span>
-          </h1>
-          <p className="mt-3 text-slate-600">
-            We help learners master real-world skills through curated tracks, hands-on assignments,
-            and certificates that actually mean something.
-          </p>
-          <div className="mx-auto mt-5 h-px w-28 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400" />
-        </div>
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-slate-50 to-sky-50">
+        {/* Background */}
+        <WavyBackdrop />
 
-        {/* Stats */}
-        <section className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard value="120K+" label="Learners" />
-          <StatCard value="340+" label="Video Lessons" />
-          <StatCard value="48" label="Career Tracks" />
-          <StatCard value="92%" label="Completion Rate" />
-        </section>
-
-        {/* Mission */}
-        <section className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-6">
-            <SectionHeader
-              title="Our Mission"
-              subtitle="Deliver high-quality, outcome-driven learning experiences with clean design and zero distractions."
-            />
-            <p className="mt-4 text-sm md:text-base text-slate-600">
-              We combine expert-led content, practical tasks, and peer feedback to help you move from
-              theory to production-ready skills. Every course is built to be clear, structured, and
-              enjoyable—so you can focus on learning, not fighting the UI.
+        {/* Content */}
+        <main className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-14">
+          {/* Hero */}
+          <div className="text-center max-w-3xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-900">
+              About{" "}
+              <span className="bg-gradient-to-r from-indigo-600 to-sky-600 bg-clip-text text-transparent">
+                ECA — Engineers Computer Academy
+              </span>
+            </h1>
+            <p className="mt-3 text-slate-600">
+              A unit under <strong>M.Y. Gangoor International Foundation® (Multi-Sciences Education &amp; Research Centre)</strong>,
+              established in <strong>1995</strong> (Reg. No. <strong>BEL-S249-2013-14</strong>). We deliver career-focused computer and
+              engineering education while honoring India’s timeless knowledge traditions through a clear, modern and practical approach.
             </p>
-            <div className="mt-6 flex gap-3">
-              <Link
-                to="/tracks"
-                className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-white bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 shadow"
-              >
-                Browse Tracks
-              </Link>
-              <Link
-                to="/signup"
-                className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50"
-              >
-                Get Started
-              </Link>
-            </div>
+            <div className="mx-auto mt-5 h-px w-28 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400" />
           </div>
 
-          {/* Illustration card */}
-          <div className="lg:col-span-6">
-            <div className="relative rounded-3xl border border-slate-200/70 bg-white/70 backdrop-blur p-5 shadow-sm">
-              <div className="aspect-[16/10] w-full rounded-2xl bg-gradient-to-br from-sky-100 via-indigo-100 to-fuchsia-100 relative overflow-hidden">
-                {/* dotted grid */}
-                <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 160 100" preserveAspectRatio="none">
-                  <defs>
-                    <pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse">
-                      <circle cx="1" cy="1" r="1" fill="#c7d2fe" />
-                    </pattern>
-                  </defs>
-                  <rect width="160" height="100" fill="url(#dots)" />
-                </svg>
-                {/* floating bars */}
-                <div className="absolute inset-0 flex items-center justify-center gap-2">
-                  <div className="h-16 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_4s_ease-in-out_infinite]" />
-                  <div className="h-10 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_3s_ease-in-out_infinite]" />
-                  <div className="h-20 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_5s_ease-in-out_infinite]" />
-                  <div className="h-12 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_4.5s_ease-in-out_infinite]" />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-slate-500">
-                Clean visuals, structured learning, and friction-free interfaces.
+          {/* Stats */}
+          <section className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard value="1995" label="Established" />
+            <StatCard value="BEL-S249-2013-14" label="Registration No." />
+            <StatCard value="8+" label="Countries Reached (US, UK, UAE, JP, CA, DE, AU, SG)" />
+            <StatCard value="5+" label="Sister Concerns" />
+          </section>
+
+          {/* Mission */}
+          <section className="mt-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-6">
+              <SectionHeader
+                title="Our Mission"
+                subtitle="Sharing ancient Indian sciences through a modern, scientific approach that inspires a meaningful life."
+              />
+              <p className="mt-4 text-sm md:text-base text-slate-600">
+                We exist to make the priceless heritage of Indian sciences accessible to all—uniting individuals with the
+                cosmic life force and nurturing <em>peace, compassion, and holistic well-being</em>. By blending tradition with
+                clarity and rigor, we help learners cultivate inner strength, wisdom, and practical skills for today’s world.
               </p>
-            </div>
-          </div>
-        </section>
 
-        {/* What we do / Features */}
-        <section className="mt-14">
-          <SectionHeader
-            title="What We Do"
-            subtitle="A focused stack of features that make learning straightforward and effective."
-            center
-          />
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard
-              title="Structured Tracks"
-              desc="Progressive levels unlock as you complete assignments—learn in the right order."
-              icon={
-                <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
-                  <path d="M4 6h16M4 12h10M4 18h6" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Hands-on Tasks"
-              desc="Every level has a practical assignment so you can build real muscle memory."
-              icon={
-                <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
-                  <rect x="3" y="3" width="18" height="14" rx="2" />
-                  <path d="M8 21h8M12 17v4" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Meaningful Certificates"
-              desc="Complete all levels and instantly receive a downloadable certificate."
-              icon={
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-                  <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm2.2 6.7-3.3 3.7-1.6-1.6-1.1 1.1 2.7 2.7 4.4-5z" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Clean UI"
-              desc="Modern, distraction-free interfaces that keep you in flow."
-              icon={
-                <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
-                  <rect x="3" y="4" width="18" height="14" rx="2" />
-                  <path d="M3 9h18" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Responsive Everywhere"
-              desc="Designed to look and work great on desktop and mobile—no compromises."
-              icon={
-                <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
-                  <rect x="4" y="6" width="12" height="12" rx="2" />
-                  <rect x="18" y="8" width="2" height="8" rx="1" />
-                </svg>
-              }
-            />
-            <FeatureCard
-              title="Supportive Community"
-              desc="Learn together with feedback, reviews, and shared wins."
-              icon={
-                <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
-                  <circle cx="8" cy="8" r="3" />
-                  <circle cx="16" cy="8" r="3" />
-                  <path d="M3 20a5 5 0 0 1 10 0M11 20a5 5 0 0 1 10 0" />
-                </svg>
-              }
-            />
-          </div>
-        </section>
-
-        {/* Values */}
-        <section className="mt-14">
-          <SectionHeader title="Our Values" center />
-          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <ValueCard
-              title="Clarity"
-              desc="No fluff—just well-structured learning paths that respect your time."
-              icon={<span className="font-bold">C</span>}
-            />
-            <ValueCard
-              title="Craft"
-              desc="We obsess over the details so interfaces feel effortless."
-              icon={<span className="font-bold">⚙</span>}
-            />
-            <ValueCard
-              title="Care"
-              desc="We build with empathy and measure success by your outcomes."
-              icon={<span className="font-bold">❤</span>}
-            />
-            <ValueCard
-              title="Consistency"
-              desc="Reliable content, predictable progress, and steady growth."
-              icon={<span className="font-bold">∞</span>}
-            />
-          </div>
-        </section>
-
-        {/* Timeline */}
-        <section className="mt-14">
-          <SectionHeader title="Our Journey" center />
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="relative">
-              <div className="absolute left-3 top-0 bottom-0 w-px bg-slate-200" aria-hidden />
-              <div className="space-y-6">
-                <TimelineItem year="2023" title="Prototype Launch" desc="We began with a small, sharp set of courses and a clean UI." />
-                <TimelineItem year="2024" title="Tracks & Certificates" desc="Unlocked progression, assignments, and instant certificates." />
-                <TimelineItem year="2025" title="Community Impact" desc="Scaled globally while keeping the experience crisp and focused." />
+              <div className="mt-5">
+                <SectionHeader title="Our Vision" />
+                <p className="mt-3 text-sm md:text-base text-slate-600">
+                  A world enriched by timeless knowledge—where people live healthier, wiser, and more balanced lives;
+                  awakening spiritually while building compassionate communities across the globe.
+                </p>
               </div>
-            </div>
-            <div className="rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur p-6 shadow-sm">
-              <p className="text-sm text-slate-600">
-                Our roadmap is simple: keep polishing the learning experience. We prioritize clarity,
-                build features that directly improve outcomes, and keep the interface beautifully minimal.
-              </p>
-              <div className="mt-4 flex gap-3">
+
+              <div className="mt-6 flex gap-3">
                 <Link
                   to="/tracks"
                   className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-white bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 shadow"
                 >
-                  Explore Tracks
+                  Explore Courses
                 </Link>
                 <Link
-                  to="/login"
+                  to="/enquiry"
                   className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50"
                 >
-                  Sign In
+                  Enquiry &amp; Admissions
                 </Link>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* FAQ */}
-        <section className="mt-14">
-          <SectionHeader title="Frequently Asked Questions" center />
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              {
-                q: "How do levels unlock?",
-                a: "Complete the assignment for the current level. The next level unlocks automatically.",
-              },
-              {
-                q: "Do I need to pay for each track?",
-                a: "Yes, tracks are paid. Once purchased, you retain access and can rewatch completed levels anytime.",
-              },
-              {
-                q: "When do I get the certificate?",
-                a: "Finish all levels in a track and your certificate is generated instantly for download.",
-              },
-              {
-                q: "Is this mobile friendly?",
-                a: "Totally. The UI is responsive and tuned for both desktop and mobile.",
-              },
-            ].map((item) => (
-              <details
-                key={item.q}
-                className="group rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur p-5 shadow-sm open:shadow-md transition"
+            {/* Illustration card */}
+            <div className="lg:col-span-6">
+              <div className="relative rounded-3xl border border-slate-200/70 bg-white/70 backdrop-blur p-5 shadow-sm">
+                <div className="aspect-[16/10] w-full rounded-2xl bg-gradient-to-br from-sky-100 via-indigo-100 to-fuchsia-100 relative overflow-hidden">
+                  {/* dotted grid */}
+                  <svg className="absolute inset-0 w-full h-full opacity-60" viewBox="0 0 160 100" preserveAspectRatio="none">
+                    <defs>
+                      <pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse">
+                        <circle cx="1" cy="1" r="1" fill="#c7d2fe" />
+                      </pattern>
+                    </defs>
+                    <rect width="160" height="100" fill="url(#dots)" />
+                  </svg>
+                  {/* floating bars */}
+                  <div className="absolute inset-0 flex items-center justify-center gap-2">
+                    <div className="h-16 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_4s_ease-in-out_infinite]" />
+                    <div className="h-10 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_3s_ease-in-out_infinite]" />
+                    <div className="h-20 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_5s_ease-in-out_infinite]" />
+                    <div className="h-12 w-2 rounded-full bg-gradient-to-b from-indigo-400 to-sky-400 animate-[bounce_4.5s_ease-in-out_infinite]" />
+                  </div>
+                </div>
+                <p className="mt-3 text-xs text-slate-500">
+                  Where tradition meets technology: practical learning, clear pathways, meaningful outcomes.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* What we offer / Features */}
+          <section className="mt-14">
+            <SectionHeader
+              title="What We Offer"
+              subtitle="Career-ready computer & engineering programs alongside ancient Indian knowledge systems."
+              center
+            />
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <FeatureCard
+                title="Ancient Sciences"
+                desc="Yoga & Meditation, Ayurveda & Holistic Healing, Astrology & Vastu Shastra, Reiki & Energy Sciences, Numerology & Dowsing."
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
+                    <path d="M12 3v18M3 12h18" />
+                  </svg>
+                }
+              />
+              <FeatureCard
+                title="Advance Computer Courses"
+                desc="Video Editing, Online Marketing, Diploma in Office Automation (DOA), Diploma in DTP, and more."
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
+                    <rect x="3" y="3" width="18" height="14" rx="2" />
+                    <path d="M8 21h8M12 17v4" />
+                  </svg>
+                }
+              />
+              <FeatureCard
+                title="Engineering Programs"
+                desc="Mechanical (CATIA, NX, SolidWorks, CAM); Civil/Architecture (STAAD Pro, ETABS, 3ds Max, Revit); CS (Web, Python, C/C++)."
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
+                    <path d="M3 7h18M6 3v8M18 3v8M3 15h18M6 11v8M18 11v8" />
+                  </svg>
+                }
+              />
+              <FeatureCard
+                title="Well-Being & Naturopathy"
+                desc="Integrated wellness via Yoga Shastra and naturopathy practices to support holistic growth."
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
+                    <path d="M12 3c-4 4-4 10 0 14 4-4 4-10 0-14z" />
+                    <path d="M5 21h14" />
+                  </svg>
+                }
+              />
+              <FeatureCard
+                title="Global Ambassadors"
+                desc="Cultural bridges across US, UK, UAE, Japan, Canada, Germany, Australia, Singapore—sharing knowledge worldwide."
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+                  </svg>
+                }
+              />
+              <FeatureCard
+                title="Community & Research"
+                desc="A Multi-Sciences Education & Research Centre with sister concerns including Reiki International, My Yoga Academy, and more."
+                icon={
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" stroke="currentColor" fill="none" strokeWidth="1.6">
+                    <path d="M12 7v10M7 12h10" />
+                    <circle cx="12" cy="12" r="9" />
+                  </svg>
+                }
+              />
+            </div>
+          </section>
+
+          {/* Values */}
+          <section className="mt-14">
+            <SectionHeader title="Our Values" center />
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <ValueCard
+                title="Peace & Compassion"
+                desc="Human-centered learning that nurtures empathy and balanced living."
+                icon={<span className="font-bold">❤</span>}
+              />
+              <ValueCard
+                title="Scientific Rigor"
+                desc="Modern, evidence-aligned methods while preserving authentic traditions."
+                icon={<span className="font-bold">⚙</span>}
+              />
+              <ValueCard
+                title="Heritage & Culture"
+                desc="Respecting India’s sacred knowledge and sharing it responsibly."
+                icon={<span className="font-bold">ॐ</span>}
+              />
+              <ValueCard
+                title="Holistic Growth"
+                desc="Skilling for careers—and for life: mind, body, spirit."
+                icon={<span className="font-bold">∞</span>}
+              />
+            </div>
+          </section>
+
+          {/* Timeline */}
+          <section className="mt-14">
+            <SectionHeader title="Our Journey" center />
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="relative">
+                <div className="absolute left-3 top-0 bottom-0 w-px bg-slate-200" aria-hidden />
+                <div className="space-y-6">
+                  <TimelineItem
+                    year="1995"
+                    title="Foundation Established"
+                    desc="M.Y. Gangoor International Foundation begins its service as a Multi-Sciences Education & Research Centre."
+                  />
+                  <TimelineItem
+                    year="2013–14"
+                    title="Registered (BEL-S249-2013-14)"
+                    desc="Formal registration strengthens our mission and outreach."
+                  />
+                  <TimelineItem
+                    year="2015–2022"
+                    title="Global Outreach"
+                    desc="Ambassadors and initiatives extend across US, UK, UAE, Japan, Canada, Germany, Australia, Singapore."
+                  />
+                  <TimelineItem
+                    year="2023–Present"
+                    title="Digital Learning @ ECA"
+                    desc="Career-ready computer and engineering programs integrated with clear, structured learning experiences."
+                  />
+                </div>
+              </div>
+              <div className="rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur p-6 shadow-sm">
+                <p className="text-sm text-slate-600">
+                  We continue to refine practical, outcome-driven learning—uniting technology with timeless wisdom, and
+                  making high-quality education accessible and meaningful for everyone.
+                </p>
+                <div className="mt-4 flex gap-3">
+                  <Link
+                    to="/tracks"
+                    className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-white bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 shadow"
+                  >
+                    Explore Courses
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50"
+                  >
+                    Sign In
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section className="mt-14">
+            <SectionHeader title="Frequently Asked Questions" center />
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                {
+                  q: "How do I apply for ECA courses?",
+                  a: "Use the Enquiry & Admissions option. Our team will guide you to the right computer/engineering track or wellness program.",
+                },
+                {
+                  q: "Do you provide certificates?",
+                  a: "Yes. On successful completion, eligible courses provide certificates aligned to program requirements.",
+                },
+                {
+                  q: "Are programs online or offline?",
+                  a: "We support blended delivery. Mode depends on the specific course or discipline and will be shared during admission.",
+                },
+                {
+                  q: "Whom can I contact?",
+                  a: "Dr. Ramesh Gangoor (+91-9845290825), Shri Shivanand Gangoor (+91-8496976263), or email rameshgangoor@gmail.com.",
+                },
+              ].map((item) => (
+                <details
+                  key={item.q}
+                  className="group rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur p-5 shadow-sm open:shadow-md transition"
+                >
+                  <summary className="cursor-pointer select-none text-sm font-semibold text-slate-900 flex items-center justify-between">
+                    {item.q}
+                    <span className="ml-4 text-slate-400 group-open:rotate-180 transition-transform">⌄</span>
+                  </summary>
+                  <p className="mt-3 text-sm text-slate-600">{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          {/* CTA */}
+          <section className="mt-16 text-center">
+            <h3 className="text-xl md:text-2xl font-semibold text-slate-900">Start your journey with ECA</h3>
+            <p className="mt-2 text-slate-600">
+              Engineers Computer Academy — a unit of M.Y. Gangoor International Foundation® (Angol Rd., Belagavi, Karnataka, Bharat).
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              Call: +91 0831-4201267 · +91-9845290825 · +91-8496976263 · Email: rameshgangoor@gmail.com
+            </p>
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <Link
+                to="/enquiry"
+                className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-white bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 shadow"
               >
-                <summary className="cursor-pointer select-none text-sm font-semibold text-slate-900 flex items-center justify-between">
-                  {item.q}
-                  <span className="ml-4 text-slate-400 group-open:rotate-180 transition-transform">⌄</span>
-                </summary>
-                <p className="mt-3 text-sm text-slate-600">{item.a}</p>
-              </details>
-            ))}
-          </div>
-        </section>
+                Enquiry &amp; Admissions
+              </Link>
+              <Link
+                to="/tracks"
+                className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50"
+              >
+                Browse Programs
+              </Link>
+            </div>
+          </section>
+        </main>
 
-        {/* CTA */}
-        <section className="mt-16 text-center">
-          <h3 className="text-xl md:text-2xl font-semibold text-slate-900">
-            Ready to learn with clarity?
-          </h3>
-          <p className="mt-2 text-slate-600">
-            Join thousands of learners building career-ready skills with MithunKumar.
-          </p>
-          <div className="mt-5 flex items-center justify-center gap-3">
-            <Link
-              to="/signup"
-              className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-white bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 shadow"
-            >
-              Create Account
-            </Link>
-            <Link
-              to="/tracks"
-              className="inline-flex items-center justify-center rounded-xl px-4 py-2.5 font-semibold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50"
-            >
-              Browse Courses
-            </Link>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <Footer brandName="MithunKumar" tagline="Learn smarter. Build faster." />
-    </section>
+        {/* Footer */}
+        <Footer brandName="ECA" tagline="Engineers Computer Academy · A unit of M.Y. Gangoor International Foundation®" />
+      </section>
     </>
   );
 };

@@ -4,7 +4,11 @@ import type { Course, CourseFilters, CourseStatus } from '../types/course'
 
 export async function listSaCourses(filters: CourseFilters) {
   const r = await api.get('/sa/courses', { params: filters })
-  return r.data as Course[]
+  const data = r.data
+  if (Array.isArray(data)) {
+    return { items: data as Course[], total: data.length, page: 1, pageSize: data.length }
+  }
+  return data as { items: Course[]; total: number; page: number; pageSize: number }
 }
 export async function createSaCourse(payload: Partial<Course>) {
   const r = await api.post('/sa/courses', payload)

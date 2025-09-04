@@ -1,3 +1,4 @@
+// backend/src/types/subscription.ts
 export type SubscriptionStatus = 'paid' | 'refunded' | 'canceled'
 
 export interface Subscription {

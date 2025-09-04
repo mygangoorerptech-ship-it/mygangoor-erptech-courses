@@ -1,5 +1,4 @@
 // mygf/src/components/join/ui/Steps.tsx
-import React from "react";
 import { CheckCircle2 } from "lucide-react";
 import type { Step } from "../types";
 import { classNames } from "../utils";

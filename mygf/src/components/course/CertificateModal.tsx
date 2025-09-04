@@ -1,5 +1,5 @@
 // mygf/src/components/course/CertificateModal.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function CertificateModal({
   isVisible,

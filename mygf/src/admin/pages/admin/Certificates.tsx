@@ -5,7 +5,7 @@ import type { Certificate, CertificateStatus, CertificateTemplate, CertificateCo
 import {
   listCertificates, createCertificate, updateCertificate, deleteCertificate, setCertificateStatus,
   listCertificateTemplates, addDemoCertificate
-} from '../../api/certificates'
+} from '../../api/certificatess'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'

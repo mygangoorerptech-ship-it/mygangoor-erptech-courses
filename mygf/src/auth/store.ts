@@ -39,6 +39,12 @@ type AuthState = {
   hydrate: () => Promise<void>;
 };
 
+export const selectAuthLite = (s: AuthState) => ({
+  user: s.user,
+  role: s.user?.role,
+  isAuthenticated: !!s.user,
+});
+
 export const useAuth = create<AuthState>()(
   persist(
     (set, get) => ({

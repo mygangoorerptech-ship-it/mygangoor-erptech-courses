@@ -1,128 +1,112 @@
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { listSettlements } from '../../api/settlements'
-import { listPayouts } from '../../api/payouts'
-import { Input, Label, Select } from '../../components/Input'
+// mygf/src/admin/pages/superadmin/Reconciliation.tsx
+//
+// Superadmin reconciliation screen. Shows a summary of captured online
+// payments per organisation and allows the superadmin to mark
+// outstanding amounts as settled. This page replaces the previous
+// mock-based settlements view and integrates with the real backend
+// via the reconciliation API added in this task.
+
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+// Use the admin API helpers relative to the pages directory. The correct path
+// is two levels up (../../) to reach src/admin/api, not three levels.
+import { listReconciliation, settleOrganisation, type ReconciliationSummary } from '../../api/reconciliation'
+import { createPayout } from '../../api/payouts'
+import { Input, Label } from '../../components/Input'
+import Button from '../../components/Button'
 import { formatINR } from '../../utils/format'
-import { downloadCSV } from '../../utils/csv'
 
-type Filters = { dateFrom?: string; dateTo?: string; gateway: 'all'|'razorpay'|'stripe'|'paypal' }
+export default function Reconciliation() {
+  const qc = useQueryClient()
+  const [filters, setFilters] = useState<{ dateFrom?: string; dateTo?: string }>({})
+  const { data = [], isLoading } = useQuery<ReconciliationSummary[]>({
+    queryKey: ['reconciliation', filters],
+    queryFn: () => listReconciliation(filters)
+  })
 
-export default function Reconciliation(){
-  const [filters, setFilters] = useState<Filters>({ gateway:'all' })
+  const settleMut = useMutation({
+    // When settling, we create a payout record for the organisation. If paymentIds
+    // are omitted all captured unsettled payments in the optional date range
+    // will be included. After completion we refresh both reconciliation and
+    // payouts queries.
+    mutationFn: async (orgId: string) => {
+      // call createPayout to generate a payout and mark payments as settled
+      await createPayout({ orgId });
+      // Also call settleOrganisation to ensure any outstanding unsettled offline flows
+      // This retains backwards compatibility with older API; but createPayout
+      // already marks as settled, so this call is idempotent.
+      return await settleOrganisation(orgId, undefined, filters);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['reconciliation'] })
+      qc.invalidateQueries({ queryKey: ['payouts'] })
+    }
+  })
 
-  const stlQ = useQuery({ queryKey:['settlements', filters], queryFn: ()=> listSettlements(filters) })
-  const pQ = useQuery({ queryKey:['payouts-for-recon', filters], queryFn: ()=> listPayouts({ dateFrom: filters.dateFrom, dateTo: filters.dateTo, status: 'all' }) })
-
-  const settlements = stlQ.data ?? []
-  const payouts = pQ.data ?? []
-
-  const settlementTotals = useMemo(()=> {
-    const g = settlements.reduce((acc, s)=>{
-      const key = s.gateway
-      if(!acc[key]) acc[key] = { gross:0, fee:0, tax:0, net:0 }
-      acc[key].gross += s.gross; acc[key].fee += s.fee; acc[key].tax += s.tax; acc[key].net += s.net
-      acc['all'] = acc['all'] || { gross:0, fee:0, tax:0, net:0 }
-      acc['all'].gross += s.gross; acc['all'].fee += s.fee; acc['all'].tax += s.tax; acc['all'].net += s.net
-      return acc
-    }, {} as Record<string,{gross:number,fee:number,tax:number,net:number}>)
-    return g
-  }, [settlements])
-
-  const computedPayouts = useMemo(()=> {
-    // Compute totals from payout lines (gross/fee/tax/net)
-    const totals = payouts.reduce((acc, p)=>{
-      const key = 'all'
-      acc.gross += p.gross; acc.fee += p.fees; acc.tax += p.tax; acc.net += p.net
-      return acc
-    }, { gross:0, fee:0, tax:0, net:0 })
-    return totals
-  }, [payouts])
-
-  const exportSummary = ()=> {
-    const rows = [
-      { type:'Settlements (all gateways)', gross:(settlementTotals['all']?.gross||0)/100, fee:(settlementTotals['all']?.fee||0)/100, tax:(settlementTotals['all']?.tax||0)/100, net:(settlementTotals['all']?.net||0)/100 },
-      { type:'Computed payouts', gross:computedPayouts.gross/100, fee:computedPayouts.fee/100, tax:computedPayouts.tax/100, net:computedPayouts.net/100 },
-      { type:'Delta (settlements - payouts)', gross:((settlementTotals['all']?.gross||0)-computedPayouts.gross)/100, fee:((settlementTotals['all']?.fee||0)-computedPayouts.fee)/100, tax:((settlementTotals['all']?.tax||0)-computedPayouts.tax)/100, net:((settlementTotals['all']?.net||0)-computedPayouts.net)/100 },
-    ]
-    downloadCSV('reconciliation-summary.csv', rows as any)
+  const handleSettle = (orgId: string) => {
+    settleMut.mutate(orgId)
   }
 
-  const exportSettlements = ()=> {
-    const rows = settlements.map(s=> ({ gateway:s.gateway, reference:s.reference, settledAt:s.settledAt, gross:(s.gross/100).toFixed(2), fee:(s.fee/100).toFixed(2), tax:(s.tax/100).toFixed(2), net:(s.net/100).toFixed(2) }))
-    downloadCSV('settlements.csv', rows as any)
-  }
+  const rows = data
 
   return (
     <div className="space-y-6">
-      <header className="grid gap-3 md:grid-cols-4">
+      <header className="grid gap-3 md:grid-cols-3">
         <div className="space-y-2 md:col-span-2">
           <Label>Date range</Label>
           <div className="flex gap-2">
-            <Input type="date" value={filters.dateFrom||''} onChange={(e)=> setFilters(f=> ({...f, dateFrom: e.target.value || undefined}))} />
-            <Input type="date" value={filters.dateTo||''} onChange={(e)=> setFilters(f=> ({...f, dateTo: e.target.value || undefined}))} />
+            <Input type="date" value={filters.dateFrom || ''} onChange={(e) => setFilters(f => ({ ...f, dateFrom: e.target.value || undefined }))} />
+            <Input type="date" value={filters.dateTo || ''} onChange={(e) => setFilters(f => ({ ...f, dateTo: e.target.value || undefined }))} />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label>Gateway</Label>
-          <Select value={filters.gateway} onChange={(e)=> setFilters(f=> ({...f, gateway: e.target.value as Filters['gateway']}))}>
-            <option value="all">All</option>
-            <option value="razorpay">Razorpay</option>
-            <option value="stripe">Stripe</option>
-            <option value="paypal">PayPal</option>
-          </Select>
-        </div>
-        <div className="flex items-end gap-2">
-          <button className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50" onClick={exportSummary}>Export summary</button>
-          <button className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50" onClick={exportSettlements}>Export settlements</button>
+        <div className="flex items-end justify-end gap-2">
+          <Button variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ['reconciliation'] })}>Refresh</Button>
         </div>
       </header>
-
-      <section className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card label="Settlements gross" value={formatINR(settlementTotals['all']?.gross || 0)} />
-        <Card label="Settlements net" value={formatINR(settlementTotals['all']?.net || 0)} />
-        <Card label="Payouts gross" value={formatINR(computedPayouts.gross)} />
-        <Card label="Payouts net" value={formatINR(computedPayouts.net)} />
-      </section>
-
-      <div className="rounded-xl border bg-white overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-slate-50">
+      <div className="overflow-x-auto rounded-xl border bg-white">
+        <table className="min-w-full text-sm">
+          <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="text-left p-2 font-medium">Gateway</th>
-              <th className="text-left p-2 font-medium">Reference</th>
-              <th className="text-left p-2 font-medium">Settled at</th>
-              <th className="text-right p-2 font-medium">Gross</th>
-              <th className="text-right p-2 font-medium">Fee</th>
-              <th className="text-right p-2 font-medium">Tax</th>
-              <th className="text-right p-2 font-medium">Net</th>
+              <th className="text-left font-medium p-3">Organisation</th>
+              <th className="text-right font-medium p-3">Total (₹)</th>
+              <th className="text-right font-medium p-3">Settled (₹)</th>
+              <th className="text-right font-medium p-3">Unsettled (₹)</th>
+              <th className="text-right font-medium p-3">Unsettled Count</th>
+              <th className="text-left font-medium p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {settlements.map(s=> (
-              <tr key={s.id} className="border-b">
-                <td className="p-2 capitalize">{s.gateway}</td>
-                <td className="p-2">{s.reference}</td>
-                <td className="p-2">{new Date(s.settledAt).toLocaleString()}</td>
-                <td className="p-2 text-right">{formatINR(s.gross)}</td>
-                <td className="p-2 text-right">{formatINR(s.fee)}</td>
-                <td className="p-2 text-right">{formatINR(s.tax)}</td>
-                <td className="p-2 text-right">{formatINR(s.net)}</td>
+            {rows.map((r) => (
+              <tr key={r.orgId} className="border-t">
+                <td className="p-3">
+                  <div className="font-medium">{r.orgName}</div>
+                  {r.orgCode && <div className="text-xs text-slate-500">{r.orgCode}</div>}
+                </td>
+                <td className="p-3 text-right">{formatINR(r.totalCaptured)}</td>
+                <td className="p-3 text-right">{formatINR(r.settledAmount)}</td>
+                <td className="p-3 text-right">{formatINR(r.unsettledAmount)}</td>
+                <td className="p-3 text-right">{r.unsettledCount}</td>
+                <td className="p-3">
+                  <Button
+                    onClick={() => handleSettle(r.orgId)}
+                    disabled={r.unsettledCount === 0 || settleMut.isPending}
+                    className="h-8 px-3 text-xs"
+                  >
+                    {settleMut.isPending ? 'Settling…' : 'Settle All'}
+                  </Button>
+                </td>
               </tr>
             ))}
-            {settlements.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={7}>No settlements in range</td></tr>}
+            {rows.length === 0 && (
+              <tr>
+                <td className="p-6 text-center text-slate-500" colSpan={6}>
+                  {isLoading ? 'Loading…' : 'No captured payments'}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
-    </div>
-  )
-}
-
-function Card({label, value}:{label:string, value:string}){
-  return (
-    <div className="rounded-xl border bg-white p-4">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="text-xl font-semibold mt-1">{value}</div>
     </div>
   )
 }
