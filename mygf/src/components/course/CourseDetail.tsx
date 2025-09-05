@@ -176,7 +176,8 @@ export default function CourseDetail() {
 
   // ✅ Download real certificate (supports data: URLs and http(s) URLs) 
   const handleDownloadCertificate = async () => { 
-    const url = (progress as any)?.certificateUrl; 
+    const url = (progress as any)?.certificateUrl;
+    const pid = (progress as any)?._id; 
     if (!url || typeof url !== "string" || !url.trim()) return; 
  
     const safeTitle = (headerCourseData.title || "certificate") 
@@ -186,7 +187,10 @@ export default function CourseDetail() {
     const fileName = `${safeTitle}-certificate.pdf`; 
  
     try { 
-      if (url.startsWith("data:")) { 
+      if (pid) {
+        window.open(`/api/certificates/download/${pid}`, "_blank", "noopener,noreferrer");
+        return;
+      } else if (url.startsWith("data:")) { 
         // direct data URL → just trigger a download 
         const a = document.createElement("a"); 
         a.href = url; 
@@ -216,9 +220,12 @@ export default function CourseDetail() {
  
   // ✅ View certificate in a new tab (works for data: and http(s)) 
   const handleViewCertificate = () => { 
-    const url = (progress as any)?.certificateUrl; 
+    const url = (progress as any)?.certificateUrl;
+    const pid = (progress as any)?._id; 
     if (!url || typeof url !== "string" || !url.trim()) return; 
-    window.open(url, "_blank", "noopener,noreferrer"); 
+    const pid2 = (progress as any)?._id;
+    if (pid2) window.open(`/api/certificates/download/${pid2}`, "_blank", "noopener,noreferrer");
+    else window.open(url, "_blank", "noopener,noreferrer"); 
   };
 
   // fallback when no chapters → single card with “Complete this course”
@@ -473,7 +480,7 @@ export default function CourseDetail() {
         </div>
       </div>
 
-      <Footer brandName="MithunKumar" tagline="Learn smarter. Build faster." />
+      <Footer brandName="ECA Academy" tagline="Learn smarter. Build faster." />
     </>
   );
 }

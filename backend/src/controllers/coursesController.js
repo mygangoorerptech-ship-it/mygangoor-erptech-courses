@@ -144,6 +144,27 @@ export async function create(req, res) {
   };
 
   const doc = await Course.create(payload);
+
+// Notify all active students in org about the new course (one-time)
+try {
+  const { enqueueNotification } = await import("./notificationsController.js");
+  const User = (await import("../models/User.js")).default;
+  const students = await User.find({ role: "student", status: "active", orgId: actor.orgId }).select("_id").lean();
+  for (const s of students) {
+    await enqueueNotification({
+      userId: s._id,
+      orgId: actor.orgId,
+      type: "new_course",
+      title: "New course added",
+      body: `\"${title}\" is now available. Check it out!`,
+      data: { courseId: doc._id },
+      dueAt: new Date(),
+      recurrence: "none",
+      maxTimes: 1,
+    });
+  }
+} catch (e) { console.error("[notify] new_course enqueue failed", e?.message || e); }
+
   return res.json(sanitize(doc));
 }
 

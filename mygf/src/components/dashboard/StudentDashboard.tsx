@@ -181,7 +181,7 @@ export default function StudentDashboard() {
         </main>
       </div>
 
-      <Footer brandName="MithunKumar" tagline="Learn smarter. Build faster." />
+      <Footer brandName="ECA Academy" tagline="Learn smarter. Build faster." />
     </>
   );
 }

@@ -20,6 +20,7 @@ import { useAuthHydration } from "../../hooks/useAuthHydration";
 // NEW: enrollments + modal
 import { api } from "../../api/client";
 import JoinNowModal from "../join/JoinNowModal";
+import { useWishlist } from "./tracks/wishlistStore";
 
 export default function TracksAndCollectionsSection() {
   // Fire auth hydration for this screen
@@ -47,7 +48,7 @@ export default function TracksAndCollectionsSection() {
             </div>
           </div>
         </section>
-        <Footer brandName="MithunKumar" tagline="Learn smarter. Build faster." />
+        <Footer brandName="ECA Academy" tagline="Learn smarter. Build faster." />
       </>
     );
   }
@@ -65,11 +66,20 @@ export default function TracksAndCollectionsSection() {
   // Authenticated and correct role
   const [query, setQuery] = useState("");
   const [activeChip, setActiveChip] = useState<Chip>("All");
-  const [wishlist, setWishlist] = useState<CourseType[]>([]);
   const [over12h, setOver12h] = useState(false);
   const [availability, setAvailability] = useState<Availability>("any");
   const { data: apiCourses, loading, prefetching, error, reload, loadMore, hasMore } = useCourses();
   const canAutoload = hasMore && !loading && !error;
+
+  // Initialize wishlist store ONLY after auth is fully ready to avoid 401s
+  const wishlistStore = useWishlist();
+  const { ready: wishReady, init: initWishlist, isWishlisted, toggle } = wishlistStore;
+  useEffect(() => {
+    if (status === "ready" && user) {
+      // guarded inside store to run once
+      void initWishlist?.().catch(() => { /* swallow to avoid UI crash */ });
+    }
+  }, [status, user, initWishlist]);
 
     // ── Normalize ONLY: level, discountPercent, bundle cover image ───────────────
   const normalizedCourses: Course[] = useMemo(() => {
@@ -130,10 +140,6 @@ export default function TracksAndCollectionsSection() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [apiCourses?.length]);
-
-  const toggleWishlist = (c: CourseType) => {
-    setWishlist((prev) => prev.find(x => x.id === c.id) ? prev.filter(x => x.id !== c.id) : [...prev, c]);
-  };
 
   const filtered = useMemo(() => {
     const base: Course[] = normalizedCourses ?? [];
@@ -228,6 +234,13 @@ export default function TracksAndCollectionsSection() {
 
   const isPremium = (courseId: string | number) => premiumIds.has(String(courseId));
 
+    // Build wishlist array for Sidebar (keeps prop shape intact)
+  const sidebarWishlist: CourseType[] = useMemo(
+    () => normalizedCourses.filter((c) => isWishlisted?.(c.id)) as CourseType[],
+    // include wishlistStore to ensure recompute on store changes
+    [normalizedCourses, wishlistStore]
+  );
+
   return (
     <>
       {/* Top progress bar (active during load or prefetch) */}
@@ -272,8 +285,8 @@ export default function TracksAndCollectionsSection() {
                 <CourseCard
                   key={course.id}
                   course={course}
-                  isWishlisted={!!wishlist.find(w => w.id === course.id)}
-                  onToggleWishlist={toggleWishlist}
+                  isWishlisted={!!isWishlisted?.(course.id)}
+                  onToggleWishlist={(c) => { if (!user) return; void toggle?.(c.id); }}
                   // NEW: pass premium + enroll handler (opens JoinNowModal)
                   isPremium={isPremium(course.id)}
                   onRequireEnroll={(c) => { setJoinCourseId(String(c.id)); setShowJoin(true); }}
@@ -320,8 +333,8 @@ export default function TracksAndCollectionsSection() {
                 <SidebarSkeleton />
               ) : (
                 <SidebarSmartFilter
-                  wishlist={wishlist}
-                  onToggleWishlist={toggleWishlist}
+                  wishlist={sidebarWishlist}
+                  onToggleWishlist={(c) => { if (!user) return; void toggle?.(c.id); }}
                   availability={availability}
                   setAvailability={setAvailability}
                 />
@@ -333,7 +346,7 @@ export default function TracksAndCollectionsSection() {
 
       {/* Footer at the end */}
       <Footer
-        brandName="MithunKumar"
+        brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       />
 

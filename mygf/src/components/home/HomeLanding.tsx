@@ -7,8 +7,11 @@ import { JoinNowModal } from "../join";
 
 export default function HomeLanding() {
   const navigate = useNavigate();
-  const { user, role, isAuthenticated } = useAuth();
-  const isAuthed = !!(isAuthenticated ?? user);
+const user = useAuth(s => s.user);
+const role = useAuth(s => s.user?.role);
+const isAuthenticated = useAuth(s => !!s.user);
+const isAuthed = isAuthenticated;
+
   const [joinOpen, setJoinOpen] = useState(false);
 
   // ==== ACTIONS: copy the runtime behavior from NavBar.tsx & HeroLeftCard.tsx ====

@@ -44,6 +44,8 @@ import configRouter from "./src/routes/config.js";
 import reportsRouter from "./src/routes/reports.js";
 import studentProgressRouter from "./src/routes/studentProgress.js";
 import certificatesRouter from "./src/routes/certificates.js";
+import notificationsRouter from "./src/routes/notifications.js";
+import { startScheduler } from "./src/utils/scheduler.js";
 import path from "path";
 import fs from "fs";
 
@@ -261,12 +263,13 @@ const templatesCandidate2 = path.join(process.cwd(), "backend", "templates", "ce
 const templatesDir = fs.existsSync(templatesCandidate1) ? templatesCandidate1 : templatesCandidate2;
 app.use("/api/static/templates", express.static(templatesDir));
 app.use("/api", certificatesRouter);
+app.use("/api", notificationsRouter);
 
 const PORT = process.env.PORT || 5002;
 
 connectMongo()
   .then(() => {
-    app.listen(PORT, () => console.log("Server running on", PORT));
+    app.listen(PORT, () => { console.log("Server running on", PORT); startScheduler(); });
   })
   .catch((err) => {
     console.error("[mongo] connection error:", err);

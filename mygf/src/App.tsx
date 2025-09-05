@@ -1,6 +1,8 @@
 //`src/App.tsx`
 import { Routes, Route, Navigate } from "react-router-dom";
 import RequireOrgUser from "./auth/RequireOrgUser";
+import { NotificationsProvider } from "./hooks/useNotifications";
+import ReminderPopup from "./components/notifications/ReminderPopup";
 
 // ---------- Public (student/user) screens ----------
 // import HomeSection from "./components/home/HomeSection";
@@ -74,6 +76,7 @@ import Shell from "./shell";
 
 export default function App() {
   return (
+    <NotificationsProvider>
     <Routes>
       {/* Default landing should be /home */}
       <Route path="/" element={<Navigate to="/home" replace />} />
@@ -194,6 +197,8 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
+        <ReminderPopup />
+    </NotificationsProvider>
   );
 }
 

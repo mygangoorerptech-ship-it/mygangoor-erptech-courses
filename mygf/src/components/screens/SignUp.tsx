@@ -326,7 +326,7 @@ const SignUp: React.FC = () => {
         </div>
       </div>
 
-      <Footer brandName="MithunKumar" tagline="Learn smarter. Build faster." />
+      <Footer brandName="ECA Academy" tagline="Learn smarter. Build faster." />
     </>
   );
 };

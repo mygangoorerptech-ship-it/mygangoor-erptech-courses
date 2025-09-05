@@ -233,7 +233,7 @@ const SignIn: React.FC = () => {
 
       {/* Footer at the end */}
       <Footer
-        brandName="MithunKumar"
+        brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       />
     </>

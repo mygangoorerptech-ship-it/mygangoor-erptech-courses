@@ -3,6 +3,7 @@ import { Menu } from "lucide-react";
 import RoleAvatar from "../../admin/avatar/RoleAvatar";
 import { useAuth } from "../../auth/store";
 import { useNavigate } from "react-router-dom";
+import NotificationBell from "../notifications/NotificationBell";
 
 export default function Topbar({
   role,
@@ -26,7 +27,7 @@ export default function Topbar({
     <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
       <div className="px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
         {/* Left */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3"> <NotificationBell />
           <button
             className="lg:hidden p-2 rounded-md hover:bg-gray-100"
             aria-label="Open menu"
@@ -42,7 +43,7 @@ export default function Topbar({
         </div>
 
         {/* Right */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3"> <NotificationBell />
           <div className="hidden sm:flex items-center gap-2 pr-2">
             <span className="text-sm text-gray-600 truncate max-w-[12rem]">{name}</span>
           </div>

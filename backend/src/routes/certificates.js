@@ -152,4 +152,36 @@ router.post("/certificates/generate", async (req, res, next) => {
   }
 });
 
+// --- Proxy download for certificate to track download & resolve reminders
+router.get("/certificates/download/:progressId", async (req, res) => {
+  try {
+    const { progressId } = req.params;
+    const actor = req.user;
+    if (!actor) return res.status(403).json({ ok: false, message: "unauthenticated" });
+
+    const Progress = (await import("../models/Progress.js")).default;
+    const { resolveCertificateReminders } = await import("../controllers/notificationsController.js");
+    const doc = await Progress.findById(progressId);
+    if (!doc) return res.status(404).json({ ok: false, message: "not found" });
+
+    // Only allow owner (student) or org admins to proxy download
+    const sameOrg = actor.orgId && String(actor.orgId) === String(doc.orgId);
+    const isOwner = String(actor._id) === String(doc.studentId);
+    const adminish = ["superadmin","admin","vendor","orgadmin"].includes(actor.role);
+    if (!(isOwner || (adminish && sameOrg) || actor.role === "superadmin")) {
+      return res.status(403).json({ ok: false, message: "forbidden" });
+    }
+
+    const url = doc.certificateUrl;
+    if (!url) return res.status(404).json({ ok: false, message: "no certificate" });
+
+    await resolveCertificateReminders(progressId, actor._id);
+
+    return res.redirect(url);
+  } catch (e) {
+    console.error("[certificates:download] error:", e);
+    return res.status(500).json({ ok: false, message: e.message });
+  }
+});
+
 export default router;

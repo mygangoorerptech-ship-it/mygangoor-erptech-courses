@@ -23,7 +23,10 @@ export function requireAuth(req, res, next) {
 
   try {
     const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
-    const payload = jwt.verify(token, secret);
+    const payload = jwt.verify(token, secret); 
+    // 🔧 normalize: always expose user id as _id for downstream code 
+    const uid = payload._id || payload.id || payload.sub; 
+    if (uid) payload._id = uid; 
     req.user = payload;
 
     if (req.path.startsWith("/api/students")) {

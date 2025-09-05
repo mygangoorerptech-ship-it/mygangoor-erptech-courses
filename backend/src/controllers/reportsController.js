@@ -340,6 +340,29 @@ export async function publishCertificate(req, res) {
     doc.updatedBy = actor._id || actor.sub;
     await doc.save();
 
+
+    // Create a reminder notification for the student when a certificate is attached
+    try {
+      const { enqueueNotification } = await import("./notificationsController.js");
+      if (doc.certificateUrl) {
+        const studentId = doc.studentId?._id || doc.studentId;
+        await enqueueNotification({
+          userId: studentId,
+          orgId: doc.orgId || null,
+          type: "certificate_available",
+          title: "Your certificate is ready",
+          body: "Download your certificate now.",
+          data: { progressId: doc._id, courseId: doc.courseId, url: doc.certificateUrl },
+          dueAt: new Date(),
+          recurrence: "daily",
+          maxTimes: 7,
+          priority: "high",
+        });
+      }
+    } catch (notifyErr) {
+      console.error("[notify] certificate_available enqueue failed", notifyErr?.message || notifyErr);
+    }
+
     return res.json({ ok: true });
   } catch (e) {
     console.error("[reports:publishCertificate]", e);

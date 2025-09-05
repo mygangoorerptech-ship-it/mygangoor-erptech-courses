@@ -2,13 +2,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { useAuth } from "../../admin/auth/store";
+import { useAuth } from "../../auth/store";
 import { JoinNowModal } from "../join";
+import NotificationBell from "../notifications/NotificationBell";
 
 export default function NavBar() {
   const navigate = useNavigate();
-  const { user, role, isAuthenticated } = useAuth();
-  const isAuthed = !!(isAuthenticated ?? user);
+const user = useAuth(s => s.user);
+const role = useAuth(s => s.user?.role);
+const isAuthenticated = useAuth(s => !!s.user);
+const isAuthed = isAuthenticated;
+
 
   const [joinOpen, setJoinOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -82,7 +86,7 @@ export default function NavBar() {
           </div>
 
           {/* Desktop links */}
-          <div className="hidden md:flex space-x-8">
+          <div className="hidden md:flex items-center space-x-8">
             <a
               href="/home"
               onClick={goHome}
@@ -97,6 +101,9 @@ export default function NavBar() {
             >
               <i className="fa-solid fa-circle-info" /><span>About</span>
             </a>
+
+            {/* Notification bell sits inline with the desktop links */}
+            <NotificationBell />
           </div>
 
           {/* CTAs */}
@@ -191,6 +198,16 @@ export default function NavBar() {
             <i className="fa-solid fa-user-plus" />
             <span>Join Form</span>
           </button>
+
+          {/* Keep bell in the mobile drawer */}
+          {/* Mobile bell: aligned with the drawer content */}
+<div className="mt-4">
+  <div className="w-full flex items-center gap-3 rounded-xl px-8 py-3 text-gray-800 hover:bg-pink-50">
+    <NotificationBell />
+    <span className="text-sm">Notifications</span>
+  </div>
+</div>
+
         </nav>
 
         <div className="mt-auto px-4 py-4 text-xs text-gray-500">
