@@ -1,14 +1,10 @@
 // src/admin/api/client.ts
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { API_BASE } from "../../config/env";
 import { ensureCsrfToken, getCsrfToken, invalidateCsrfToken } from '../../config/csrf';
 import { logAxiosMutation } from './audit';
 
-const baseURL = (import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : '/api');
-
-export const api = axios.create({
-  baseURL,
-  withCredentials: true,
-});
+export const api = axios.create({ baseURL: API_BASE, withCredentials: true });
 
 // ---- Log mutations (best-effort) ----
 api.interceptors.response.use(

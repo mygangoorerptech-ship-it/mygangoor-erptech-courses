@@ -1,12 +1,9 @@
 // src/api/client.ts
 import axios, { AxiosError } from 'axios';
+import { API_BASE } from "../config/env";
 import { ensureCsrfToken, getCsrfToken, invalidateCsrfToken } from '../config/csrf';
 
 // Prefer env var in prod; fallback to same-origin "/api"
-const API_BASE =
-  (import.meta as any)?.env?.VITE_API_URL
-    ? `${(import.meta as any).env.VITE_API_URL}/api`
-    : '/api';
 
 export const api = axios.create({
   baseURL: API_BASE,
