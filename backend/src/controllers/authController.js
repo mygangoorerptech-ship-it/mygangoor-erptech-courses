@@ -44,6 +44,12 @@ function expFromNowSec(sec) {
   return new Date(Date.now() + sec * 1000);
 }
 
+// --- debug logger ---
+const DEBUG_AUTH = process.env.DEBUG_AUTH === "1";
+const alog = (...args) => {
+  if (DEBUG_AUTH) console.log(new Date().toISOString(), "[auth]", ...args);
+};
+
 async function saveRefresh(userId, jti, exp, device) {
   await RefreshToken.create({ userId, jti, exp, device });
 }
@@ -56,19 +62,38 @@ async function findRefresh(jti) {
   return RefreshToken.findOne({ jti });
 }
 
+// ✅ Robust to Mongoose docs (.id) and lean objects (._id)
 function mintTokens(user, device) {
+  const uid = String(user?._id ?? user?.id ?? "");
+  if (!uid) {
+    throw new Error("mintTokens: missing uid (_id/id)");
+  }
+
+  const role = user?.role ?? (Array.isArray(user?.roles) ? user.roles[0] : null);
+  const orgIdRaw = user?.orgId ?? user?.org?._id ?? null;
+  const orgId = orgIdRaw ? String(orgIdRaw) : null;
+
   const jti = crypto.randomUUID();
-  const refresh = jwt.sign({ sub: String(user.id), jti }, JWT_REFRESH_SECRET, {
+  const refresh = jwt.sign({ sub: uid, jti }, JWT_REFRESH_SECRET, {
     expiresIn: REFRESH_TTL_SEC,
   });
   const payload = {
-    sub: String(user.id),
-    role: user.role,
-    roles: [user.role],          // convenient for future multi-role use
-    orgId: user.orgId ? String(user.orgId) : null,
+    sub: uid,
+    role,
+    roles: role ? [role] : [],
+    orgId,
   };
   const access = jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn: ACCESS_TTL });
   const refreshExp = expFromNowSec(REFRESH_TTL_SEC);
+
+  alog("[mintTokens] issue tokens", {
+    uid,
+    jti,
+    accessTtl: ACCESS_TTL,
+    refreshExp: refreshExp?.toISOString?.(),
+    ua: device,
+  });
+
   return { access, refresh, jti, refreshExp, device };
 }
 
@@ -244,7 +269,6 @@ export async function totpSetup(req, res) {
       }
     }
 
-
     const otpauth_url = speakeasy.otpauthURL({
       secret: base32Secret,
       encoding: "base32",
@@ -262,7 +286,6 @@ export async function totpSetup(req, res) {
 
 export async function totpVerify(req, res) {
   const { code, mfaTempToken } = req.body;
-  const user = req.user;
   try {
     if (!mfaTempToken) {
       return res.status(400).json({ ok: false, message: "Missing MFA session token" });
@@ -305,8 +328,8 @@ export async function totpVerify(req, res) {
     const device = req.get("User-Agent") || "unknown";
     const { access, refresh, jti, refreshExp } = mintTokens(user, device);
     await saveRefresh(user.id, jti, refreshExp, device);
-  setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
-  return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+    setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+    return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
   } catch {
     return res.status(400).json({ ok: false, message: "Invalid or expired session" });
   }
@@ -409,7 +432,6 @@ export async function acceptInvite(req, res) {
   return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
 }
 
-
 export async function check(req, res) {
   try {
     const header = req.headers.authorization || "";
@@ -432,38 +454,87 @@ export async function check(req, res) {
     return res.status(401).json({ ok: false });
   }
 }
- 
+
 export async function refresh(req, res) {
+  const started = Date.now();
+  const rid = crypto.randomUUID();
+  const ua = req.get("User-Agent") || "unknown";
+  const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+
   try {
     const rt = req.cookies?.["__Host-refresh"] || req.cookies?.sr;
-    if (!rt) return res.status(401).json({ ok: false });
+    alog("[refresh:start]", { rid, hasCookie: !!rt, ip, ua });
+
+    if (!rt) {
+      alog("[refresh:fail] no-cookie", { rid });
+      return res.status(401).json({ ok: false });
+    }
 
     let payload;
     try {
       payload = jwt.verify(rt, JWT_REFRESH_SECRET);
-    } catch {
+    } catch (e) {
+      alog("[refresh:jwt-verify-fail]", { rid, name: e?.name, msg: e?.message });
       return res.status(401).json({ ok: false });
     }
-    const { sub: userId, jti: oldJti } = payload || {};
-    if (!userId || !oldJti) return res.status(401).json({ ok: false });
+
+    const { sub: userId, jti: oldJti, exp } = payload || {};
+    if (!userId || !oldJti) {
+      alog("[refresh:fail] bad-payload", { rid, userId: !!userId, oldJti: !!oldJti });
+      return res.status(401).json({ ok: false });
+    }
+
+    const expMs = exp ? exp * 1000 : null;
+    if (expMs) {
+      alog("[refresh:payload]", { rid, userId, oldJti, rtExpAt: new Date(expMs).toISOString() });
+    }
 
     const dbTok = await findRefresh(oldJti);
-    if (!dbTok || dbTok.revokedAt) {
-      // Reuse or unknown token
+    if (!dbTok) {
+      alog("[refresh:fail] jti-not-found", { rid, oldJti });
+      return res.status(401).json({ ok: false, message: "Refresh reuse detected" });
+    }
+    if (dbTok.revokedAt) {
+      alog("[refresh:fail] jti-revoked", {
+        rid,
+        oldJti,
+        revokedAt: dbTok.revokedAt?.toISOString?.(),
+        replacedBy: dbTok.replacedBy || null,
+      });
       return res.status(401).json({ ok: false, message: "Refresh reuse detected" });
     }
 
-    // Rotate: revoke old, issue new pair
     const device = req.get("User-Agent") || dbTok.device || "unknown";
-    const user = await User.findById(userId).lean();
-    if (!user) return res.status(401).json({ ok: false });
+    // Use full doc (not lean) — but mintTokens is robust either way
+    const user = await User.findById(userId);
+    if (!user) {
+      alog("[refresh:fail] user-not-found", { rid, userId });
+      return res.status(401).json({ ok: false });
+    }
+
     const { access, refresh, jti, refreshExp } = mintTokens(user, device);
     await revokeRefresh(oldJti, jti);
     await saveRefresh(userId, jti, refreshExp, device);
 
     setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+
+    alog("[refresh:rotate-ok]", {
+      rid,
+      userId,
+      oldJti,
+      newJti: jti,
+      nextRtExpAt: refreshExp?.toISOString?.(),
+      ms: Date.now() - started,
+    });
+
     return res.json({ ok: true, accessToken: access });
   } catch (e) {
+    alog("[refresh:exception]", {
+      rid,
+      name: e?.name,
+      msg: e?.message,
+      ms: Date.now() - started,
+    });
     return res.status(401).json({ ok: false });
   }
 }

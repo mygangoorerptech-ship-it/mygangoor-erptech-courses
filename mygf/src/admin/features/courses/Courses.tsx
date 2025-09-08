@@ -320,7 +320,10 @@ export default function CoursesUnified() {
           admins={owners}
           onClose={() => setOpen(null)}
           onSubmit={async (payload) => {
-            const toServer = { ...payload, price: payload.price, chapters: payload.isBundled ? payload.chapters ?? [] : [] };
+            const toServer = { ...payload, price: payload.price, chapters: payload.isBundled ? payload.chapters ?? [] : [],
+                            description: (payload.description ?? "") || undefined,
+              tags: Array.isArray(payload.tags) ? payload.tags : [],
+             };
             if (open.mode === "create") await createMut.mutateAsync(toServer);
             else if (open.initial?.id) await updateMut.mutateAsync({ id: open.initial.id, patch: toServer });
           }}

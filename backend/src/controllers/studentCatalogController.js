@@ -235,6 +235,23 @@ export async function getCourseDetail(req, res) {
     const c = await Course.findOne({ _id: id, $or: [{ orgId }, { orgId: null }] }).lean();
     if (!c) return res.status(404).json({ ok: false, message: "Course not found" });
 
+        // 🔹 NEW: resolve instructor/owner names
+    const pickName = (u) =>
+      u?.name || u?.fullName || [u?.firstName, u?.lastName].filter(Boolean).join(" ") || u?.displayName || null;
+
+    let ownerName = null, teacherName = null;
+    const ids = [];
+    if (c.ownerId)   ids.push(String(c.ownerId));
+    if (c.teacherId) ids.push(String(c.teacherId));
+    if (ids.length) {
+      const users = await User.find({ _id: { $in: ids } })
+        .select("name fullName firstName lastName displayName")
+        .lean();
+      const byId = new Map(users.map(u => [String(u._id), u]));
+      if (c.ownerId && byId.has(String(c.ownerId)))   ownerName   = pickName(byId.get(String(c.ownerId)));
+      if (c.teacherId && byId.has(String(c.teacherId))) teacherName = pickName(byId.get(String(c.teacherId)));
+    }
+
     const chapters = Array.isArray(c.chapters) ? c.chapters : [];
     const totalSeconds = chapters.reduce((s, ch) => s + (Number(ch.durationSeconds) || 0), 0);
     const formatHMS = s => {
@@ -258,6 +275,10 @@ export async function getCourseDetail(req, res) {
       cover: c.bundleCoverUrl || c.coverUrl || null,
       rating: ratingAvg,
       reviews: ratingCount,
+            // 🔹 NEW fields
+      teacherId: c.teacherId ? String(c.teacherId) : null,
+      teacherName: teacherName,
+      ownerName: ownerName,
       chapters: chapters
         .sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0))
         .map(ch => ({

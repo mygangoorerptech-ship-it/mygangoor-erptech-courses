@@ -1,8 +1,9 @@
 // src/admin/api/client.ts
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { API_BASE } from "../../config/env";
-import { ensureCsrfToken, getCsrfToken, invalidateCsrfToken } from '../../config/csrf';
+import { ensureCsrfToken, getCsrfToken } from '../../config/csrf';
 import { logAxiosMutation } from './audit';
+import { refreshOnce } from '../../api/refreshGate';
 
 export const api = axios.create({ baseURL: API_BASE, withCredentials: true });
 
@@ -37,22 +38,6 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// ---- 401/419 → refresh (single-flight) → rotate CSRF → replay ----
-let refreshing = false;
-let waiters: Array<(ok: boolean) => void> = [];
-const isRefresh = (cfg?: any) => ((cfg?.url || '') as string).includes('/auth/refresh');
-
-function waitForRefresh(): Promise<boolean> {
-  return new Promise((resolve) => waiters.push(resolve));
-}
-function releaseWaiters(ok: boolean) {
-  const w = waiters.slice();
-  waiters = [];
-  for (const fn of w) {
-    try { fn(ok); } catch {}
-  }
-}
-
 api.interceptors.response.use(
   (r) => r,
   async (error: AxiosError) => {
@@ -60,35 +45,26 @@ api.interceptors.response.use(
     const cfg: any = error.config || {};
     const status = res?.status ?? 0;
 
-    // Only handle auth-expiry codes; never loop; never intercept /auth/refresh itself
+    const isRefresh = (cfg?: any) => ((cfg?.url || '') as string).includes('/auth/refresh');
+
     if (!cfg || cfg.__retryAfterRefresh || isRefresh(cfg) || (status !== 401 && status !== 419)) {
       return Promise.reject(error);
     }
 
-    if (refreshing) {
-      const ok = await waitForRefresh();
-      if (!ok) return Promise.reject(error);
-      cfg.__retryAfterRefresh = true;
-      return api(cfg);
-    }
+    const ok = await refreshOnce();
+    if (!ok) return Promise.reject(error);
 
-    refreshing = true;
+    cfg.__retryAfterRefresh = true;
+
     try {
-      // IMPORTANT: do NOT fetch CSRF before refresh
-      await api.post('/auth/refresh', {}); // cookies + withCredentials
+      const method = (cfg.method || 'get').toLowerCase();
+      if (['post','put','patch','delete'].includes(method)) {
+        const { getCsrfToken } = await import('../../config/csrf');
+        const tok = getCsrfToken();
+        if (tok) cfg.headers = { ...(cfg.headers || {}), 'X-CSRF-Token': tok };
+      }
+    } catch {}
 
-      // New access cookie set → rotate CSRF to match the new session
-      invalidateCsrfToken();
-      await ensureCsrfToken(true);
-
-      releaseWaiters(true);
-      cfg.__retryAfterRefresh = true;
-      return api(cfg);
-    } catch (e) {
-      releaseWaiters(false);
-      return Promise.reject(error);
-    } finally {
-      refreshing = false;
-    }
+    return api(cfg);
   }
 );

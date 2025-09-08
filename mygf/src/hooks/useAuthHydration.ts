@@ -1,96 +1,67 @@
 // src/hooks/useAuthHydration.ts
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../auth/store";
 import { checkSession } from "../api/auth";
 
 /**
- * Public routes: we avoid calling /auth/check unless we know the user
- * previously had a refresh cookie (localStorage hint).
+ * Public routes: previously we avoided calling /auth/check unless we had a
+ * localStorage hint. We've removed localStorage; instead we keep a volatile
+ * in-memory hint in the auth store (`hadRefreshHint`) that's set after a
+ * successful login in this tab. This preserves the old behaviour (no extra
+ * 401s on fully public pages) without persisting anything to disk.
  */
 const PUBLIC_PREFIXES = ["/", "/home", "/login", "/signup", "/forgot-password", "/reset-password"];
 const isPublicPath = (pathname: string) =>
   PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 
-/**
- * Module-scoped guards so multiple components don't all call /auth/check
- */
-let hydratedOnce = false;
-let inflight: Promise<void> | null = null;
+/** one-flight across the tab */
+let hydrationOnce = false;
 
-export function resetAuthHydration() {
-  hydratedOnce = false;
-  inflight = null;
-}
-
-/**
- * One-time auth hydration from cookie-based session.
- * - On public pages, hydrate only if we previously had a session.
- * - Silently swallow 401s.
- */
 export function useAuthHydration() {
-  const { user, login: setAuthUser } = useAuth();
+  const { user, hadRefreshHint, setUser } = useAuth();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(hydratedOnce || !!user);
-  const ran = useRef(false);
   const { pathname } = useLocation();
 
   useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-
-    if (hydratedOnce || user) {
-      setIsHydrated(true);
-      return;
-    }
-
-    const onPublic = isPublicPath(pathname);
-    const hadSession = localStorage.getItem("auth:hasRefresh") === "1";
-
-    // On public screens, skip hydration if we never had a refresh cookie
-    if (onPublic && !hadSession) {
-      hydratedOnce = true;
-      setIsHydrated(true);
-      return;
-    }
-
     let cancelled = false;
+
+    // On private paths: always try once. On public paths: only if we have the hint.
+    const shouldPing = !user && (!isPublicPath(pathname) || hadRefreshHint);
+
+    if (!shouldPing || hydrationOnce) {
+      // nothing to do; treat as hydrated for public pages
+      setIsHydrated(true);
+      return;
+    }
+
+    hydrationOnce = true;
     setIsLoading(true);
 
-    const run = async () => {
-      if (inflight) {
-        await inflight;
-      } else {
-        inflight = (async () => {
-          try {
-            const res = await checkSession(); // GET /api/auth/check
-            if (!cancelled && res?.ok && res.user) {
-              // Cookie-based; store user only
-              setAuthUser({ user: res.user, tokens: undefined } as any);
-              // remember we had a session
-              localStorage.setItem("auth:hasRefresh", "1");
-            }
-          } catch {
-            // ignore (401 etc.)
-          } finally {
-            hydratedOnce = true;
-            inflight = null;
-          }
-        })();
-        await inflight;
+    (async () => {
+      try {
+        const res = await checkSession();
+        if (!cancelled && res?.ok && res?.user) {
+          setUser(res.user);
+        }
+      } catch {
+        // ignore 401/419
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsHydrated(true);
+        }
       }
+    })();
 
-      if (!cancelled) {
-        setIsLoading(false);
-        setIsHydrated(true);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [user, setAuthUser, pathname]);
+    return () => { cancelled = true; };
+  }, [user, hadRefreshHint, pathname, setUser]);
 
   return { user: user || null, isHydrated, isLoading };
+}
+
+/** Compatibility shim for places that call this after logout */
+export function resetAuthHydration() {
+  hydrationOnce = false;
 }

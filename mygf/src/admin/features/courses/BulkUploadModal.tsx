@@ -1,3 +1,4 @@
+// mygf/src/admin/features/courses/BulkUploadModal.tsx
 import { useMemo, useState } from "react";
 import Modal from "../../components/Modal";
 import Button from "../../components/Button";
@@ -55,11 +56,23 @@ function toBoolean(val: any): boolean {
   return s === "1" || s === "true" || s === "yes" || s === "y";
 }
 
+// UPDATED: limit to 5 tags, dedupe case-insensitively
 function splitTags(val: any): string[] {
-  if (Array.isArray(val)) return val.map(String).map(s => s.trim()).filter(Boolean);
-  const s = String(val ?? "").trim();
-  if (!s) return [];
-  return s.split(/[|;,]/).map(t => t.trim()).filter(Boolean);
+  const arr = Array.isArray(val)
+    ? val.map(String)
+    : String(val ?? "").split(/[|;,]/).map((t) => t.trim());
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of arr) {
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (!seen.has(key)) {
+      out.push(t);
+      seen.add(key);
+    }
+    if (out.length >= 5) break;
+  }
+  return out;
 }
 
 function parseChapters(val: any): any[] {
@@ -336,7 +349,7 @@ export default function BulkUploadModal({
             </div>
             <ul className="text-xs mt-2 list-disc pl-5 space-y-1">
               <li><strong>price</strong> in ₹ (rupees). We convert to paise.</li>
-              <li><strong>tags</strong> can be separated by <code>|</code>, <code>,</code> or <code>;</code>.</li>
+              <li><strong>tags</strong> up to 5 (separate with <code>|</code>, <code>,</code>, or <code>;</code>).</li>
               <li><strong>isBundled</strong>: true/false. If empty but <strong>chapters</strong> provided, we infer true.</li>
               <li><strong>chapters</strong>: either JSON array (e.g. <code>[{"{"}"title":"Intro"{"}"}]</code>) or <code>Title1|Title2|Title3</code>.</li>
               {isSA && <li><strong>orgId</strong>: set <code>global</code> for global courses, otherwise use an Organization ID.</li>}

@@ -27,6 +27,7 @@ function normalizeOrgId(input) {
   return HEX24.test(s) ? s : null;
 }
 
+
 // GET /sa/users
 export async function list(req, res) {
   const { q = "", role = "all", status = "all", orgId, verified } = req.query || {};
@@ -35,18 +36,23 @@ export async function list(req, res) {
   if (q) {
     and.push({
       $or: [
-        { name: { $regex: q, $options: "i" } },
+        { name:  { $regex: q, $options: "i" } },
         { email: { $regex: q, $options: "i" } },
       ],
     });
   }
-  if (role && role !== "all") and.push({ role });
-
-  if (status && status !== "all") {
-    and.push({ status });
+  // Map student <-> orguser for filtering (DB stores orguser)
+if (role && role !== "all") {
+  if (role === "student" || role === "orguser") {
+    and.push({ role: { $in: ["student", "orguser"] } });
+  } else {
+    and.push({ role });
   }
+}
 
-  // ✅ tolerant org filter prevents CastError on [object Object]
+  if (status && status !== "all") and.push({ status });
+
+  // Tolerant org filter
   const oid = normalizeOrgId(orgId);
   if (oid === undefined) {
     // no org filter
@@ -56,15 +62,29 @@ export async function list(req, res) {
     and.push({ orgId: oid });           // specific org
   }
 
-  // By default, hide unverified (and keep back-compat by including docs where field is missing)
+  // Hide unverified by default (keep docs where field is missing)
   if (verified !== "all") {
     and.push({ $or: [{ isVerified: { $exists: false } }, { isVerified: true }] });
   }
 
   const where = and.length ? { $and: and } : {};
+
+  // ETag / data-version
+  const count   = await User.countDocuments(where);
+  const lastDoc = await User.find(where).sort({ updatedAt: -1 }).limit(1).select({ updatedAt: 1 }).lean();
+  const last    = lastDoc?.[0]?.updatedAt ? new Date(lastDoc[0].updatedAt).getTime() : 0;
+  const vKey    = `${count}:${last}:${role}:${status}:${oid ?? "any"}:${verified || "default"}:${hash(q)}`;
+  const etag    = `W/"sausers-${vKey}"`;
+  res.setHeader("ETag", etag);
+  res.setHeader("X-Data-Version", vKey);
+  if ((req.headers["if-none-match"] || "") === etag) {
+    return res.status(304).end();
+  }
+
+  // Data
   const rows = await User.find(where).sort({ createdAt: -1 }).lean();
 
-  // collect distinct orgIds and resolve names
+  // Resolve org names
   const orgIds = [...new Set(rows.map(r => r.orgId).filter(Boolean))];
   let nameById = {};
   if (orgIds.length) {
@@ -78,14 +98,11 @@ export async function list(req, res) {
     rows.map(r => ({
       ...r,
       id: String(r._id),
-      // normalize orgId to string|null for client to avoid future “[object Object]”
-      orgId: r.orgId ? String(r.orgId) : null,
+      orgId: r.orgId ? String(r.orgId) : null, // normalize to string|null for client
       orgName: r.orgId ? nameById[String(r.orgId)] || undefined : undefined,
     }))
   );
 }
-
-// --- the rest of your file remains unchanged below ---
 
 // POST /sa/users
 export async function create(req, res) {
@@ -319,85 +336,263 @@ export async function remove(req, res) {
 // POST /sa/users/bulk-upsert
 export async function bulkUpsert(req, res) {
   const actor = req.user || {};
-  // Determine the actor's primary role for access control. Only superadmin may bulk import users.
   let actorRole = actor?.role;
-  if (!actorRole && Array.isArray(actor?.roles) && actor.roles.length) {
-    actorRole = actor.roles[0];
-  }
+  if (!actorRole && Array.isArray(actor?.roles) && actor.roles.length) actorRole = actor.roles[0];
   actorRole = (actorRole || "").toString().toLowerCase();
-  if (actorRole !== "superadmin") {
-    return res.status(403).json({ ok: false, message: "Forbidden" });
-  }
+  if (actorRole !== "superadmin") return res.status(403).json({ ok: false, message: "Forbidden" });
 
   const actorId = actor.sub || actor._id || actor.id || actor.uid || null;
   const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
-  let created = 0, updated = 0;
+  if (!rows.length) return res.json({ created: 0, updated: 0, total: 0, skipped: [] });
+
+  // ---- helpers -------------------------------------------------------------
+  const isHex24 = (s) => typeof s === 'string' && HEX24.test(s);
+  const isEmail = (s) => /\S+@\S+\.\S+/.test(String(s||''));
+  const normMethod = (v) => {
+    const s = String(v||'').toLowerCase().trim();
+    if (!s) return undefined;
+    if (s === 'email' || s === 'email_otp' || s === 'otp') return 'otp';
+    if (s === 'totp' || s === 'auth' || s === 'authenticator') return 'totp';
+    return undefined;
+  };
+  const normRole = (v) => {
+    const r = String(v||'').toLowerCase().trim();
+    if (r === 'orguser') return 'student';
+    return ['superadmin','admin','vendor','student'].includes(r) ? r : 'student';
+  };
+  const normStatus = (v) => {
+    const s = String(v||'').toLowerCase().trim();
+    return ['active','disabled'].includes(s) ? s : undefined;
+  };
+  const truthy = (v) => /^(true|1|yes|y)$/i.test(String(v||'').trim());
+
+  // ---- collect refs for bulk prefetch -------------------------------------
+  const orgIds = new Set();
+  const orgCodes = new Set();
+  const orgNames = new Set();
+  const orgDomains = new Set();
+
+  const adminEmails = new Set();
+  const adminIds = new Set();
+  const managerEmails = new Set();
+  const managerIds = new Set();
 
   for (const raw of rows) {
-    const email = (raw.email || "").trim().toLowerCase();
-    if (!email) continue;
+    const orgId = raw.orgId || raw.org_id;
+    const org = raw.org || null;
+    const orgCode = raw.orgCode || raw.org_code;
+    const orgName = raw.orgName || raw.org_name;
+    const orgDomain = raw.orgDomain || raw.org_domain;
 
-    const role = raw.role || "student";
-    const orgId = raw.orgId || null;
+    if (orgId && isHex24(orgId)) orgIds.add(String(orgId));
+    if (org && isHex24(org)) orgIds.add(String(org));
+    if (orgCode) orgCodes.add(String(orgCode));
+    if (orgName) orgNames.add(String(orgName).toLowerCase());
+    if (orgDomain) orgDomains.add(String(orgDomain).toLowerCase());
+
+    const adminRef = raw.adminRef || raw.admin || raw.admin_email || raw.admin_email || raw.admin_id || raw.adminid;
+    if (adminRef) {
+      if (isEmail(adminRef)) adminEmails.add(String(adminRef).toLowerCase());
+      else if (isHex24(adminRef)) adminIds.add(String(adminRef));
+    }
+    const managerRef = raw.managerRef || raw.manager || raw.manager_email || raw.manager_id || raw.managerid;
+    if (managerRef) {
+      if (isEmail(managerRef)) managerEmails.add(String(managerRef).toLowerCase());
+      else if (isHex24(managerRef)) managerIds.add(String(managerRef));
+    }
+  }
+
+  // ---- prefetch orgs & admins in one shot ---------------------------------
+  const orgOr = [];
+  if (orgIds.size) orgOr.push({ _id: { $in: [...orgIds] } });
+  if (orgCodes.size) orgOr.push({ code: { $in: [...orgCodes] } });
+  if (orgNames.size) orgOr.push({ name: { $in: [...orgNames].map(s => new RegExp(`^${s}$`, 'i')) } });
+  if (orgDomains.size) orgOr.push({ domain: { $in: [...orgDomains].map(s => new RegExp(`^${s}$`, 'i')) } });
+  const orgs = orgOr.length ? await Organization.find({ $or: orgOr }).select({ _id:1, code:1, name:1, domain:1 }).lean() : [];
+
+  const orgById = new Map(orgs.map(o => [String(o._id), o]));
+  const orgByCode = new Map(orgs.filter(o => o.code).map(o => [String(o.code), o]));
+  const orgByName = new Map(orgs.map(o => [String(o.name).toLowerCase(), o]));
+  const orgByDomain = new Map(orgs.filter(o => o.domain).map(o => [String(o.domain).toLowerCase(), o]));
+
+  const adminOr = [];
+  if (adminIds.size) adminOr.push({ _id: { $in: [...adminIds] } });
+  if (adminEmails.size) adminOr.push({ email: { $in: [...adminEmails] } });
+  if (managerIds.size) adminOr.push({ _id: { $in: [...managerIds] } });
+  if (managerEmails.size) adminOr.push({ email: { $in: [...managerEmails] } });
+
+  const adminDocs = adminOr.length
+    ? await User.find({ role: 'admin', $or: adminOr }).select({ _id:1, email:1, name:1, orgId:1, status:1, createdAt:1 }).lean()
+    : [];
+
+  const adminById = new Map(adminDocs.map(a => [String(a._id), a]));
+  const adminByEmail = new Map(adminDocs.map(a => [String(a.email).toLowerCase(), a]));
+
+  // build "first active admin per org" map (for fallbacks)
+  const seenOrgIds = new Set(orgs.map(o => String(o._id)));
+  for (const a of adminDocs) if (a.orgId) seenOrgIds.add(String(a.orgId));
+  const fallbackAdmins = await User.find({
+    role: 'admin', status: 'active',
+    orgId: { $in: [...seenOrgIds] }
+  }).select({ _id:1, email:1, name:1, orgId:1, createdAt:1 }).lean();
+  const firstActiveAdminByOrg = new Map();
+  for (const a of fallbackAdmins) {
+    const key = String(a.orgId);
+    const cur = firstActiveAdminByOrg.get(key);
+    if (!cur || (cur.createdAt > a.createdAt)) firstActiveAdminByOrg.set(key, a);
+  }
+
+  const resolveOrgId = (raw) => {
+    const orgId = raw.orgId || raw.org_id;
+    const org = raw.org;
+    const orgCode = raw.orgCode || raw.org_code;
+    const orgName = raw.orgName || raw.org_name;
+    const orgDomain = raw.orgDomain || raw.org_domain;
+
+    if (orgId && isHex24(orgId) && orgById.get(String(orgId))) return String(orgId);
+    if (org && isHex24(org) && orgById.get(String(org))) return String(org);
+
+    if (orgCode && orgByCode.get(String(orgCode))) return String(orgByCode.get(String(orgCode))._id);
+    if (orgName && orgByName.get(String(orgName).toLowerCase())) return String(orgByName.get(String(orgName).toLowerCase())._id);
+    if (orgDomain && orgByDomain.get(String(orgDomain).toLowerCase())) return String(orgByDomain.get(String(orgDomain).toLowerCase())._id);
+
+    // when CSV has literal "global" or "-" treat as null (global user)
+    if (orgId === null || orgId === '' || String(orgId).toLowerCase() === 'global' || String(org||'').toLowerCase() === 'global') return null;
+
+    return undefined; // unresolved
+  };
+
+  const resolveAdmin = (ref) => {
+    if (!ref) return null;
+    if (isEmail(ref)) return adminByEmail.get(String(ref).toLowerCase()) || null;
+    if (isHex24(ref)) return adminById.get(String(ref)) || null;
+    return null;
+  };
+
+  // ---- main upsert loop ----------------------------------------------------
+  let created = 0, updated = 0;
+  const skipped = [];
+
+  for (const raw0 of rows) {
+    const raw = { ...raw0 };
+    const email = String(raw.email || '').trim().toLowerCase();
+    if (!email || !isEmail(email)) { skipped.push({ email, reason: 'invalid_email' }); continue; }
+
+    const role = normRole(raw.role || 'student');
     const name = raw.name || undefined;
-    const status = raw.status && ["active", "disabled"].includes(raw.status) ? raw.status : undefined;
-    const mfa = raw.mfa || null;
-    const pwd = raw.password;
+    const status = normStatus(raw.status) || (role === 'student' ? 'active' : undefined);
+
+    // MFA normalization
+    const mfaObj = (raw.mfa && typeof raw.mfa === 'object') ? raw.mfa : {};
+    const mfaRequired = ('mfaRequired' in raw) ? truthy(raw.mfaRequired) :
+                        ('required' in mfaObj) ? !!mfaObj.required :
+                        (role !== 'student'); // default true for admin/vendor
+    const mfaMethod = normMethod(raw.mfaMethod || mfaObj.method) || (mfaRequired ? (role === 'vendor' ? 'totp' : 'otp') : null);
+
+    // Resolve admin/manager refs
+    const adminRef = raw.adminRef || raw.admin || raw.admin_email || raw.admin_id || raw.adminid || null;
+    const managerRef = raw.managerRef || raw.manager || raw.manager_email || raw.manager_id || raw.managerid || null;
+
+    const adminDoc = resolveAdmin(adminRef);
+    const managerDoc = resolveAdmin(managerRef);
+
+    // Resolve org
+    let orgId = resolveOrgId(raw);
+    if (orgId === undefined && adminDoc?.orgId) orgId = String(adminDoc.orgId); // derive from admin if present
 
     const existing = await User.findOne({ email });
-    if (!existing) {
-      if (role === "admin" || role === "vendor") {
-        const plain = pwd && String(pwd).length >= 8 ? String(pwd) : undefined;
-        const passwordHash = await bcrypt.hash((plain || crypto.randomUUID()), 12);
-        await User.create({
-          email, name, role, status: "disabled", orgId,
-          invitedBy: actorId,
-          managerId: role === "vendor" ? (raw.managerId || null) : null,
-          passwordHash,
-          isVerified: false,
-          mfa: { required: true, method: mfa?.method === "totp" ? "totp" : "otp", totpSecretHash: null, totpSecretEnc: { iv: null, ct: null, tag: null }, emailOtp: null }
-        });
-        created++;
-      } else if (role === "student") {
-        // === CSV STUDENT: direct-create matching the rules ===
-        // Prefer an explicit admin (adminId/managerId) or fall back to first active admin in orgId.
-        const pickedAdminId = raw.adminId || raw.managerId || null;
-        let adminDoc = null;
-        if (pickedAdminId) {
-          adminDoc = await User.findOne({ _id: pickedAdminId, role: "admin" });
-        } else if (orgId) {
-          adminDoc = await User.findOne({ role: "admin", status: "active", orgId }).sort({ createdAt: 1 });
-        }
-        if (!adminDoc || !adminDoc.orgId) continue;
 
-        const plain = crypto.randomBytes(10).toString("base64")
-          .replace(/[^a-z0-9]/gi, "").slice(0, 12) + "9!";
+    // ------ CREATE ----------------------------------------------------------
+    if (!existing) {
+      // Role-specific requirements & fallbacks
+      if (role === 'admin' || role === 'vendor') {
+        // admin/vendor can specify org directly OR inherit from manager/adminRef if present
+        if (orgId === undefined && managerDoc?.orgId) orgId = String(managerDoc.orgId);
+        const plain = (raw.password && String(raw.password).length >= 8) ? String(raw.password) : crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi, '').slice(0, 12) + "9!";
         const passwordHash = await bcrypt.hash(plain, 12);
 
+        // If vendor and no explicit manager, try to find one from org
+        let managerId = null;
+        if (role === 'vendor') {
+          if (managerDoc) managerId = managerDoc._id;
+          else if (orgId && firstActiveAdminByOrg.get(String(orgId))) managerId = firstActiveAdminByOrg.get(String(orgId))._id;
+        }
+
         const user = await User.create({
-          email, name,
-          role: "student",
-          status: status || "active",
-          orgId: adminDoc.orgId,
-          invitedBy: actorId,              // FIX
-          managerId: adminDoc._id,         // FIX
-          isVerified: false,               // FIX – verified on first successful login/MFA
+          email, name, role,
+          status: status || 'disabled',      // superadmin will activate as needed
+          orgId: (orgId === undefined) ? null : orgId, // allow global admin/vendor if truly desired
+          invitedBy: actorId,
+          managerId: managerId || null,
           passwordHash,
+          isVerified: false,
           mfa: {
-            required: !!mfa?.required,
-            method: mfa?.required ? (mfa?.method === "totp" ? "totp" : "otp") : null,
+            required: true,
+            method: mfaMethod || 'otp',
             totpSecretHash: null,
             totpSecretEnc: { iv: null, ct: null, tag: null },
             emailOtp: null,
           },
         });
 
-        const appBase = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
-        const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
-        let orgName;
-        const org = await Organization.findById(adminDoc.orgId).select("name").lean();
-        orgName = org?.name;
+        // email credentials for staff
         try {
+          const appBase = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
+          const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
+          let orgName;
+          if (user.orgId) {
+            const orgDoc = orgById.get(String(user.orgId)) || await Organization.findById(user.orgId).select("name").lean();
+            orgName = orgDoc?.name;
+          }
+          await sendStaffCredentialsEmail(email, {
+            role,
+            signinUrl: signInUrl,
+            email,
+            password: plain,
+            mfaMethod: user.mfa.method || "otp",
+            orgName,
+          });
+        } catch {}
+        created++;
+        continue;
+      }
+
+      if (role === 'student') {
+        // Prefer explicit admin (adminRef). Else fall back to first active admin in resolved org.
+        let supervisingAdmin = adminDoc || null;
+        if (!supervisingAdmin && orgId && firstActiveAdminByOrg.get(String(orgId))) {
+          supervisingAdmin = firstActiveAdminByOrg.get(String(orgId));
+        }
+        if (!supervisingAdmin || !supervisingAdmin.orgId) {
+          skipped.push({ email, reason: 'no_admin_or_org' });
+          continue;
+        }
+
+        const plain = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi, "").slice(0, 12) + "9!";
+        const passwordHash = await bcrypt.hash(plain, 12);
+
+        const user = await User.create({
+          email, name,
+          role: "student",
+          status: status || "active",
+          orgId: supervisingAdmin.orgId,
+          invitedBy: actorId,
+          managerId: supervisingAdmin._id,
+          isVerified: false, // flips true on first successful MFA
+          passwordHash,
+          mfa: {
+            required: !!mfaRequired,
+            method: mfaRequired ? (mfaMethod || 'otp') : null,
+            totpSecretHash: null,
+            totpSecretEnc: { iv: null, ct: null, tag: null },
+            emailOtp: null,
+          },
+        });
+
+        try {
+          const appBase = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
+          const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
+          const orgDoc = orgById.get(String(user.orgId)) || await Organization.findById(user.orgId).select("name").lean();
           await sendStaffCredentialsEmail(email, {
             role: "student",
             signinUrl: signInUrl,
@@ -405,38 +600,69 @@ export async function bulkUpsert(req, res) {
             password: plain,
             mfaMethod: user.mfa.method,
             mfaRequired: !!user.mfa.required,
-            orgName,
-            adminName: adminDoc.name || adminDoc.email,
+            orgName: orgDoc?.name,
+            adminName: supervisingAdmin.name || supervisingAdmin.email,
           });
         } catch {}
         created++;
-      } else {
-        // (Optional) handle any other roles if you ever add them here.
         continue;
       }
 
-    } else {
-      // patch basic fields on upsert
-      if (name !== undefined) existing.name = name;
-      if (status !== undefined) existing.status = status;
-      if (orgId !== undefined) existing.orgId = orgId;
-      if (role !== undefined) existing.role = role;
-      if (pwd && String(pwd).length >= 8) {
-        existing.passwordHash = await bcrypt.hash(String(pwd), 12);
+      // allow creating superadmin via CSV (rare)
+      if (role === 'superadmin') {
+        const plain = (raw.password && String(raw.password).length >= 8) ? String(raw.password) : crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi, '').slice(0, 12) + "9!";
+        const passwordHash = await bcrypt.hash(plain, 12);
+        await User.create({
+          name, email, role: "superadmin", status: "active", orgId: null,
+          isVerified: true,
+          passwordHash,
+          invitedBy: actorId,
+          mfa: { required: true, method: "otp", totpSecretHash: null, totpSecretEnc: { iv: null, ct: null, tag: null }, emailOtp: null },
+        });
+        created++;
+        continue;
       }
-      if (mfa) {
-        existing.mfa = {
-          required: !!mfa.required,
-          method: mfa.required ? (mfa.method === "totp" ? "totp" : "otp") : null,
-          totpSecretHash: existing.mfa?.totpSecretHash || null,
-          totpSecretEnc: existing.mfa?.totpSecretEnc || { iv: null, ct: null, tag: null },
-          emailOtp: null,
-        };
-      }
-      await existing.save();
-      updated++;
+
+      skipped.push({ email, reason: 'unsupported_role' });
+      continue;
     }
+
+    // ------ UPDATE ----------------------------------------------------------
+    let changed = false;
+    if (name !== undefined && existing.name !== name) { existing.name = name; changed = true; }
+    if (status !== undefined && existing.status !== status) { existing.status = status; changed = true; }
+    if (role && existing.role !== role) { existing.role = role; changed = true; }
+
+    // orgId: only update when provided/derived (leave as-is if unresolved)
+    if (orgId !== undefined && String(existing.orgId||'') !== String(orgId||'')) { existing.orgId = orgId || null; changed = true; }
+
+    // manager: apply if vendor/student + resolvable
+    if (role === 'vendor' || role === 'student') {
+      let newManager = managerDoc || adminDoc || null;
+      if (!newManager && orgId && firstActiveAdminByOrg.get(String(orgId))) newManager = firstActiveAdminByOrg.get(String(orgId));
+      if (newManager && String(existing.managerId||'') !== String(newManager._id)) { existing.managerId = newManager._id; changed = true; }
+    }
+
+    // password
+    if (raw.password && String(raw.password).length >= 8) {
+      existing.passwordHash = await bcrypt.hash(String(raw.password), 12);
+      changed = true;
+    }
+
+    // MFA
+    if (mfaRequired !== undefined || mfaMethod !== undefined) {
+      existing.mfa = {
+        required: !!mfaRequired,
+        method: !!mfaRequired ? (mfaMethod || 'otp') : null,
+        totpSecretHash: existing.mfa?.totpSecretHash || null,
+        totpSecretEnc: existing.mfa?.totpSecretEnc || { iv: null, ct: null, tag: null },
+        emailOtp: null,
+      };
+      changed = true;
+    }
+
+    if (changed) { await existing.save(); updated++; }
   }
 
-  return res.json({ created, updated, total: created + updated });
+  return res.json({ created, updated, total: created + updated, skipped });
 }

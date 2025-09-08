@@ -1,13 +1,9 @@
 // mygf/src/admin/pages/superadmin/Users.tsx
 import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { useAuth } from '../../auth/store'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSaUsers } from '../../store/saUsers'
+import { useSaOrgs } from '../../store/saOrganizations'
 import type { SAUser, SAUserFilters, UserRole, UserStatus } from '../../types/user'
-import {
-  listSaUsers, createSaUser, updateSaUser, deleteSaUser,
-  setSaUserStatus, setSaUserRole, bulkUpsertSaUsers
-} from '../../api/saUsers'
-import { listOrganizations, type Organization } from '../../api/organizations'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
@@ -17,43 +13,52 @@ type Filters = { q: string; role: 'all'|UserRole; status: 'all'|UserStatus; orgI
 type OrgOption = { id: string; name: string }
 
 export default function SAUsers(){
-  const qc = useQueryClient()
   const { user } = useAuth() as any
   const myEmail = user?.email?.toLowerCase?.()
 
   const [filters, setFilters] = useState<Filters>({ q:'', role:'all', status:'all', showUnverified:false })
   const [open, setOpen] = useState<{mode:'create'|'edit', initial?: SAUser}|null>(null)
   const [csvOpen, setCsvOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
-  // Users (server-side filtering)
-  const query = useQuery({
-    queryKey:['sa-users', filters],
-    queryFn: ()=> {
-      const { showUnverified, ...rest } = filters
-      const params: SAUserFilters = { ...rest }
-      if (showUnverified) params.verified = 'all'   // include unverified
-      return listSaUsers(params)
-    }
-  })
-  const rows = query.data ?? []
+  // Users via Zustand store (ETag-aware)
+  const rows         = useSaUsers(s => s.items)
+  const loading      = useSaUsers(s => s.loading)
+  const error        = useSaUsers(s => s.error)
+  const fetchIfStale = useSaUsers(s => s.fetchIfStale)
+  const createOne    = useSaUsers(s => s.createOne)
+  const updateOne    = useSaUsers(s => s.updateOne)
+  const deleteOne    = useSaUsers(s => s.deleteOne)
+  const setUserStatus= useSaUsers(s => s.setStatus)
+  const setUserRole  = useSaUsers(s => s.setRole)
+  const bulkUpsert   = useSaUsers(s => s.bulkUpsert)
 
-  // Orgs for dropdown (real backend; note suspended must be "true"/"false" string)
-  const orgQ = useQuery<Organization[]>({
-    queryKey:['orgs-lite'],
-    queryFn: async ()=> {
-      const res = await listOrganizations({ q:'', status:'active', suspended:'false' })
-      return res?.items ?? []
+  useEffect(() => {
+    const params: SAUserFilters = {
+      q: filters.q || undefined,
+      role: filters.role,
+      status: filters.status,
+      orgId: filters.orgId,
+      verified: filters.showUnverified ? 'all' : undefined as any
     }
-  })
+    fetchIfStale(params)
+  }, [filters.q, filters.role, filters.status, filters.orgId, filters.showUnverified])
+
+  // Orgs for dropdown: reuse saOrganizations store (cached)
+  const orgRows  = useSaOrgs(s => s.items)
+  const orgFetch = useSaOrgs(s => s.fetchIfStale)
+  useEffect(() => { orgFetch({ status: 'active' as any }) }, [])
   const orgOptions: OrgOption[] = useMemo(
-    () => (orgQ.data ?? []).map((o: Organization) => ({ id: o._id, name: o.name })),
-    [orgQ.data]
+    () => (orgRows || [])
+      .filter((o: any) => o.status === 'active' && !o.suspended)
+      .map((o: any) => ({ id: o.id, name: o.name })),
+    [orgRows]
   )
 
   // Admins by org (for vendor "Under Admin", and for student admin selection)
-  const adminsByOrg = useMemo(()=>{
+  const adminsByOrg = useMemo(() => {
     const map = new Map<string, SAUser[]>()
-    rows.filter(r => r.role==='admin' && r.status==='active').forEach(r=>{
+    rows.filter(r => r.role === 'admin' && r.status === 'active').forEach(r => {
       const key = r.orgId || 'unassigned'
       if (!map.has(key)) map.set(key, [])
       map.get(key)!.push(r)
@@ -61,32 +66,7 @@ export default function SAUsers(){
     return map
   }, [rows])
 
-  const createMut = useMutation({
-    mutationFn: createSaUser,
-    onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-users'] })
-  })
-  const updateMut = useMutation({
-    mutationFn: ({id, patch}:{id:string, patch: Partial<SAUser> & any})=> updateSaUser(id, patch),
-    onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-users'] })
-  })
-  const deleteMut = useMutation({
-    mutationFn: deleteSaUser,
-    onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-users'] })
-  })
-  const statusMut = useMutation({
-    mutationFn: ({id, status}:{id:string, status:UserStatus})=> setSaUserStatus(id, status),
-    onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-users'] })
-  })
-  const roleMut = useMutation({
-    mutationFn: ({id, role}:{id:string, role:UserRole})=> setSaUserRole(id, role),
-    onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-users'] })
-  })
-  const bulkMut = useMutation({
-    mutationFn: bulkUpsertSaUsers,
-    onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-users'] })
-  })
-
-  const stats = useMemo(()=> ({
+  const stats = useMemo(() => ({
     total: rows.length,
     supers: rows.filter(r=> r.role==='superadmin').length,
     admins: rows.filter(r=> r.role==='admin').length,
@@ -94,6 +74,9 @@ export default function SAUsers(){
     students: rows.filter(r=> r.role==='student').length,
     active: rows.filter(r=> r.status==='active').length,
   }), [rows])
+
+  if (loading) return <div className="p-6 text-sm text-slate-500">Loading users…</div>
+  if (error)   return <div className="p-6 text-sm text-red-600">Failed to load users: {String(error)}</div>
 
   return (
     <div className="space-y-4">
@@ -137,12 +120,12 @@ export default function SAUsers(){
       </header>
 
       <div className="text-sm text-slate-600">
-        <span className="font-medium">{stats.total}</span> users •
-        {' '}<span className="font-medium">{stats.supers}</span> superadmins •
-        {' '}<span className="font-medium">{stats.admins}</span> admins •
-        {' '}<span className="font-medium">{stats.vendors}</span> vendors •
-        {' '}<span className="font-medium">{stats.students}</span> students •
-        {' '}<span className="font-medium">{stats.active}</span> active
+        <span className="font-medium">{stats.total}</span> users •{' '}
+        <span className="font-medium">{stats.supers}</span> superadmins •{' '}
+        <span className="font-medium">{stats.admins}</span> admins •{' '}
+        <span className="font-medium">{stats.vendors}</span> vendors •{' '}
+        <span className="font-medium">{stats.students}</span> students •{' '}
+        <span className="font-medium">{stats.active}</span> active
       </div>
 
       <div className="overflow-x-auto rounded-xl border bg-white">
@@ -157,20 +140,19 @@ export default function SAUsers(){
             </tr>
           </thead>
           <tbody>
-            {rows.map(u => {
+            {rows.map((u: SAUser) => {
               const isMe = myEmail && u.email.toLowerCase() === myEmail
               return (
                 <tr key={u.id} className="border-t">
                   <td className="p-3">
-                    <div className="font-medium">{u.name || '—'} {isMe && <span className="text-xs rounded bg-blue-50 text-blue-700 px-1.5 py-0.5 ml-1">You</span>}</div>
-                    {/* NEW: email + tiny verified pill */}
+                    <div className="font-medium">
+                      {u.name || '—'} {isMe && <span className="text-xs rounded bg-blue-50 text-blue-700 px-1.5 py-0.5 ml-1">You</span>}
+                    </div>
                     <div className="text-xs text-slate-500 flex items-center gap-2">
                       <span>{u.email}</span>
-                      {u.isVerified === false ? (
-                        <span className="rounded px-1.5 py-0.5 bg-amber-50 text-amber-700">Unverified</span>
-                      ) : (
-                        <span className="rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700">Verified</span>
-                      )}
+                      {u.isVerified === false
+                        ? <span className="rounded px-1.5 py-0.5 bg-amber-50 text-amber-700">Unverified</span>
+                        : <span className="rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700">Verified</span>}
                     </div>
                   </td>
                   <td className="p-3">
@@ -199,7 +181,7 @@ export default function SAUsers(){
                       {u.status!=='active' && (
                         <button
                           className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                          onClick={()=> statusMut.mutate({ id:u.id, status:'active' })}
+                          onClick={()=> setUserStatus(u.id, 'active')}
                         >
                           <CheckCircle2 size={16}/> Activate
                         </button>
@@ -207,7 +189,7 @@ export default function SAUsers(){
                       {u.status==='active' && (
                         <button
                           className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                          onClick={()=> statusMut.mutate({ id:u.id, status:'disabled' })}
+                          onClick={()=> setUserStatus(u.id, 'disabled')}
                           disabled={u.role==='superadmin' && rows.filter(x=> x.role==='superadmin' && x.status==='active').length<=1}
                           title={(u.role==='superadmin' && rows.filter(x=> x.role==='superadmin' && x.status==='active').length<=1) ? 'Cannot disable the last active superadmin' : undefined}
                         >
@@ -217,7 +199,7 @@ export default function SAUsers(){
                       {u.role==='admin' && (
                         <button
                           className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                          onClick={()=> roleMut.mutate({ id:u.id, role:'superadmin' })}
+                          onClick={()=> setUserRole(u.id, 'superadmin')}
                         >
                           <ShieldAlert size={16}/> Promote
                         </button>
@@ -225,7 +207,7 @@ export default function SAUsers(){
                       {u.role==='superadmin' && !isMe && (
                         <button
                           className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                          onClick={()=> roleMut.mutate({ id:u.id, role:'admin' })}
+                          onClick={()=> setUserRole(u.id, 'admin')}
                           disabled={rows.filter(x=> x.role==='superadmin' && x.status==='active').length<=1}
                           title={rows.filter(x=> x.role==='superadmin' && x.status==='active').length<=1 ? 'Cannot demote the last active superadmin' : undefined}
                         >
@@ -237,7 +219,7 @@ export default function SAUsers(){
                       </button>
                       <button
                         className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                        onClick={()=> { if(confirm('Delete user?')) deleteMut.mutate(u.id) }}
+                        onClick={()=> { if (confirm('Delete user?')) deleteOne(u.id) }}
                         disabled={(u.role==='superadmin' && rows.filter(x=> x.role==='superadmin' && x.status==='active').length<=1) || isMe}
                         title={isMe ? 'You cannot delete yourself' : (u.role==='superadmin' && rows.filter(x=> x.role==='superadmin' && x.status==='active').length<=1 ? 'Cannot delete the last active superadmin' : undefined)}
                       >
@@ -259,23 +241,26 @@ export default function SAUsers(){
         initial={open?.initial}
         orgOptions={orgOptions}
         adminsByOrg={adminsByOrg}
-        submitting={open?.mode === 'create' ? createMut.isPending : updateMut.isPending}
+        submitting={submitting}
         onClose={()=> setOpen(null)}
         onSubmit={(payload)=> {
-          if (open?.mode==='create') {
-            // Admin/Vendor: direct account (with password)
-            // Student: direct account too (password generated server-side; email credentials)
-            createMut.mutate(payload as any, { onSuccess: ()=> setOpen(null) })
-          } else if (open?.initial) {
-            updateMut.mutate({ id: open.initial.id, patch: payload as any }, { onSuccess: ()=> setOpen(null) })
-          }
+          setSubmitting(true)
+          const promise =
+            open?.mode === 'create'
+              ? createOne(payload as any)
+              : open?.initial
+                ? updateOne(open.initial.id, payload as any)
+                : Promise.resolve()
+          promise
+            .then(()=> setOpen(null))
+            .finally(()=> setSubmitting(false))
         }}
       />
 
       <CSVModal
         open={csvOpen}
         onClose={()=> setCsvOpen(false)}
-        onImport={(rows)=> bulkMut.mutate(rows, { onSuccess: ()=> setCsvOpen(false) })}
+        onImport={(rows)=> bulkUpsert(rows).then(()=> setCsvOpen(false))}
       />
     </div>
   )
@@ -291,9 +276,9 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
   onClose:()=>void
   onSubmit:(payload: Omit<SAUser,'id'|'createdAt'|'updatedAt'> & {
     orgId?: string
-    password?: string               // for admin/vendor creation; student password generated server-side
+    password?: string
     mfa?: { required:boolean; method:'otp'|'totp'|null }
-    managerId?: string              // vendor -> admin; student -> chosen admin (superadmin flow)
+    managerId?: string
   })=> void
 }){
   const [name, setName] = useState(initial?.name || '')
@@ -301,18 +286,14 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
   const [role, setRole] = useState<UserRole>(initial?.role || 'admin')
   const [status, setStatus] = useState<UserStatus>(initial?.status || 'active')
   const [orgId, setOrgId] = useState<string>(initial?.orgId || '')
-  const [managerId, setManagerId] = useState<string>('') // vendor → admin; student (superadmin) → admin
+  const [managerId, setManagerId] = useState<string>('')
 
-  // MFA:
-  // - Admin/Vendor: required
-  // - Student (superadmin flow): default ON (can be toggled off if policy allows)
   const [mfa, setMfa] = useState<{required:boolean; method:'otp'|'totp'|null}>(
     initial?.role
       ? { required: initial.role!=='student' ? true : !!initial?.mfa?.required, method: (initial as any)?.mfa?.method || (initial.role==='vendor' ? 'totp' : 'otp') }
       : { required: true, method: 'otp' }
   )
 
-  // Password for Admin/Vendor creation; optional in edit (reset)
   const [password, setPassword] = useState<string>('')
   const [confirm, setConfirm]   = useState<string>('')
 
@@ -330,7 +311,6 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
     setConfirm('')
   }, [initial, open])
 
-  // Default MFA ON for students during creation
   useEffect(()=>{
     if (mode==='create' && role==='student' && !initial) {
       setMfa(prev => ({ required: true, method: prev?.method || 'otp' }))
@@ -338,12 +318,9 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
   }, [mode, role, initial])
 
   const emailOk = /\S+@\S+\.\S+/.test(email)
-
   const requireOrg = role==='admin' || role==='vendor' || role==='student'
-  // SUPERADMIN student flow: require an admin; vendor also requires admin
   const requireManager = role==='vendor' || role==='student'
 
-  // For vendor, list admins by selected org; for student we’ll list ALL admins
   const orgAdmins = orgId ? (adminsByOrg.get(orgId) || []) : []
   const allAdmins: SAUser[] = React.useMemo(
     () => Array.from(adminsByOrg.values()).flatMap(arr => arr),
@@ -351,7 +328,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
   )
 
   const needsPassword = mode==='create' && (role==='admin' || role==='vendor')
-  const allowPasswordEdit = mode==='edit' && (role==='admin' || role==='vendor') // optional reset
+  const allowPasswordEdit = mode==='edit' && (role==='admin' || role==='vendor')
   const passwordOk = !needsPassword || (password.length >= 8 && password === confirm)
 
   const mfaForcedRequired = role==='admin' || role==='vendor'
@@ -361,7 +338,6 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
     (!requireManager || !!managerId) &&
     passwordOk
 
-  // When student admin is chosen, auto-set orgId to admin's org and lock org select
   useEffect(()=>{
     if (role!=='student' || !managerId) return
     const admin = allAdmins.find(a => String(a.id) === String(managerId))
@@ -382,17 +358,14 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
             managerId: (role==='vendor' || role==='student') ? (managerId || undefined) : undefined,
           }
 
-          // MFA policy
           base.mfa = mfaForcedRequired ? { required:true, method: mfa.method || 'otp' } : {
             required: !!mfa?.required,
             method: mfa?.required ? (mfa.method || 'otp') : null
           }
 
-          // Direct account creation for admin/vendor (password present)
           if ((role==='admin' || role==='vendor') && password) {
             base.password = password
           }
-          // Student: server generates password & emails credentials (no password field here)
 
           onSubmit(base)
         }}>
@@ -424,20 +397,18 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
 
         {(role==='admin' || role==='vendor' || role==='student') && (
           <>
-            {/* Organization */}
             <div>
               <Label>Organization</Label>
               <Select
                 value={orgId}
                 onChange={(e)=> setOrgId(e.target.value)}
-                disabled={role==='student'}  // student org auto-derives from selected admin
+                disabled={role==='student'}
               >
                 <option value="">Select organization</option>
                 {orgOptions.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
               </Select>
             </div>
 
-            {/* Under Admin */}
             <div>
               <Label>Under Admin</Label>
               {role==='vendor' ? (
@@ -464,7 +435,6 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
           </>
         )}
 
-        {/* Password (Admin/Vendor creation; optional reset in edit) */}
         {(needsPassword || allowPasswordEdit) && (
           <>
             <div>
@@ -494,7 +464,6 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
           </>
         )}
 
-        {/* MFA config */}
         <div className="sm:col-span-2 border-t pt-3 mt-2">
           <div className="grid md:grid-cols-3 gap-3">
             <div className="md:col-span-3">
@@ -586,20 +555,86 @@ function CSVModal({ open, onClose, onImport }:{
     }
     out.push(cur); return out
   }
+
+  // tiny helpers
+  const isEmail = (v:string) => /\S+@\S+\.\S+/.test(v || '')
+  const truthy = (v:string) => /^(true|1|yes|y)$/i.test((v||'').trim())
+  const normRole = (v:string) => {
+    const r = (v||'').toLowerCase().trim()
+    if (r === 'orguser') return 'student'
+    return (['superadmin','admin','vendor','student'] as const).includes(r as any) ? r as any : 'student'
+  }
+  const normStatus = (v:string) => (['active','disabled'].includes((v||'').toLowerCase())) ? (v as any) : undefined
+  const normMethod = (v:string) => {
+    const s = (v||'').toLowerCase().trim()
+    if (!s) return undefined
+    if (s === 'email' || s === 'email_otp' || s === 'otp') return 'otp'
+    if (s === 'totp' || s === 'auth' || s === 'authenticator') return 'totp'
+    return undefined
+  }
+
+  function setDeep(obj:any, path:string, val:any){
+    const parts = path.split('.')
+    let o = obj
+    for (let i=0;i<parts.length-1;i++){
+      const p = parts[i]
+      if (!o[p] || typeof o[p] !== 'object') o[p] = {}
+      o = o[p]
+    }
+    o[parts[parts.length-1]] = val
+  }
+
   function parseCSV(raw: string): Array<Partial<SAUser> & { email?:string }> {
     const lines = raw.replace(/\r/g,'').split('\n').filter(l => l.trim().length>0)
     if (!lines.length) return []
+
+    const alias: Record<string,string> = {
+      // core
+      email:'email', name:'name', role:'role', status:'status', password:'password',
+      // org variants
+      orgid:'orgId', 'org_id':'orgId',
+      org:'org', orgcode:'orgCode', 'org_code':'orgCode', orgname:'orgName', 'org_name':'orgName',
+      orgdomain:'orgDomain', 'org_domain':'orgDomain',
+      // admin / manager refs
+      admin:'adminRef', adminemail:'adminRef', 'admin_email':'adminRef', adminid:'adminRef', 'admin_id':'adminRef',
+      manager:'managerRef', manageremail:'managerRef', 'manager_email':'managerRef', managerid:'managerRef', 'manager_id':'managerRef',
+      // MFA
+      mfa:'mfa', mfarequired:'mfa.required', 'mfa_required':'mfa.required',
+      mfamethod:'mfa.method', 'mfa_method':'mfa.method',
+    }
+
     const header = split(lines[0]).map(h => h.trim().toLowerCase())
-    const map: Record<string,string> = { email:'email', name:'name', role:'role', status:'status', orgid:'orgId', orgname:'orgName', password:'password' }
+    const normHeader = header.map(h => alias[h] || h)
+
     const out: any[] = []
     for (let i=1;i<lines.length;i++){
-      const cells = split(lines[i]); const obj: any = {}
-      header.forEach((h,j)=> { const key = map[h] || h; obj[key] = (cells[j] ?? '').trim() })
-      if (!obj.email) continue
-      if (obj.role && !['admin','superadmin','vendor','student'].includes(obj.role)) delete obj.role
-      if (obj.status && !['active','disabled'].includes(obj.status)) delete obj.status
-      // For admin/vendor via CSV, if password provided use direct account flow.
-      // For students, server should generate password and email credentials.
+      const cells = split(lines[i])
+      const obj: any = {}
+      normHeader.forEach((h, j) => {
+        const rawv = (cells[j] ?? '').trim()
+        if (!h) return
+        if (h === 'mfa.required') setDeep(obj, h, truthy(rawv))
+        else if (h === 'mfa.method') setDeep(obj, h, normMethod(rawv))
+        else if (h === 'role') obj.role = normRole(rawv)
+        else if (h === 'status') { const s = normStatus(rawv); if (s) obj.status = s }
+        else if (h === 'orgId' || h === 'org' || h === 'orgCode' || h === 'orgName' || h === 'orgDomain' ||
+                 h === 'adminRef' || h === 'managerRef' || h === 'password' || h === 'name' || h === 'email') {
+          if (rawv !== '') setDeep(obj, h, rawv)
+        } else {
+          // unknown columns: store as-is (ignored by server if not recognized)
+          if (rawv !== '') setDeep(obj, h, rawv)
+        }
+      })
+
+      // sanity
+      if (!obj.email || !isEmail(obj.email)) continue
+      if (!obj.role) obj.role = 'student'
+      // normalize MFA root if present
+      if (obj.mfa && typeof obj.mfa === 'object') {
+        if (obj.mfa.required === undefined) obj.mfa.required = (obj.role !== 'student') // default: admins/vendors require MFA
+        if (obj.mfa.method && !['otp','totp'].includes(obj.mfa.method)) delete obj.mfa.method
+      }
+
       out.push(obj)
     }
     return out
@@ -608,9 +643,20 @@ function CSVModal({ open, onClose, onImport }:{
   return (
     <Modal open={open} onClose={onClose} title="Bulk import users (CSV)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-600">
-          Headers: <code>email,name,role,status,orgId,password</code>. Admin/Vendor rows with a <code>password</code> create direct accounts. <strong>Students</strong> are created immediately and emailed credentials (no invite screen).
+        <div className="text-sm text-slate-600 space-y-1">
+          <p className="font-medium">Accepted headers (use any subset):</p>
+          <div className="text-xs grid gap-1">
+            <div><code>email</code> (required), <code>name</code>, <code>role</code> (<code>superadmin|admin|vendor|student</code>), <code>status</code> (<code>active|disabled</code>), <code>password</code> (admin/vendor only)</div>
+            <div><code>orgId</code> <em>or</em> <code>org</code>/<code>orgCode</code>/<code>orgName</code>/<code>orgDomain</code> (any one to identify org)</div>
+            <div><code>adminRef</code> (admin email or id; used to set manager and derive <code>orgId</code> for students; also allowed for vendors)</div>
+            <div><code>managerRef</code> (admin email or id; vendor’s supervising admin; if missing and org is present, the first active admin in that org is used)</div>
+            <div><code>mfaRequired</code> (<code>true|false</code>), <code>mfaMethod</code> (<code>otp|totp</code>)</div>
+          </div>
+          <p className="text-xs">
+            Tip: For students, **prefer** <code>adminRef</code> (admin email) so the org is auto-set. If only org is given, importer will pick the first active admin in that org.
+          </p>
         </div>
+
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={()=> fileRef.current?.click()}><Upload size={16}/> Upload CSV</Button>
           <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={async (e)=>{
@@ -618,17 +664,32 @@ function CSVModal({ open, onClose, onImport }:{
             setText(await f.text())
           }}/>
           <Button variant="ghost" onClick={()=> {
-            const sample = `email,name,role,status,orgId,password
-admin1@alpha.example,Alpha Admin,admin,active,ORG_ID,StrongPass1!
-vendor1@alpha.example,Alpha Vendor,vendor,active,ORG_ID,AnotherPass2!
-student1@alpha.example,Alpha Student,student,active,ORG_ID,`
+            const sample =
+`email,name,role,status,orgCode,adminRef,managerRef,password,mfaRequired,mfaMethod
+super1@example.com,Global Super,superadmin,active,,,,StrongP@ssw0rd,true,otp
+alpha-admin@example.com,Alpha Admin,admin,active,ALPHA,,,StrongP@ss1!,true,totp
+alpha-vendor1@example.com,Alpha Vendor A,vendor,active,ALPHA,alpha-admin@example.com,,Vend0r#Pass,true,totp
+alpha-stu1@example.com,Alpha Student A,student,active,ALPHA,alpha-admin@example.com,,,
+beta-admin@example.com,Beta Admin,admin,active,BETA,,,StrongP@ss2!,true,otp
+beta-vendor1@example.com,Beta Vendor A,vendor,active,,beta-admin@example.com,,Vend0r#Two,true,totp
+beta-stu1@example.com,Beta Student A,student,active,,beta-admin@example.com,,,
+sales-stu@example.com,Sales Student,student,active,,sales-admin@example.com,,,otp
+d-portal-vendor@example.com,Domain Vendor,vendor,active,,domain-admin@example.com,,Vend0r#Z,true,otp
+`
             setText(sample)
           }}>Load sample</Button>
         </div>
+
         <div>
           <Label>CSV content</Label>
-          <textarea className="w-full rounded-md border px-3 py-2 text-sm min-h-[160px]" value={text} onChange={(e)=> setText(e.target.value)} />
+          <textarea
+            className="w-full rounded-md border px-3 py-2 text-sm min-h-[220px]"
+            value={text}
+            onChange={(e)=> setText(e.target.value)}
+            placeholder="Paste CSV rows here or click Upload CSV / Load sample"
+          />
         </div>
+
         <div className="flex justify-end gap-2">
           <button className="rounded-md border px-3 py-2 text-sm" onClick={onClose}>Cancel</button>
           <Button

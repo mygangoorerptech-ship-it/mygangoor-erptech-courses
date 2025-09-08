@@ -1,8 +1,10 @@
+
+
+
 //mygf/src/pages/superadmin/Organizations.tsx
 import React, { useRef, useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { Organization, OrgFilters, OrgStatus } from '../../types/org'
-import { listOrgs, createOrg, updateOrg, deleteOrg, setOrgStatus, bulkUpsertOrgs, type ListOrgsResp } from '../../../api/orgs'
+import { useSaOrgs } from '../../store/saOrganizations'
+import type { Organization, OrgStatus } from '../../types/org'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
@@ -13,44 +15,39 @@ import * as XLSX from 'xlsx';
 type Filters = { q: string; status: 'all' | OrgStatus }
 
 export default function SAOrganizations(){
-  const qc = useQueryClient()
   const [filters, setFilters] = useState<Filters>({ q:'', status:'all' })
   const [open, setOpen] = useState<{mode:'create'|'edit', initial?: Organization}|null>(null)
   const [csvOpen, setCsvOpen] = useState(false)
   const { user, status } = useAuth();
+
+  // Zustand-backed cache & actions (ETag-aware)
+const rows = useSaOrgs(s => s.items);
+const loading = useSaOrgs(s => s.loading);
+const error = useSaOrgs(s => s.error);
+// const total = useSaOrgs(s => s.total); // keep commented if unused
+const fetchIfStale = useSaOrgs(s => s.fetchIfStale);
+const createOne = useSaOrgs(s => s.createOne);
+const updateOne = useSaOrgs(s => s.updateOne);
+const deleteOne = useSaOrgs(s => s.deleteOne);
+const setStatusAction = useSaOrgs(s => s.setStatus);
+const bulkUpsert = useSaOrgs(s => s.bulkUpsert);
+
+
   const isReady = status === 'ready' && !!user && user.role === 'superadmin';
 
-const query = useQuery<ListOrgsResp>({
-  queryKey: ['sa-orgs', filters],
-  queryFn: () => listOrgs(filters as OrgFilters),
-  enabled: isReady,
-  retry: 1,
-  staleTime: 30_000,            // cache for 30s
-  refetchOnWindowFocus: false,  // don’t refetch when tab focuses
-});
+  React.useEffect(()=>{
+    if(isReady) fetchIfStale({ q: filters.q, status: filters.status as any });
+  }, [isReady, filters.q, filters.status, fetchIfStale]);
 
-  const createMut = useMutation({ mutationFn: createOrg, onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-orgs'] }) })
-  const updateMut = useMutation({ mutationFn: ({id, patch}:{id:string, patch: Partial<Organization>})=> updateOrg(id, patch), onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-orgs'] }) })
-  const deleteMut = useMutation({ mutationFn: deleteOrg, onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-orgs'] }) })
-  const statusMut = useMutation({ mutationFn: ({id, status}:{id:string, status:OrgStatus})=> setOrgStatus(id, status), onSuccess: ()=> qc.invalidateQueries({ queryKey:['sa-orgs'] }) })
-  // in SAOrganizations component where you define bulkMut
-const bulkMut = useMutation({
-  mutationFn: bulkUpsertOrgs,
-  onSuccess: (resp) => {
-    const s = resp?.summary;
-const firstErrs = (resp?.results || []).filter(r => !r.ok).slice(0, 5).map(r => `• ${r.key}: ${r.error}`).join('\n');
- alert(`Imported: ${s?.count} rows
-Created: ${s?.created}
-Updated: ${s?.updated}
-Skipped: ${s?.skipped}
-Errors: ${s?.errors}${firstErrs ? `\n\nFirst errors:\n${firstErrs}` : ''}`);
-    qc.invalidateQueries({ queryKey: ['sa-orgs'] });
+  // Loading/error states
+  if (loading) {
+    return <div className="p-6 text-sm text-slate-500">Loading organizations…</div>;
   }
-});
+  if (error) {
+    return <div className="p-6 text-sm text-red-600">Failed to load organizations: {String(error)}</div>;
+  }
 
-  const rows: Organization[] = query.data?.items ?? [];
-
-    // 🔒 GUARD (after hooks, before UI)
+  // 🔒 GUARD (after hooks, before UI)
   if (status !== 'ready') {
     return <div className="p-6 text-sm text-slate-500">Checking permissions…</div>;
   }
@@ -92,7 +89,7 @@ Errors: ${s?.errors}${firstErrs ? `\n\nFirst errors:\n${firstErrs}` : ''}`);
             </tr>
           </thead>
           <tbody>
-            {rows.map(o => (
+            {rows.map((o: Organization) => (
               <tr key={o.id} className="border-t">
                 <td className="p-3">
                   <div className="font-medium flex items-center gap-2"><Building2 size={16}/> {o.name}</div>
@@ -116,26 +113,26 @@ Errors: ${s?.errors}${firstErrs ? `\n\nFirst errors:\n${firstErrs}` : ''}`);
                   <div className="flex flex-wrap items-center gap-2">
                     {o.status!=='active' && (
                       <button className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                        onClick={()=> statusMut.mutate({ id:o.id, status:'active' })}>
+                        onClick={()=> setStatusAction(o.id, 'active').catch(()=>{})}>
                         <CheckCircle2 size={16}/> Activate
                       </button>
                     )}
                     {o.status==='active' && (
                       <button className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                        onClick={()=> statusMut.mutate({ id:o.id, status:'inactive' })}>
+                        onClick={()=> setStatusAction(o.id, 'inactive').catch(()=>{})}>
                         <XCircle size={16}/> Deactivate
                       </button>
                     )}
                     {o.status!=='suspended' && (
                       <button className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1"
-                        onClick={()=> statusMut.mutate({ id:o.id, status:'suspended' })}>
+                        onClick={()=> setStatusAction(o.id, 'suspended').catch(()=>{})}>
                         <ShieldOff size={16}/> Suspend
                       </button>
                     )}
                     <button className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1" onClick={()=> setOpen({ mode:'edit', initial: o })}>
                       <Pencil size={16}/> Edit
                     </button>
-                    <button className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1" onClick={()=> { if(confirm('Delete organization? This will unassign its students.')) deleteMut.mutate(o.id) }}>
+                    <button className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1" onClick={()=> { if(confirm('Delete organization? This will unassign its students.')) deleteOne(o.id).catch(()=>{}) }}>
                       <Trash2 size={16}/> Delete
                     </button>
                   </div>
@@ -153,15 +150,15 @@ Errors: ${s?.errors}${firstErrs ? `\n\nFirst errors:\n${firstErrs}` : ''}`);
         initial={open?.initial}
         onClose={()=> setOpen(null)}
         onSubmit={(payload)=> {
-          if (open?.mode==='create') createMut.mutate(payload as any, { onSuccess: ()=> setOpen(null) })
-          else if (open?.initial) updateMut.mutate({ id: open.initial.id, patch: payload as any }, { onSuccess: ()=> setOpen(null) })
+          if (open?.mode==='create') createOne(payload as any).then(()=> setOpen(null)).catch(()=>{})
+          else if (open?.initial) updateOne(open.initial.id, payload as any).then(()=> setOpen(null)).catch(()=>{})
         }}
       />
 
       <CSVModal
         open={csvOpen}
         onClose={()=> setCsvOpen(false)}
-        onImport={(rows)=> bulkMut.mutate(rows, { onSuccess: ()=> setCsvOpen(false) })}
+        onImport={(rows)=> bulkUpsert(rows).then(()=> setCsvOpen(false))}
       />
     </div>
   )
@@ -196,14 +193,14 @@ function OrgModal({ open, mode, initial, onClose, onSubmit }:{
     <Modal open={open} onClose={onClose} title={mode==='create' ? 'New organization' : 'Edit organization'}>
       <form className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[70vh] overflow-y-auto pr-1" onSubmit={(e)=>{
         e.preventDefault(); if(!canSubmit) return
-onSubmit({
-  code: code.trim(),
-  name: name.trim(),
-  domain: domain.trim() || undefined,
-  contactName: contactName.trim() || undefined,
-  contactEmail: contactEmail.trim() || undefined,
-  status,
-} as any)
+        onSubmit({
+          code: code.trim(),
+          name: name.trim(),
+          domain: domain.trim() || undefined,
+          contactName: contactName.trim() || undefined,
+          contactEmail: contactEmail.trim() || undefined,
+          status,
+        } as any)
       }}>
         <div>
           <Label>Code</Label>

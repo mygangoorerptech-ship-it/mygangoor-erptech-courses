@@ -4,6 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../admin/auth/store";
 import { createPortal } from "react-dom";
 import { JoinNowModal } from "../join";
+import { getFeaturedCourses, type FeaturedCourse } from "../../api/publicCatalog";
+import { formatINR } from "../../utils/format";
+
+const cx = (...xs: Array<string | false | null | undefined>) => xs.filter(Boolean).join(" ");
 
 export default function HomeLanding() {
   const navigate = useNavigate();
@@ -11,8 +15,26 @@ const user = useAuth(s => s.user);
 const role = useAuth(s => s.user?.role);
 const isAuthenticated = useAuth(s => !!s.user);
 const isAuthed = isAuthenticated;
+const [joinOpen, setJoinOpen] = useState(false);
+const [featured, setFeatured] =
+useState<{ paid: FeaturedCourse[]; free: FeaturedCourse[] } | null>(null);
+const [featLoading, setFeatLoading] = useState(false);
+const [featError, setFeatError] = useState<string | null>(null);
+const [courseFilter, setCourseFilter] = useState<"all" | "paid" | "free">("all");
 
-  const [joinOpen, setJoinOpen] = useState(false);
+// derive visible list reactively
+const allFeatured = featured ? [...featured.paid, ...featured.free] : [];
+const visibleCourses =
+  courseFilter === "all"
+    ? allFeatured
+    : featured
+    ? courseFilter === "paid"
+      ? featured.paid
+      : featured.free
+    : [];
+
+const cards = visibleCourses.slice(0, 6);
+
 
   // ==== ACTIONS: copy the runtime behavior from NavBar.tsx & HeroLeftCard.tsx ====
 const goLoginOrDashboard = () => {
@@ -44,6 +66,24 @@ const goLoginOrDashboard = () => {
       }
     };
   }, []);
+
+  // Fetch Featured Courses (public): latest 3 paid + 3 free
+useEffect(() => {
+  let mounted = true;
+  (async () => {
+    try {
+      setFeatLoading(true);
+      const data = await getFeaturedCourses();
+      if (mounted) setFeatured(data);
+    } catch (err) {
+      console.error("[home] featured fetch error", err);
+      if (mounted) setFeatError("Failed to load courses");
+    } finally {
+      if (mounted) setFeatLoading(false);
+    }
+  })();
+  return () => { mounted = false; };
+}, []);
 
   const openJoinForm = () => {
     if (!isAuthed) {
@@ -91,26 +131,6 @@ const goLoginOrDashboard = () => {
     };
     const anchors = root.querySelectorAll('a[href^="#"]');
     anchors.forEach(a => a.addEventListener("click", anchorHandler));
-
-    // Course filter buttons
-    const filterButtons = root.querySelectorAll<HTMLButtonElement>(".course-filter");
-    const courseItems = root.querySelectorAll<HTMLElement>(".course-item");
-    const onFilterClick = (btn: HTMLButtonElement) => {
-      filterButtons.forEach(b => {
-        b.classList.remove("from-pink-500","to-blue-500","bg-gradient-to-r","text-white");
-        b.classList.add("bg-white","text-gray-700");
-      });
-      btn.classList.remove("bg-white","text-gray-700");
-      btn.classList.add("bg-gradient-to-r","from-pink-500","to-blue-500","text-white");
-
-      const category = btn.getAttribute("data-category");
-      courseItems.forEach(item => {
-        const ok = category === "all" || item.getAttribute("data-category") === category;
-        item.style.display = ok ? "block" : "none";
-        if (ok) item.style.animation = "fadeInUp .5s ease forwards";
-      });
-    };
-    filterButtons.forEach(b => b.addEventListener("click", () => onFilterClick(b)));
 
     // Typewriter
     const typewriterEl = root.querySelector<HTMLElement>("#typewriter");
@@ -196,7 +216,6 @@ const goLoginOrDashboard = () => {
     // Cleanup
     return () => {
       anchors.forEach(a => a.removeEventListener("click", anchorHandler));
-      filterButtons.forEach(b => b.replaceWith(b.cloneNode(true))); // drop handlers
       searchInput?.removeEventListener("focus", onFocus);
       searchInput?.removeEventListener("blur", onBlur);
       window.clearInterval(carouselId);
@@ -553,241 +572,145 @@ const goLoginOrDashboard = () => {
               <p className="text-xl text-gray-600">Discover our most popular and highly-rated courses</p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 mb-12">
-              <button className="course-filter active bg-gradient-to-r from-pink-500 to-blue-500 text-white px-6 py-3 rounded-full font-semibold" data-category="all">
-                All Courses
-              </button>
-              <button className="course-filter bg-white text-gray-700 px-6 py-3 rounded-full font-semibold hover:bg-pink-50 transition-all" data-category="paid">
-                Premium Courses
-              </button>
-              <button className="course-filter bg-white text-gray-700 px-6 py-3 rounded-full font-semibold hover:bg-pink-50 transition-all" data-category="free">
-                Free Courses
-              </button>
-            </div>
+<div className="flex flex-wrap justify-center gap-4 mb-12">
+  <button
+    className={cx(
+      "course-filter px-6 py-3 rounded-full font-semibold",
+      courseFilter === "all"
+        ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
+        : "bg-white text-gray-700 hover:bg-pink-50 transition-all"
+    )}
+    data-category="all"
+    onClick={() => setCourseFilter("all")}
+  >
+    All Courses
+  </button>
+
+  <button
+    className={cx(
+      "course-filter px-6 py-3 rounded-full font-semibold",
+      courseFilter === "paid"
+        ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
+        : "bg-white text-gray-700 hover:bg-pink-50 transition-all"
+    )}
+    data-category="paid"
+    onClick={() => setCourseFilter("paid")}
+  >
+    Spiritual Courses
+  </button>
+
+  <button
+    className={cx(
+      "course-filter px-6 py-3 rounded-full font-semibold",
+      courseFilter === "free"
+        ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
+        : "bg-white text-gray-700 hover:bg-pink-50 transition-all"
+    )}
+    data-category="free"
+    onClick={() => setCourseFilter("free")}
+  >
+    Computer Courses
+  </button>
+</div>
 
             {/* Cards preserved from your HTML (omitted here for brevity’s sake in explanation) */}
             {/* ↓↓↓ Paste the six course cards from your HTML here exactly as-is, changing only onError={onImgErr} on <img> tags ↓↓↓ */}
 
 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-  {/* Premium Course 1 */}
-  <div className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item" data-category="paid">
-    <div className="relative">
-      <img
-        src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=80"
-        alt="Web Development Course"
-        className="w-full h-48 object-cover"
-        onError={onImgErr}
-      />
-      <div className="absolute top-4 left-4 bg-gradient-to-r from-pink-500 to-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-        Premium
-      </div>
-      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-gray-800">
-        $99
-      </div>
+  {featLoading && (
+    <div className="col-span-full text-center text-gray-500 py-8">
+      Loading courses…
     </div>
-    <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">Complete Web Development</h3>
-      <p className="text-gray-600 mb-4">Master HTML, CSS, JavaScript, and React from scratch</p>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-yellow-500">
-          <i className="fas fa-star" />
-          <span className="ml-1 text-gray-700">4.9 (2.1k)</span>
-        </div>
-        <div className="text-gray-600">
-          <i className="fas fa-clock mr-1" />
-          40 hours
-        </div>
-      </div>
-      <button
-        type="button"
-        className="w-full bg-gradient-to-r from-pink-500 to-blue-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all"
-      >
-        Enroll Now
-      </button>
-    </div>
-  </div>
+  )}
 
-  {/* Premium Course 2 */}
-  <div className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item" data-category="paid">
-    <div className="relative">
-      <img
-        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=400&q=80"
-        alt="Data Science Course"
-        className="w-full h-48 object-cover"
-        onError={onImgErr}
-      />
-      <div className="absolute top-4 left-4 bg-gradient-to-r from-pink-500 to-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-        Premium
-      </div>
-      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-gray-800">
-        $149
-      </div>
+  {!featLoading && featured && cards.length === 0 && (
+    <div className="col-span-full text-center text-gray-600 py-8 text-lg font-semibold">
+      {courseFilter === "all"
+        ? "Courses Not Available"
+        : courseFilter === "paid"
+        ? "Spiritual Courses Not Available"
+        : "Computer Courses Not Available"}
     </div>
-    <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">Data Science Mastery</h3>
-      <p className="text-gray-600 mb-4">Learn Python, Machine Learning, and Data Analysis</p>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-yellow-500">
-          <i className="fas fa-star" />
-          <span className="ml-1 text-gray-700">4.8 (1.8k)</span>
-        </div>
-        <div className="text-gray-600">
-          <i className="fas fa-clock mr-1" />
-          60 hours
-        </div>
-      </div>
-      <button
-        type="button"
-        className="w-full bg-gradient-to-r from-pink-500 to-blue-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all"
-      >
-        Enroll Now
-      </button>
-    </div>
-  </div>
+  )}
 
-  {/* Free Course 1 */}
-  <div className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item" data-category="free">
-    <div className="relative">
-      <img
-        src="https://images.unsplash.com/photo-1586717791821-3f44a563fa4c?auto=format&fit=crop&w=400&q=80"
-        alt="Digital Marketing Course"
-        className="w-full h-48 object-cover"
-        onError={onImgErr}
-      />
-      <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-        Free
-      </div>
-    </div>
-    <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">Digital Marketing Basics</h3>
-      <p className="text-gray-600 mb-4">Introduction to SEO, Social Media, and Content Marketing</p>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-yellow-500">
-          <i className="fas fa-star" />
-          <span className="ml-1 text-gray-700">4.7 (950)</span>
+  {/* 👇 render the filtered list */}
+  {!featLoading && featured && cards.map((c) => (
+    <div
+      key={c.id}
+      className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item"
+      data-category={c.courseType}
+    >
+      <div className="relative">
+        <img
+          src={c.coverUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=400&q=60"}
+          alt={c.title}
+          className="w-full h-48 object-cover"
+          onError={onImgErr}
+        />
+        <div
+          className={
+            "absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-semibold " +
+            (c.courseType === "paid"
+              ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
+              : "bg-green-600 text-white")
+          }
+        >
+          {c.courseType === "paid" ? "Spiritual" : "Computer"}
         </div>
-        <div className="text-gray-600">
-          <i className="fas fa-clock mr-1" />
-          15 hours
-        </div>
       </div>
-      <button
-        type="button"
-        className="w-full bg-green-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all"
-      >
-        Start Free
-      </button>
-    </div>
-  </div>
 
-  {/* Premium Course 3 */}
-  <div className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item" data-category="paid">
-    <div className="relative">
-      <img
-        src="https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=400&q=80"
-        alt="UI/UX Design Course"
-        className="w-full h-48 object-cover"
-        onError={onImgErr}
-      />
-      <div className="absolute top-4 left-4 bg-gradient-to-r from-pink-500 to-blue-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-        Premium
-      </div>
-      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-semibold text-gray-800">
-        $89
-      </div>
-    </div>
-    <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">UI/UX Design Pro</h3>
-      <p className="text-gray-600 mb-4">Create stunning user interfaces and experiences</p>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-yellow-500">
-          <i className="fas fa-star" />
-          <span className="ml-1 text-gray-700">4.9 (1.5k)</span>
-        </div>
-        <div className="text-gray-600">
-          <i className="fas fa-clock mr-1" />
-          35 hours
-        </div>
-      </div>
-      <button
-        type="button"
-        className="w-full bg-gradient-to-r from-pink-500 to-blue-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all"
-      >
-        Enroll Now
-      </button>
-    </div>
-  </div>
+      <div className="p-6 bg-white">
+        <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+          {c.title}
+        </h3>
 
-  {/* Free Course 2 */}
-  <div className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item" data-category="free">
-    <div className="relative">
-      <img
-        src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=400&q=80"
-        alt="Business Fundamentals Course"
-        className="w-full h-48 object-cover"
-        onError={onImgErr}
-      />
-      <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-        Free
-      </div>
-    </div>
-    <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">Business Fundamentals</h3>
-      <p className="text-gray-600 mb-4">Essential business concepts for entrepreneurs</p>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-yellow-500">
-          <i className="fas fa-star" />
-          <span className="ml-1 text-gray-700">4.6 (720)</span>
+        <div className="flex items-center justify-between mb-4 text-sm text-gray-600">
+          <span>{c.durationText || "Self-paced"}</span>
+          <span className="flex items-center gap-1">
+            <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="w-4 h-4">
+              <path d="M12 17.27l5.18 3.05-1.64-5.81L20 9.24l-6-.52L12 3 10 8.72 4 9.24l4.46 5.27L6.82 20z" fill="currentColor" />
+            </svg>
+            {Math.max(0, Math.round((c.ratingAvg ?? 0) * 10) / 10)} ({c.ratingCount ?? 0})
+          </span>
         </div>
-        <div className="text-gray-600">
-          <i className="fas fa-clock mr-1" />
-          12 hours
-        </div>
-      </div>
-      <button
-        type="button"
-        className="w-full bg-green-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all"
-      >
-        Start Free
-      </button>
-    </div>
-  </div>
 
-  {/* Free Course 3 */}
-  <div className="course-card card-hover rounded-2xl overflow-hidden shadow-lg course-item" data-category="free">
-    <div className="relative">
-      <img
-        src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=400&q=80"
-        alt="Photography Basics Course"
-        className="w-full h-48 object-cover"
-        onError={onImgErr}
-      />
-      <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
-        Free
+        <div className="flex items-center justify-between">
+          <div className="text-2xl font-bold text-gray-900">
+            {c.courseType === "free" ? "Free" : formatINR((c.price ?? 0) / 100)}
+          </div>
+
+          <button
+            className="w-full bg-gradient-to-r from-pink-500 to-blue-500 text-white mt-4 px-4 py-3 rounded-full font-semibold hover:shadow-lg transition-all"
+            onClick={() => {
+              const id = String(c.id || "");
+              if (!id) return;
+
+              const isFreeCourse = c.courseType === "free" || (typeof c.price === "number" && c.price <= 0);
+              if (isFreeCourse) {
+                navigate(`/course/${id}`, { state: { from: "home-featured" } });
+                return;
+              }
+
+              const target = `/join?step=course&courseId=${encodeURIComponent(id)}`;
+              if (!isAuthed) {
+                sessionStorage.setItem("postLoginRedirect", target);
+                navigate(`/login?redirect=${encodeURIComponent(target)}`, {
+                  state: { redirectTo: target, reason: "enroll-premium" },
+                });
+                return;
+              }
+              navigate(target, { state: { step: "course", selectedCourseId: id } });
+            }}
+          >
+            Enroll Now
+          </button>
+        </div>
       </div>
     </div>
-    <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">Photography Basics</h3>
-      <p className="text-gray-600 mb-4">Learn the fundamentals of digital photography</p>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center text-yellow-500">
-          <i className="fas fa-star" />
-          <span className="ml-1 text-gray-700">4.5 (680)</span>
-        </div>
-        <div className="text-gray-600">
-          <i className="fas fa-clock mr-1" />
-          10 hours
-        </div>
-      </div>
-      <button
-        type="button"
-        className="w-full bg-green-500 text-white py-3 rounded-full font-semibold hover:shadow-lg transition-all"
-      >
-        Start Free
-      </button>
-    </div>
-  </div>
+  ))}
 </div>
+
+
           </div>
         </section>
 

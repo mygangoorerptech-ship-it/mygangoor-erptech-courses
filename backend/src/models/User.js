@@ -37,4 +37,5 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: true },
 }, { timestamps: true });
 
+userSchema.index({ updatedAt: -1 });
 export default mongoose.model("User", userSchema);

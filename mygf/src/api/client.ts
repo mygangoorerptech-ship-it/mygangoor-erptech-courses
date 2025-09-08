@@ -1,7 +1,8 @@
 // src/api/client.ts
 import axios, { AxiosError } from 'axios';
 import { API_BASE } from "../config/env";
-import { ensureCsrfToken, getCsrfToken, invalidateCsrfToken } from '../config/csrf';
+import { ensureCsrfToken, getCsrfToken } from '../config/csrf';
+import { refreshOnce } from './refreshGate';
 
 // Prefer env var in prod; fallback to same-origin "/api"
 
@@ -61,21 +62,6 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-let refreshing = false;
-let waiters: Array<(ok: boolean) => void> = [];
-const enqueue = () => new Promise<boolean>((r) => waiters.push(r));
-const release = (ok: boolean) => {
-  const ws = waiters;
-  waiters = [];
-  ws.forEach((fn) => {
-    try {
-      fn(ok);
-    } catch {}
-  });
-};
-
-const isRefresh = (cfg?: any) => (cfg?.url || '').toString().includes('/auth/refresh');
-
 api.interceptors.response.use(
   (r) => r,
   async (err: AxiosError) => {
@@ -83,32 +69,29 @@ api.interceptors.response.use(
     const cfg: any = err.config || {};
     const status = res?.status ?? 0;
 
+    const isRefresh = (cfg?: any) => (cfg?.url || '').toString().includes('/auth/refresh');
+
+    // Only handle typical auth-expiry codes and never loop or touch /auth/refresh itself
     if (!cfg || cfg.__retried || isRefresh(cfg) || (status !== 401 && status !== 419)) {
       throw err;
     }
 
-    if (refreshing) {
-      const ok = await enqueue();
-      if (!ok) throw err;
-      cfg.__retried = true;
-      return api(cfg);
-    }
+    // Single-flight, shared across the whole app
+    const ok = await refreshOnce();
+    if (!ok) throw err;
 
-    refreshing = true;
+    cfg.__retried = true;
+
+    // If the original was unsafe, attach the (fresh) CSRF header
     try {
-      await api.post('/auth/refresh', {});
-      invalidateCsrfToken();
-      await ensureCsrfToken(true);
-      release(true);
-      cfg.__retried = true;
-      const tok = getCsrfToken();
-      if (tok) cfg.headers = { ...(cfg.headers || {}), 'X-CSRF-Token': tok };
-      return api(cfg);
-    } catch {
-      release(false);
-      throw err;
-    } finally {
-      refreshing = false;
-    }
+      const method = (cfg.method || 'get').toLowerCase();
+      if (['post','put','patch','delete'].includes(method)) {
+        const { getCsrfToken } = await import('../config/csrf');
+        const tok = getCsrfToken();
+        if (tok) cfg.headers = { ...(cfg.headers || {}), 'X-CSRF-Token': tok };
+      }
+    } catch {}
+
+    return api(cfg);
   }
 );

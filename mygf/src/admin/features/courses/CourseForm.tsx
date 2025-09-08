@@ -26,6 +26,25 @@ const dedupeByValue = (arr: Array<{ value: string; label: string }>) => {
   return Array.from(m.values());
 };
 
+function parseTags(input: string): string[] {
+  const parts = String(input || "")
+    .split(/[|,;]+/g)
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const t of parts) {
+    const key = t.toLowerCase();
+    if (!seen.has(key)) {
+      out.push(t);
+      seen.add(key);
+    }
+    if (out.length >= 5) break;
+  }
+  return out;
+}
+
 export default function CourseFormModal({
   open,
   mode,
@@ -61,6 +80,9 @@ export default function CourseFormModal({
   const [title, setTitle] = useState(initial?.title || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [category, setCategory] = useState(initial?.category || "");
+
+  const [description, setDescription] = useState<string>(initial?.description || "");
+  const [tagsInput, setTagsInput] = useState<string>((initial?.tags || []).join(", "));
 
   // keep rupees in UI; convert to paise on submit
   const [priceRs, setPriceRs] = useState<number>(initial ? (initial.price ?? 0) / 100 : 0);
@@ -217,6 +239,8 @@ export default function CourseFormModal({
     setTitle(initial?.title || "");
     setSlug(initial?.slug || "");
     setCategory(initial?.category || "");
+    setDescription(initial?.description || "");
+    setTagsInput((initial?.tags || []).join(", "));
     setPriceRs(initial ? (initial.price ?? 0) / 100 : 0);
     setVisibility(initial?.visibility || "unlisted");
     setStatus(initial?.status || "draft");
@@ -328,6 +352,11 @@ export default function CourseFormModal({
     title.trim().length > 0 &&
     (!isBundled || chapters.every((ch) => (ch.title || "").trim().length > 0));
 
+    const tagChips = useMemo(() => {
+    const arr = parseTags(tagsInput);
+    return arr;
+  }, [tagsInput]);
+
   return (
     <Modal
       open={open}
@@ -362,6 +391,7 @@ export default function CourseFormModal({
                 courseType,
                 durationText,
                 teacherId: teacherId || undefined,
+                tags: tagChips,
                 ...(isSA
                   ? {
                       orgId: orgId === "global" ? null : asStr(orgId), // ★ ensure string/null
@@ -393,6 +423,41 @@ export default function CourseFormModal({
                   <Field label="Category">
                     <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g., Frontend" />
                   </Field>
+
+                                    {/* NEW: Description (max 250) */}
+                  <div className="md:col-span-3">
+                    <Field label="Description" help="Max 250 characters">
+                      <Input
+                        value={description}
+                        maxLength={250}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Short summary shown in listings"
+                      />
+                    </Field>
+                  </div>
+
+                  {/* NEW: Tags (max 5) */}
+                  <div className="md:col-span-3">
+                    <Field
+                      label="Tags"
+                      help="Separate with comma, | or ;  •  Max 5 tags"
+                    >
+                      <Input
+                        value={tagsInput}
+                        onChange={(e) => setTagsInput(e.target.value)}
+                        placeholder="react, frontend, hooks"
+                      />
+                      {/* tiny inline preview */}
+                      {tagChips.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1 text-[11px]">
+                          {tagChips.map((t) => (
+                            <span key={t} className="rounded px-1.5 py-0.5 bg-slate-100 text-slate-700">{t}</span>
+                          ))}
+                          <span className="text-slate-500 ml-1">{tagChips.length}/5</span>
+                        </div>
+                      )}
+                    </Field>
+                  </div>
 
                   {/* NEW: Course type (required) */}
                   <Field label="Course type" required>

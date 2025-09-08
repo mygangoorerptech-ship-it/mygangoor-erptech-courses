@@ -4,7 +4,7 @@ import { emitToUser } from "./notify.js";
 import { generatePeriodicReminders } from "../controllers/notificationsController.js";
 
 const DBG = process.env.DEBUG_NOTIFICATIONS !== '0';
-const slog = (...args) => { if (DBG) console.log('[scheduler]', ...args); };
+// const slog = (...args) => { if (DBG) console.log('[scheduler]', ...args); };
 
 function nextTime(from, recurrence) {
   const d = new Date(from.getTime());
@@ -17,7 +17,7 @@ function nextTime(from, recurrence) {
 
 export function startScheduler() {
   const TICK_MS = Number(process.env.NOTIFY_TICK_MS || 60000);
-  slog('start', { TICK_MS, recurrences: ['daily','weekly','monthly'] });
+  // slog('start', { TICK_MS, recurrences: ['daily','weekly','monthly'] });
 
   setInterval(async () => {
     try {
@@ -29,7 +29,7 @@ export function startScheduler() {
 
       for (const n of due) {
         try {
-          slog('deliver', { id: n._id, type: n.type, userId: n.userId, sentCount: n.sentCount, recurrence: n.recurrence });
+          // slog('deliver', { id: n._id, type: n.type, userId: n.userId, sentCount: n.sentCount, recurrence: n.recurrence });
           emitToUser(n.userId, "reminder", { id: n._id, type: n.type, title: n.title, body: n.body, data: n.data });
 
           n.sentCount = (n.sentCount || 0) + 1;
@@ -44,13 +44,13 @@ export function startScheduler() {
           }
 
           await n.save();
-          slog('delivered', { id: n._id, nextDueAt: n.dueAt, resolvedAt: n.resolvedAt, sentCount: n.sentCount });
+          // slog('delivered', { id: n._id, nextDueAt: n.dueAt, resolvedAt: n.resolvedAt, sentCount: n.sentCount });
         } catch (err) {
-          console.error('[scheduler] deliver error', err);
+          // console.error('[scheduler] deliver error', err);
         }
       }
     } catch (e) {
-      console.error('[scheduler] tick error (outer):', e);
+      // console.error('[scheduler] tick error (outer):', e);
     }
   }, TICK_MS); // configurable
 }

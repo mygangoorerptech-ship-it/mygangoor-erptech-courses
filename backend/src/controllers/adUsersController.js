@@ -222,75 +222,159 @@ export async function remove(req, res) {
 
 // POST /ad/users/bulk-upsert
 export async function bulkUpsert(req, res) {
-    const actor = req.user;
-    // Enforce orgId for bulk upsert.  Superadmins must specify orgId in the
-    // request body; admins must belong to an organisation.  Without this
-    // validation, newly created students may lack org membership.
-    let scopeOrgId = actor?.orgId || null;
-    if (actor?.role === 'superadmin') {
-      scopeOrgId = req.body?.orgId || null;
-      if (!scopeOrgId) {
-        return res.status(400).json({ ok: false, message: "orgId is required for superadmin" });
-      }
+  const actor = req.user;
+
+  // Determine organisation scope
+  let scopeOrgId = actor?.orgId || null;
+  if (actor?.role === 'superadmin') {
+    scopeOrgId = req.body?.orgId || null;
+    if (!scopeOrgId) return res.status(400).json({ ok:false, message:"orgId is required for superadmin" });
+  }
+  if (!scopeOrgId) return res.status(403).json({ ok:false, message:"No org" });
+
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  if (!rows.length) return res.json({ created: 0, updated: 0, total: 0, skipped: [] });
+
+  const HEX24 = /^[0-9a-fA-F]{24}$/;
+  const isEmail = (s) => /\S+@\S+\.\S+/.test(String(s||''));
+  const truthy  = (v) => /^(true|1|yes|y)$/i.test(String(v||'').trim());
+  const normRole = (v) => {
+    const r = String(v||'').toLowerCase().trim();
+    return (r==='vendor' || r==='student') ? r : 'student';
+  };
+  const normStatus = (v) => {
+    const s = String(v||'').toLowerCase().trim();
+    return ['active','disabled'].includes(s) ? s : undefined;
+  };
+  const normMethod = (v) => {
+    const s = String(v||'').toLowerCase().trim();
+    if (!s) return undefined;
+    if (s === 'email' || s === 'email_otp' || s === 'otp') return 'otp';
+    if (s === 'totp' || s === 'auth' || s === 'authenticator') return 'totp';
+    return undefined;
+  };
+
+  // Prefetch admins in this org for managerRef/email/id lookup and fallback
+  const admins = await User.find({ role: 'admin', orgId: scopeOrgId })
+    .select({ _id:1, email:1, name:1, orgId:1, status:1, createdAt:1 }).lean();
+  const adminById = new Map(admins.map(a => [String(a._id), a]));
+  const adminByEmail = new Map(admins.map(a => [String(a.email).toLowerCase(), a]));
+  // First active admin fallback
+  let fallbackAdmin = admins.filter(a => a.status === 'active')
+                            .sort((a,b) => (a.createdAt > b.createdAt ? 1 : -1))[0] || null;
+
+  const resolveManager = (ref) => {
+    if (!ref) return null;
+    if (isEmail(ref)) return adminByEmail.get(String(ref).toLowerCase()) || null;
+    if (HEX24.test(String(ref))) return adminById.get(String(ref)) || null;
+    return null;
+  };
+
+  let created = 0, updated = 0;
+  const skipped = [];
+
+  for (const raw0 of rows) {
+    const raw = { ...raw0 };
+    const email = String(raw.email || '').trim().toLowerCase();
+    if (!email || !isEmail(email)) { skipped.push({ email, reason:'invalid_email' }); continue; }
+
+    const roleIn = normRole(raw.role);
+    // store as 'orguser' for students; vendors stay 'vendor'
+    const finalRole = roleIn === 'student' ? 'orguser' : 'vendor';
+    const name = raw.name || undefined;
+    const status = normStatus(raw.status) || (finalRole === 'orguser' ? 'active' : undefined);
+
+    // MFA
+    const mfaRequired = ('mfaRequired' in raw) ? truthy(raw.mfaRequired) :
+                        ('mfa' in raw && typeof raw.mfa === 'object' && 'required' in raw.mfa) ? !!raw.mfa.required :
+                        true; // default ON for both vendor and learners in admin portal
+    const mfaMethod = normMethod(raw.mfaMethod || raw?.mfa?.method) || (mfaRequired ? (finalRole === 'vendor' ? 'totp' : 'otp') : null);
+
+    // Manager: explicit managerRef → that admin; else fallback to current actor; else first active admin
+    let managerDoc = resolveManager(raw.managerRef) || null;
+    if (!managerDoc && actor?.role === 'admin' && String(actor.orgId) === String(scopeOrgId)) {
+      managerDoc = { _id: actor.sub || actor._id || actor.id, email: actor.email, orgId: scopeOrgId };
     }
-    if (!scopeOrgId) return res.status(403).json({ ok: false });
+    if (!managerDoc) managerDoc = fallbackAdmin;
+    if (!managerDoc) { skipped.push({ email, reason:'no_manager_in_org' }); continue; }
 
-    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
-    let created = 0, updated = 0;
+    const existing = await User.findOne({ email });
 
-    for (const r of rows) {
-        const email = (r.email || '').toLowerCase().trim();
-        const name = (r.name || '').trim() || null;
-        const rawRole = (r.role || '').toLowerCase();
-        if (!email || !['vendor', 'student'].includes(rawRole)) continue;
-        // Map 'student' CSV entries to 'orguser' so that learners become organisation members
-        const role = rawRole === 'student' ? 'orguser' : rawRole;
+    // --- CREATE ---
+    if (!existing) {
+      const plain = (finalRole === 'vendor' && raw.password && String(raw.password).length >= 8)
+        ? String(raw.password)
+        : (crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi,'').slice(0,12) + "9!");
+      const passwordHash = await bcrypt.hash(plain, 12);
 
-        const existing = await User.findOne({ email });
-        if (existing) {
-            // Only allow update within same org and allowed roles.  Note that we now
-            // allow 'orguser' as a learner role instead of 'student'.
-            if (String(existing.orgId) !== String(scopeOrgId) || !['vendor', 'orguser'].includes(existing.role)) continue;
-            const patch = {};
-            if (name) patch['name'] = name;
-            await User.updateOne({ _id: existing._id }, { $set: patch });
-            updated++;
-            continue;
-        }
+      const doc = await User.create({
+        email,
+        name: name || null,
+        role: finalRole,
+        status: status || (finalRole === 'vendor' ? 'active' : 'active'),
+        orgId: scopeOrgId,
+        invitedBy: actor.sub || actor._id || actor.id || null,
+        managerId: managerDoc?._id || null,
+        isVerified: false, // flips true after first successful MFA/login
+        passwordHash,
+        mfa: mfaRequired
+          ? { required:true, method: (mfaMethod || 'otp'), totpSecretHash:null, totpSecretEnc:{ iv:null, ct:null, tag:null }, emailOtp:null }
+          : { required:false, method:null, totpSecretHash:null, totpSecretEnc:{ iv:null, ct:null, tag:null }, emailOtp:null },
+      });
 
-        if (role === 'vendor') {
-            const password = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi, '').slice(0, 12) + "9!";
-            const passwordHash = await bcrypt.hash(password, 12);
-            await User.create({
-                email, name, role: 'vendor', status: 'active',
-                orgId: scopeOrgId,
-                managerId: actor.sub || actor._id || actor.id || null,
-                mfa: { required: false, method: null }, isVerified: true,
-                passwordHash,
-            });
-            try { await sendStaffCredentialsEmail(email, password); } catch { }
-            created++;
-        } else {
-            // Generate an invitation for an organisation user (learner)
-            const token = crypto.randomBytes(32).toString("hex");
-            const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-            const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7);
-            await Invitation.create({
-                email,
-                role: 'orguser',
-                orgId: scopeOrgId,
-                mfa: { required: false, method: null },
-                tokenHash,
-                expiresAt,
-                invitedBy: actor.sub || actor._id || actor.id || null,
-                managerId: null,
-            });
-            const appUrl = (process.env.PUBLIC_APP_URL || "http://localhost:5173").split(",")[0];
-            const link = `${appUrl.replace(/\/$/, '')}/signup?invite=${token}`;
-            try { await sendInvitationEmail(email, link); } catch { }
-            created++;
-        }
+      // Credentials email
+      try {
+        const appBase = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
+        const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
+        const org = await Organization.findById(scopeOrgId).select("name").lean();
+        await sendStaffCredentialsEmail(email, {
+          role: roleIn, // public-facing: 'student' or 'vendor'
+          signinUrl: signInUrl,
+          email,
+          password: plain,
+          mfaMethod: doc.mfa.method,
+          mfaRequired: !!doc.mfa.required,
+          orgName: org?.name,
+          adminName: actor?.name || actor?.email,
+        });
+      } catch {}
+
+      created++;
+      continue;
     }
 
-    return res.json({ created, updated, total: created + updated });
+    // --- UPDATE ---
+    if (String(existing.orgId || '') !== String(scopeOrgId)) { skipped.push({ email, reason:'different_org' }); continue; }
+    if (!['vendor','orguser'].includes(existing.role)) { skipped.push({ email, reason:'role_not_allowed' }); continue; }
+
+    let changed = false;
+    if (name !== undefined && existing.name !== name) { existing.name = name; changed = true; }
+    if (status !== undefined && existing.status !== status) { existing.status = status; changed = true; }
+
+    // Allow vendor<->student flips via CSV
+    if (existing.role !== finalRole) { existing.role = finalRole; changed = true; }
+
+    // Update manager if resolvable
+    if (managerDoc && String(existing.managerId || '') !== String(managerDoc._id)) {
+      existing.managerId = managerDoc._id; changed = true;
+    }
+
+    // Password (only honored for vendor; ignored for learners)
+    if (finalRole === 'vendor' && raw.password && String(raw.password).length >= 8) {
+      existing.passwordHash = await bcrypt.hash(String(raw.password), 12);
+      changed = true;
+    }
+
+    // MFA
+    if (mfaRequired !== undefined || mfaMethod !== undefined) {
+      existing.mfa = mfaRequired
+        ? { required:true, method: (mfaMethod || 'otp'), totpSecretHash: existing.mfa?.totpSecretHash || null, totpSecretEnc: existing.mfa?.totpSecretEnc || { iv:null, ct:null, tag:null }, emailOtp:null }
+        : { required:false, method:null, totpSecretHash: existing.mfa?.totpSecretHash || null, totpSecretEnc: existing.mfa?.totpSecretEnc || { iv:null, ct:null, tag:null }, emailOtp:null };
+      changed = true;
+    }
+
+    if (changed) { await existing.save(); updated++; }
+  }
+
+  return res.json({ created, updated, total: created + updated, skipped });
 }

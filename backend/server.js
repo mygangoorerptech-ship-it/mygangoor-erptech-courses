@@ -46,6 +46,8 @@ import studentProgressRouter from "./src/routes/studentProgress.js";
 import certificatesRouter from "./src/routes/certificates.js";
 import notificationsRouter from "./src/routes/notifications.js";
 import { startScheduler } from "./src/utils/scheduler.js";
+import publicRoutes from "./src/routes/public.js";
+import adminReviewRouter from "./src/routes/adminReviewsRoutes.js";
 import path from "path";
 import fs from "fs";
 
@@ -74,7 +76,9 @@ const corsOptions = {
   // Option B (easier): omit allowedHeaders entirely to reflect the request's Access-Control-Request-Headers 
   optionsSuccessStatus: 204, 
 }; 
-app.use(cors(corsOptions)); 
+app.use(cors(corsOptions));
+// Expose ETag and version headers to browsers
+app.use((req, res, next) => { res.header('Access-Control-Expose-Headers', 'ETag, X-Data-Version'); next(); }); 
 
 // 🔐 Razorpay webhook requires RAW body (do this before json())
 app.post("/api/checkout/razorpay/webhook", express.raw({ type: "application/json" }), rzpCtrl.webhook);
@@ -265,6 +269,8 @@ const templatesDir = fs.existsSync(templatesCandidate1) ? templatesCandidate1 : 
 app.use("/api/static/templates", express.static(templatesDir));
 app.use("/api", certificatesRouter);
 app.use("/api", notificationsRouter);
+app.use("/api/public", publicRoutes);
+app.use("/api/admin", adminReviewRouter);
 
 const PORT = process.env.PORT || 5002;
 

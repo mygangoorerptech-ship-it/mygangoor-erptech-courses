@@ -5,6 +5,7 @@ import type { Course } from "./types";
 import VideoPreviewModal from "./models/VideoPreviewModal";
 // ⬇️ use your paise→INR formatter
 import { formatINRFromPaise } from "../../../admin/utils/currency";
+import ViewDetails from "../tracks/viewDetails";
 
 export default function CourseCard({
   course,
@@ -22,6 +23,7 @@ export default function CourseCard({
   onRequireEnroll?: (c: Course) => void;
 }) {
   const [showPreview, setShowPreview] = React.useState(false);
+  const [showDetails, setShowDetails] = React.useState(false);
   const [imgLoaded, setImgLoaded] = React.useState(false);
   const [imgError, setImgError] = React.useState(false);
   const navigate = useNavigate();
@@ -199,6 +201,7 @@ export default function CourseCard({
 
         {/* Footer actions */}
         <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
           <button
             className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
             aria-label={`Preview ${course.title}`}
@@ -210,6 +213,20 @@ export default function CourseCard({
           >
             Preview
           </button>
+
+          {/* NEW: View Detail button right after Preview */}
+            <button
+              className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
+              aria-label={`View details for ${course.title}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowDetails(true);
+              }}
+            >
+              View Detail
+            </button>
+          </div>
           <span className="text-xs text-slate-500">{course.durationHours}h</span>
         </div>
       </div>
@@ -223,6 +240,13 @@ export default function CourseCard({
         title={course.title}
         videoUrl={course.previewUrl ?? undefined}
         onClose={() => setShowPreview(false)}
+      />
+
+      <ViewDetails
+        open={showDetails}
+        courseId={(course as any).id || (course as any)._id}
+        onClose={() => setShowDetails(false)}
+        onRequireEnroll={() => onRequireEnroll?.(course)}
       />
     </article>
   );

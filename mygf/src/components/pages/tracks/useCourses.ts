@@ -24,30 +24,33 @@ function useAudience() {
   return { audience, orgId };
 }
 
-export function useCourses() {
+export function useCourses(opts?: { enabled?: boolean } = {}) {
+  const enabled = opts?.enabled ?? true;
   const { audience, orgId } = useAudience();
 
-  const items        = useCatalogStore((s) => s.items);
-  const loading      = useCatalogStore((s) => s.loading);
-  const prefetching  = useCatalogStore((s) => s.prefetching);
-  const error        = useCatalogStore((s) => s.error);
-  const loadedOnce   = useCatalogStore((s) => s.loadedOnce);
-  const nextCursor   = useCatalogStore((s) => s.nextCursor);
-  const refresh      = useCatalogStore((s) => s.refresh);
-  const smartLoadMore= useCatalogStore((s) => s.smartLoadMore);
-  const prefetchNext = useCatalogStore((s) => s.prefetchNext);
-  const fetchNext    = useCatalogStore((s) => s.fetchNext);
+  const items         = useCatalogStore((s) => s.items);
+  const loading       = useCatalogStore((s) => s.loading);
+  const prefetching   = useCatalogStore((s) => s.prefetching);
+  const error         = useCatalogStore((s) => s.error);
+  const loadedOnce    = useCatalogStore((s) => s.loadedOnce);
+  const nextCursor    = useCatalogStore((s) => s.nextCursor);
+  const refresh       = useCatalogStore((s) => s.refresh);
+  const smartLoadMore = useCatalogStore((s) => s.smartLoadMore);
+  const prefetchNext  = useCatalogStore((s) => s.prefetchNext);
+  const fetchNext     = useCatalogStore((s) => s.fetchNext);
 
   // Initial load for this audience
   useEffect(() => {
+    if (!enabled) return;
     if (!loadedOnce && !loading) fetchNext({ audience, orgId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadedOnce, loading, audience, orgId]);
+  }, [enabled, loadedOnce, loading, audience, orgId]);
 
   // Prefetch the next page for this audience
   useEffect(() => {
+    if (!enabled) return;
     if (loadedOnce && !loading && nextCursor !== null) prefetchNext({ audience, orgId });
-  }, [items.length, loadedOnce, loading, nextCursor, audience, orgId, prefetchNext]);
+  }, [enabled, items.length, loadedOnce, loading, nextCursor, audience, orgId, prefetchNext]);
 
   return {
     data: items,

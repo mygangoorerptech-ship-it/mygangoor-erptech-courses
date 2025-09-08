@@ -46,7 +46,23 @@ export async function list(req, res) {
  }
   if (typeof suspended !== "undefined") where.suspended = suspended === "true";
 
-  if (q) {
+  
+  // ---- Conditional ETag support to avoid unnecessary full reads ----
+  try {
+    const count = await Organization.countDocuments(where);
+    const lastDoc = await Organization.findOne(where).sort({ updatedAt: -1 }).select({ updatedAt: 1 }).lean();
+    const last = lastDoc?.updatedAt ? new Date(lastDoc.updatedAt).getTime() : 0;
+    const vKey = `${count}:${last}:${status || 'all'}:${suspended ?? 'any'}:${q || ''}`;
+    const etag = `W/"orgs-${vKey}"`;
+    res.setHeader('ETag', etag);
+    res.setHeader('X-Data-Version', vKey);
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+  } catch (e) {
+    // if version check fails, continue to full fetch
+  }
+if (q) {
     const rx = new RegExp(String(q).trim(), "i");
    const searchOr = [
      { name: rx }, { code: rx }, { domain: rx },

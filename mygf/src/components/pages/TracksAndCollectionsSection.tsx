@@ -16,23 +16,27 @@ import useAutoLoadOnIntersect from "./tracks/useAutoLoadOnIntersect";
 import TopProgressBar from "../common/TopProgressBar";
 import Footer from "../common/Footer";
 import { useAuth } from "../../auth/store";
+import type { User } from "../../auth/store";
 import { useAuthHydration } from "../../hooks/useAuthHydration";
 // NEW: enrollments + modal
 import { api } from "../../api/client";
 import JoinNowModal from "../join/JoinNowModal";
 import { useWishlist } from "./tracks/wishlistStore";
 
+/**
+ * Parent: only auth/location hooks + redirects/skeleton.
+ * No conditional hooks after returns.
+ */
 export default function TracksAndCollectionsSection() {
-  // Fire auth hydration for this screen
   useAuthHydration();
   const { user, status, hydrate } = useAuth();
   useEffect(() => { if (status === "idle") hydrate(); }, [status, hydrate]);
 
-    const loc = useLocation();
+  const loc = useLocation();
   const role = String((user as any)?.role || "").toLowerCase();
   const ALLOW = status === "ready" && !!user && role === "orguser";
 
-  // If not hydrated yet, show your skeleton layout (prevents FOUC + blocks API)
+  // 1) Not hydrated yet -> skeleton (no heavy hooks here)
   if (status !== "ready") {
     return (
       <>
@@ -53,58 +57,67 @@ export default function TracksAndCollectionsSection() {
     );
   }
 
-  // Not authenticated -> go to login immediately
-  if (status === "ready" && !user) {
+  // 2) Hydrated but unauthenticated -> go to login
+  if (!user) {
     return <Navigate to="/login" replace state={{ next: loc.pathname }} />;
   }
 
-  // Authenticated but wrong role -> keep them in-app (dashboard), block this page
+  // 3) Authenticated but role not allowed -> dashboard
   if (!ALLOW) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Authenticated and correct role
+  // 4) Auth ok & allowed -> render the heavy child (all hooks inside)
+  return <TracksBody user={user} />;
+}
+
+/** Child component: contains all hook-heavy logic/UI. Always renders fully when mounted. */
+function TracksBody({ user }: { user: User }) {
+  // Local UI state
   const [query, setQuery] = useState("");
   const [activeChip, setActiveChip] = useState<Chip>("All");
   const [over12h, setOver12h] = useState(false);
   const [availability, setAvailability] = useState<Availability>("any");
-  const { data: apiCourses, loading, prefetching, error, reload, loadMore, hasMore } = useCourses();
+
+  // Data hooks (safe to run now; auth is ready & allowed)
+  const {
+    data: apiCourses,
+    loading,
+    prefetching,
+    error,
+    reload,
+    loadMore,
+    hasMore
+  } = useCourses({ enabled: true });
+
   const canAutoload = hasMore && !loading && !error;
 
-  // Initialize wishlist store ONLY after auth is fully ready to avoid 401s
+  // Wishlist store init (runs once on mount)
   const wishlistStore = useWishlist();
-  const { ready: wishReady, init: initWishlist, isWishlisted, toggle } = wishlistStore;
-  useEffect(() => {
-    if (status === "ready" && user) {
-      // guarded inside store to run once
-      void initWishlist?.().catch(() => { /* swallow to avoid UI crash */ });
-    }
-  }, [status, user, initWishlist]);
+  const { init: initWishlist, isWishlisted, toggle } = wishlistStore;
+  useEffect(() => { void initWishlist?.().catch(() => {}); }, [initWishlist]);
 
-    // ── Normalize ONLY: level, discountPercent, bundle cover image ───────────────
+  // ── Normalize ONLY: level, discountPercent, bundle cover image ───────────────
   const normalizedCourses: Course[] = useMemo(() => {
     const toUiLevel = (raw: any): Level => {
       const s = typeof raw === "string" ? raw.toLowerCase() : "";
-      // map backend → UI union (default "Beginner" when missing/null/"all")
       switch (s) {
         case "beginner": return "Beginner";
         case "intermediate": return "Intermediate";
         case "advanced": return "Advanced";
-        // treat unknown/all/null as Beginner (fallback requested as "beginner")
         default: return "Beginner";
       }
     };
 
     return (apiCourses ?? []).map((c) => {
       const rawLevel =
-        (c as any).level ??             // if backend already sent level on the card
-        (c as any).courseLevel ??       // safety: alternate naming
-        (c as any).bundleLevel ?? null; // safety: alternate naming
+        (c as any).level ??
+        (c as any).courseLevel ??
+        (c as any).bundleLevel ?? null;
 
       const realDiscount =
         Number.isFinite((c as any).discountPercent) ? Number((c as any).discountPercent) : 0;
 
-      // prefer bundleCoverUrl when available; otherwise keep existing cover (placeholder keeps working)
       const bundleCover =
         (c as any).bundleCoverUrl && String((c as any).bundleCoverUrl).trim()
           ? String((c as any).bundleCoverUrl)
@@ -112,7 +125,6 @@ export default function TracksAndCollectionsSection() {
 
       return {
         ...c,
-        // only these three fields are overridden to reflect real data
         level: toUiLevel(rawLevel),
         discountPercent: realDiscount,
         cover: bundleCover,
@@ -120,7 +132,6 @@ export default function TracksAndCollectionsSection() {
     });
   }, [apiCourses]);
 
-  // pre-trigger sooner so fast scrolls feel instant
   const sentinelRef = useAutoLoadOnIntersect<HTMLDivElement>(
     canAutoload,
     loadMore,
@@ -133,7 +144,6 @@ export default function TracksAndCollectionsSection() {
   useEffect(() => {
     const onScroll = () => {
       const y = window.scrollY || 0;
-      // show after a bit of scroll AND once ~2 pages loaded
       setShowTop(y > 700 && (apiCourses?.length || 0) >= 24);
     };
     onScroll();
@@ -164,7 +174,7 @@ export default function TracksAndCollectionsSection() {
       });
     }
     return list;
-  }, [apiCourses, activeChip, over12h, availability, debouncedQuery]);
+  }, [normalizedCourses, activeChip, over12h, availability, debouncedQuery]);
 
   // -------------------------
   // Premium / enrollment logic
@@ -187,7 +197,9 @@ export default function TracksAndCollectionsSection() {
   const freeIds = useMemo(() => {
     const s = new Set<string>();
     (apiCourses ?? []).forEach((c) => {
-      const p = (typeof c.pricePaise === "number") ? c.pricePaise : (typeof (c as any).price === "number" ? Math.round((c as any).price * 100) : 0);
+      const p = (typeof c.pricePaise === "number")
+        ? c.pricePaise
+        : (typeof (c as any).price === "number" ? Math.round((c as any).price * 100) : 0);
       if (!p || p <= 0) s.add(String(c.id));
     });
     return s;
@@ -195,12 +207,6 @@ export default function TracksAndCollectionsSection() {
 
   useEffect(() => {
     let cancelled = false;
-    // only fetch premium/enrollment state when auth is ready
-    if (status !== "ready") {
-      setPremiumIds(new Set<string>(Array.from(freeIds)));
-      return () => { cancelled = true; };
-    }
-
     (async () => {
       try {
         const res = await api.get("/student/enrollments/active", { withCredentials: true });
@@ -220,24 +226,21 @@ export default function TracksAndCollectionsSection() {
           if (isPremium) paySet.add(id);
         });
 
-        // Merge free + paid/premium
         const merged = new Set<string>([...Array.from(freeIds), ...Array.from(paySet)]);
         if (!cancelled) setPremiumIds(merged);
       } catch {
-        // unauthenticated/error → keep free ones
         if (!cancelled) setPremiumIds(new Set<string>(Array.from(freeIds)));
       }
     })();
 
     return () => { cancelled = true; };
-  }, [freeIds, status, user?.id]);
+  }, [freeIds, user?.id]);
 
   const isPremium = (courseId: string | number) => premiumIds.has(String(courseId));
 
-    // Build wishlist array for Sidebar (keeps prop shape intact)
+  // Build wishlist array for Sidebar (keeps prop shape intact)
   const sidebarWishlist: CourseType[] = useMemo(
     () => normalizedCourses.filter((c) => isWishlisted?.(c.id)) as CourseType[],
-    // include wishlistStore to ensure recompute on store changes
     [normalizedCourses, wishlistStore]
   );
 
@@ -342,13 +345,12 @@ export default function TracksAndCollectionsSection() {
             </div>
           </div>
         </div>
-      </section>
-
-      {/* Footer at the end */}
+              {/* Footer at the end */}
       <Footer
         brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       />
+      </section>
 
       {/* Back-to-top FAB (keeps your visual language) */}
       {showTop && (

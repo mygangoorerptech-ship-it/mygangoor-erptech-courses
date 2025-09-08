@@ -1,6 +1,5 @@
 // src/auth/store.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { checkSession, logout as apiLogout } from "../api/auth";
 
 export type Role = "superadmin" | "admin" | "vendor" | "student" | "orgadmin" | "orguser";
@@ -15,7 +14,7 @@ export type User = {
   mfa?: MfaInfo;
 };
 
-type Tokens = {
+export type Tokens = {
   accessToken?: string | null;
   refreshToken?: string | null;
 };
@@ -28,6 +27,9 @@ type AuthState = {
   mfaVerified: boolean;
   initialized: boolean;
   status: Status;
+
+  /** Hint for public routes to decide whether to ping /auth/check in this tab. */
+  hadRefreshHint: boolean;
 
   login: (payload: { user: User; tokens?: Tokens }) => void;
   verifyMfa: () => void;
@@ -45,84 +47,72 @@ export const selectAuthLite = (s: AuthState) => ({
   isAuthenticated: !!s.user,
 });
 
-export const useAuth = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      tokens: {},
-      mfaVerified: false,
-      initialized: false,
-      status: "idle",
+export const useAuth = create<AuthState>()((set, get) => ({
+  user: null,
+  tokens: {},
+  mfaVerified: false,
+  initialized: false,
+  status: "idle",
+  hadRefreshHint: false,
 
-      login: ({ user, tokens }) =>
-        set(() => {
-          // Mark that we have a refresh cookie/session
-          localStorage.setItem("auth:hasRefresh", "1");
-          return {
-            user,
-            tokens: tokens ?? {},
-            mfaVerified: !user?.mfa?.required,
-            status: "ready",
-            initialized: true,
-          };
-        }),
+  login: ({ user, tokens }) => {
+    set(() => ({
+      user,
+      tokens: tokens ?? {},
+      mfaVerified: !user?.mfa?.required,
+      status: "ready",
+      initialized: true,
+      hadRefreshHint: true, // set in-memory hint for this tab
+    }));
+  },
 
-      verifyMfa: () => set({ mfaVerified: true }),
+  verifyMfa: () => set({ mfaVerified: true }),
 
-      logout: async () => {
-        try { await apiLogout(); } catch {}
-        // clear local hint so public pages won't try to hydrate
-        localStorage.removeItem("auth:hasRefresh");
-        set({ user: null, tokens: {}, mfaVerified: false, status: "ready" });
-        window.location.assign("/login");
-      },
+  logout: async () => {
+    try { await apiLogout(); } catch {}
+    set({ user: null, tokens: {}, mfaVerified: false, status: "ready", hadRefreshHint: false });
+    // Keep redirect behavior identical to previous code
+    window.location.assign("/login");
+  },
 
-      setTokens: (t) => set({ tokens: t ?? {} }),
-      setUser:   (u) => set({ user: u }),
+  setTokens: (t) => set({ tokens: t ?? {} }),
+  setUser:   (u) => set({ user: u }),
 
-      hydrate: async () => {
-        if (get().status === "checking") return;
-        set({ status: "checking" });
-        try {
-          const res = await checkSession();
-          if (res?.ok && res.user) {
-            localStorage.setItem("auth:hasRefresh", "1");
-            set({
-              user: res.user,
-              tokens: {},
-              mfaVerified: !res.user?.mfa?.required,
-              initialized: true,
-              status: "ready",
-            });
-          } else {
-            localStorage.removeItem("auth:hasRefresh");
-            set({
-              user: null,
-              tokens: {},
-              mfaVerified: false,
-              initialized: true,
-              status: "ready",
-            });
-          }
-        } catch {
-          localStorage.removeItem("auth:hasRefresh");
-          set({
-            user: null,
-            tokens: {},
-            mfaVerified: false,
-            initialized: true,
-            status: "ready",
-          });
-        }
-      },
-    }),
-    {
-      name: "auth",
-      onRehydrateStorage: () => (_state, _err) => {
-        Promise.resolve().then(() => {
-          (useAuth as any).setState?.({ initialized: true });
+  hydrate: async () => {
+    const { status } = get();
+    if (status === "checking") return;
+
+    set({ status: "checking" });
+    try {
+      const res = await checkSession();
+      if (res?.ok && res?.user) {
+        set({
+          user: res.user as User,
+          tokens: {},
+          mfaVerified: !(res.user as any)?.mfa?.required,
+          initialized: true,
+          status: "ready",
+          hadRefreshHint: true,
         });
-      },
+      } else {
+        set({
+          user: null,
+          tokens: {},
+          mfaVerified: false,
+          initialized: true,
+          status: "ready",
+          hadRefreshHint: false,
+        });
+      }
+    } catch {
+      set({
+        user: null,
+        tokens: {},
+        mfaVerified: false,
+        initialized: true,
+        status: "ready",
+        hadRefreshHint: false,
+      });
     }
-  )
-);
+  },
+}));
