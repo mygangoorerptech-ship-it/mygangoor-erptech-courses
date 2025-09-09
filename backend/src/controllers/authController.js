@@ -97,6 +97,17 @@ function mintTokens(user, device) {
   return { access, refresh, jti, refreshExp, device };
 }
 
+// If a verified student belongs to an org, store them as 'orguser' for ACLs.
+function normalizeRoleWhenVerified(user) {
+  if (!user) return false;
+  const shouldFlip = !!user.isVerified && user.role === "student" && !!user.orgId;
+  if (shouldFlip) {
+    user.role = "orguser";
+    return true;
+  }
+  return false;
+}
+
 // ===== Controllers =====
 export async function login(req, res) {
   const { email, password, as } = req.body;
@@ -132,10 +143,14 @@ export async function login(req, res) {
   }
 
   // ✅ No-MFA path: first successful password login marks the account verified
-  if (!user.isVerified) {
-    user.isVerified = true;
-    await user.save();
-  }
+let changed = false;
+if (!user.isVerified) {
+  user.isVerified = true;
+  changed = true;
+}
+if (normalizeRoleWhenVerified(user)) changed = true;
+if (changed) await user.save();
+
 
   const device = req.get("User-Agent") || "unknown";
   const { access, refresh, jti, refreshExp } = mintTokens(user, device);
@@ -190,9 +205,12 @@ export async function verifyMfa(req, res) {
         await user.save();
         return res.status(400).json({ ok: false, message: "Invalid code" });
       }
-      user.mfa.emailOtp = null;
-      if (!user.isVerified) user.isVerified = true;
-      await user.save();
+user.mfa.emailOtp = null;
+let changed = false;
+if (!user.isVerified) { user.isVerified = true; changed = true; }
+if (normalizeRoleWhenVerified(user)) changed = true;
+if (changed) await user.save();
+
     } else if (method === "totp") {
       const secretEnc = user.mfa?.totpSecretEnc;
       const legacySecret = user.mfa?.totpSecretHash || null;
@@ -206,10 +224,11 @@ export async function verifyMfa(req, res) {
         window: 1,
       });
       if (!tokenValidates) return res.status(400).json({ ok: false, message: "Invalid code" });
-      if (!user.isVerified) {
-        user.isVerified = true;
-        await user.save();
-      }
+let changed = false;
+if (!user.isVerified) { user.isVerified = true; changed = true; }
+if (normalizeRoleWhenVerified(user)) changed = true;
+if (changed) await user.save();
+
     } else {
       return res.status(400).json({ ok: false, message: "Invalid method" });
     }
@@ -320,10 +339,11 @@ export async function totpVerify(req, res) {
       return res.status(400).json({ ok: false, message: "Invalid code" });
     }
 
-    if (!user.isVerified) {
-      user.isVerified = true;
-      await user.save();
-    }
+let changed = false;
+if (!user.isVerified) { user.isVerified = true; changed = true; }
+if (normalizeRoleWhenVerified(user)) changed = true;
+if (changed) await user.save();
+
 
     const device = req.get("User-Agent") || "unknown";
     const { access, refresh, jti, refreshExp } = mintTokens(user, device);
@@ -334,6 +354,8 @@ export async function totpVerify(req, res) {
     return res.status(400).json({ ok: false, message: "Invalid or expired session" });
   }
 }
+
+
 
 export async function invite(req, res) {
   const actor = req.user || {};
@@ -388,6 +410,7 @@ export async function acceptInvite(req, res) {
     ? { required: true, method: effMfaMethod || "otp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null }
     : { required: false, method: null,               totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
 
+    const roleFinal = (verifiedNow && inv.role === "student" && inv.orgId) ? "orguser" : inv.role;
   // Students: verified after successful first login/MFA. If no MFA is required, verify now.
   const verifiedNow = !mfaPolicy.required;
 
@@ -400,7 +423,7 @@ export async function acceptInvite(req, res) {
       email: inv.email,
       name,
       passwordHash,
-      role: inv.role,
+      role: inv.roleFinal,
       status: "active",
       isVerified: verifiedNow,
       orgId: inv.orgId || null,           // <-- org membership
@@ -411,7 +434,7 @@ export async function acceptInvite(req, res) {
   } else {
     user.name = name;
     user.passwordHash = passwordHash;
-    user.role = inv.role;
+    user.role = inv.roleFinal;
     user.orgId = inv.orgId || null;      // <-- ensure membership
     user.managerId = inv.managerId || null;
     user.mfa = mfaPolicy;
