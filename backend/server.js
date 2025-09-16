@@ -48,6 +48,9 @@ import notificationsRouter from "./src/routes/notifications.js";
 import { startScheduler } from "./src/utils/scheduler.js";
 import publicRoutes from "./src/routes/public.js";
 import adminReviewRouter from "./src/routes/adminReviewsRoutes.js";
+import notesRouter from "./src/routes/notes.js";
+import studentNotesRouter from "./src/routes/studentNotes.js";
+
 import path from "path";
 import fs from "fs";
 
@@ -284,6 +287,8 @@ app.use("/api/static/templates", express.static(templatesDir));
 app.use("/api", certificatesRouter);
 app.use("/api", notificationsRouter);
 app.use("/api/admin", adminReviewRouter);
+app.use("/api/notes", notesRouter);
+app.use("/api/student/notes", studentNotesRouter);
 
 const PORT = process.env.PORT || 5002;
 

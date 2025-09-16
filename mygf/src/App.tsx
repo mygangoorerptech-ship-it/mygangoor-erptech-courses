@@ -63,6 +63,7 @@ import ADReports from "./admin/pages/admin/Reports";
 import ADCommunity from "./admin/pages/admin/Community";
 import ADSettings from "./admin/pages/admin/Settings";
 import ADUsers from "./admin/pages/admin/Users";
+import ADNotes from "./admin/pages/admin/Notes";
 
 //vendor pages
 import VEOverview from "./admin/pages/vendor/Overview";
@@ -70,6 +71,7 @@ import VEAssessments from "./admin/pages/vendor/Assessments";
 import VEPayments from "./admin/pages/vendor/Payments";
 import VECourses from "./admin/pages/vendor/Courses";
 import VEReports from "./admin/pages/vendor/Reports";
+import VENotes from "./admin/pages/vendor/Notes";
 
 // ---------- Centralized guards ----------
 import Shell from "./shell";
@@ -175,6 +177,7 @@ export default function App() {
         <Route path="reports" element={<ADReports />} />
         <Route path="community" element={<ADCommunity />} />
         <Route path="settings" element={<ADSettings />} />
+        <Route path="notes" element={<ADNotes />} />
       </Route>
 
             {/* ---------- Org Admin area (guarded by Shell) ---------- */}
@@ -192,6 +195,7 @@ export default function App() {
         <Route path="reports" element={<VEReports />} />
         <Route path="assessments" element={<VEAssessments />} />
         <Route path="payments" element={<VEPayments />} />
+        <Route path="notes" element={<VENotes />} />
         </Route>
 
       {/* Fallback */}

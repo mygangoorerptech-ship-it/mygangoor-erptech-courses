@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { formatINRFromPaise } from '../../utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listPayments, refundPayment, createOfflinePayment, verifyPayment } from '../../api/payments'
 import { useAuth } from '../../auth/store'
@@ -91,7 +92,7 @@ export default function VEPayments(){
                 <td className="p-3">{new Date(p.createdAt).toLocaleString()}</td>
                 <td className="p-3"><div className="font-mono text-xs">{p.orderId || p.subscriptionId || '—'}</div></td>
                 <td className="p-3">{p.studentEmail || '—'}</td>
-                <td className="p-3">₹{((p.amount||0)/100).toFixed(2)}</td>
+                <td className="p-3">{formatINRFromPaise(p.amount||0)}</td>
                 <td className="p-3">{p.method || '—'}</td>
                 <td className="p-3">
                   <span className={
@@ -133,7 +134,7 @@ export default function VEPayments(){
             <div className="grid grid-cols-2 gap-3">
               <div><div className="text-xs text-slate-500">ID</div><div className="font-mono text-sm">{target.id}</div></div>
               <div><div className="text-xs text-slate-500">Status</div><div className="text-sm">{target.status}</div></div>
-              <div><div className="text-xs text-slate-500">Amount</div><div className="text-sm">₹{((target.amount||0)/100).toFixed(2)}</div></div>
+              <div><div className="text-xs text-slate-500">Amount</div><div className="text-sm">{formatINRFromPaise(target.amount||0)}</div></div>
               <div><div className="text-xs text-slate-500">Method</div><div className="text-sm">{target.method||'—'}</div></div>
               <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.orderId||target.subscriptionId||'—'}</div></div>
               <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail||'—'}</div></div>

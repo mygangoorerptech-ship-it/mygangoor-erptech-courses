@@ -45,10 +45,16 @@ export const useJoinCatalog = create<CatalogState>((set, get) => ({
 
         // ----- price & discount (match /tracks logic) -----
         // Prefer paise. If backend sent rupees earlier, we’ll convert.
-        const rawPricePaise =
-          Number.isFinite(rc.price) ? Number(rc.price) :
-          Number.isFinite(rc.pricePaise) ? Number(rc.pricePaise) :
-          null;
+        const rawPricePaise = (() => {
+          const p = Number(rc.price);
+          const pp = Number(rc.pricePaise);
+          if (Number.isFinite(pp) && pp > 0) return pp;
+          if (Number.isFinite(p) && p > 0) {
+            // Heuristic: if value is suspiciously small (<10000), treat as rupees and convert
+            return p < 10000 ? Math.round(p * 100) : Math.round(p);
+          }
+          return null;
+        })();
 
         const discountPercent = Number.isFinite(rc.discountPercent) ? Number(rc.discountPercent) : 0;
 

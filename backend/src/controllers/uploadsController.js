@@ -57,3 +57,29 @@ export async function uploadDemoClip(req, res) {
   );
   stream.end(req.file.buffer);
 }
+
+export async function uploadPdf(req, res) {
+  if (!req.file) return res.status(400).json({ ok:false, message:"file required" });
+
+  const folder = process.env.CLOUDINARY_FOLDER || "notes";
+  const mime = (req.file.mimetype || "").toLowerCase();
+  if (!mime.includes("pdf")) return res.status(400).json({ ok:false, message:"only application/pdf allowed" });
+
+    const mode = String(process.env.CLOUDINARY_NOTES_ACCESS || "public").toLowerCase(); 
+  // Delivery/storage type for the asset: 
+  // - "authenticated": requires Cloudinary Auth Token feature + token key 
+  // - "private":       signed path, asset must be uploaded as type "private" 
+  // - "upload":        public 
+  const deliveryType = (mode === "authenticated") ? "authenticated" 
+                     : (mode === "private")       ? "private" 
+                                                   : "upload";
+
+  const stream = cloudinary.uploader.upload_stream(
+    { folder, resource_type: "raw", format: "pdf", type: deliveryType },
+    (err, result) => {
+      if (err) return res.status(500).json({ ok:false, message: err.message });
+      return res.json({ ok: true, url: result.secure_url, publicId: result.public_id });
+    }
+  );
+  stream.end(req.file.buffer);
+}

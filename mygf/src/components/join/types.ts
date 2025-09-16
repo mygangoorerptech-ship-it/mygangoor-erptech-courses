@@ -2,8 +2,12 @@
 export type CourseOption = {
   id: string;
   title: string;
-  duration: string;
-  price: number;
+  duration: string | null;
+  /** Authoritative price in paise (integer) */
+  pricePaise: number;
+  /** Optional list prices in paise */
+  mrpPaise?: number | null;
+  salePaise?: number | null;
 };
 
 export type Step = 1 | 2 | 3 | 4;

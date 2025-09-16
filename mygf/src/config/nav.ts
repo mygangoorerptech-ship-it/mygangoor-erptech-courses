@@ -66,6 +66,7 @@ export const MENUS: RoleMenuMap = {
       heading: "Learning",
       items: [
         { label: "Courses",      to: `${AD}/courses`,     icon: BookOpen },
+        { label: "Add Notes", to: `${AD}/notes`, icon: FileText },
         // { label: "Curriculum",   to: `${AD}/curriculum`,  icon: FileText },
         // { label: "Assessments",  to: `${AD}/assessments`, icon: FileText },
         // { label: "Assignments",  to: `${AD}/assignments`, icon: FileText },
@@ -104,6 +105,7 @@ export const MENUS: RoleMenuMap = {
     { heading: "Overview", items: [ { label: "Dashboard", to: `${VE}/overview`, icon: LayoutDashboard, exact: true } ] },
     { heading: "Courses", items: [ 
       { label: "Courses", to: `${VE}/courses`, icon: BookOpen },
+      { label: "Add Notes", to: `${VE}/notes`, icon: FileText },
       { label: "Reports", to: `${VE}/reports`,      icon: BarChart },
     ] },
     

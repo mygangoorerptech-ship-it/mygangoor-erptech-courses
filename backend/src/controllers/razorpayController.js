@@ -122,10 +122,15 @@ export async function createOrder(req, res) {
     const course = await Course.findOne({ _id: courseId, $or: [{ orgId }, { orgId: null }] }).lean();
     if (!course) return res.status(404).json({ ok: false, message: "course not found" });
 
-       // If Course.price is in rupees, convert to paise for Razorpay: 
-const basePaise = Math.max(0, Math.round(Number(course.price)));
-const discountPaise = calcDiscountPaise(discountKind, couponCode, basePaise);
-const totalPaise = Math.max(0, basePaise - discountPaise);
+       // Course.price is stored in paise (integer). Keep as-is for Razorpay: 
+// Pricing (paise): MRP → course.discountPercent → coupon/ref 
+const mrpPaise = Math.max(0, Math.round(Number(course.price) || 0)); 
+const courseDiscountPercent = Number.isFinite(course.discountPercent) ? Number(course.discountPercent) : 0; 
+const salePaise = courseDiscountPercent > 0 
+  ? Math.max(0, Math.round(mrpPaise * (1 - courseDiscountPercent/100))) 
+  : mrpPaise; 
+const promoPaise = calcDiscountPaise(discountKind, couponCode, salePaise); 
+const totalPaise = Math.max(0, salePaise - promoPaise);
 
     let payablePaise = totalPaise;
     let partial = false;

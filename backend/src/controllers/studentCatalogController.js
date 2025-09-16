@@ -37,8 +37,8 @@ export async function listCourses(req, res) {
     }
 
     // 🔑 Audience rule:
-    // - If orgId present  -> ONLY org courses (published), allow any visibility
-    // - If no orgId       -> ONLY global public courses (published)
+    // - orgId present  -> org courses (published)
+    // - no orgId       -> global public courses (published)
     const query = orgId
       ? { orgId, status: "published" }
       : { orgId: null, visibility: "public", status: "published" };
@@ -46,65 +46,67 @@ export async function listCourses(req, res) {
     const docs = await Course.find(query)
       .select(
         [
-          "_id",
-          "title",
-          "slug",
-          "description",
-          "category",
-          "tags",
-          "coverUrl",
-          "bundleCoverUrl",
-          "demoVideoUrl",
-          "price",
-          "discountPercent",
-          "ratingAvg",
-          "ratingCount",
-          "level",
-          "orgId",
-          "ownerId",
-          "visibility",
-          "status",
-          "duration",
-          "durationHours",
-          "createdAt",
-          "updatedAt",
+          "_id","title","slug","description","category","tags",
+          "coverUrl","bundleCoverUrl","demoVideoUrl",
+          "price","discountPercent","ratingAvg","ratingCount",
+          "level","orgId","ownerId","visibility","status",
+          "duration","durationHours","createdAt","updatedAt",
         ].join(" ")
       )
       .sort({ createdAt: -1 })
       .lean();
 
-    // Mirror listCatalogCards field names
-    const items = docs.map((c) => ({
-      id: String(c._id),
-      title: c.title || "",
-      slug: c.slug || null,
-      description: c.description || "",
-      category: c.category || null,
-      tags: Array.isArray(c.tags) ? c.tags.filter(Boolean) : [],
-      cover: c.bundleCoverUrl || c.coverUrl || null,
-      previewUrl: c.demoVideoUrl || null,
+    const items = docs.map((c) => {
+      // ---- pricing in paise (authoritative) ----
+      const pricePaiseRaw = Number.isFinite(c.price) ? Number(c.price) : 0;
+      const discountPercent = Number.isFinite(c.discountPercent) ? Number(c.discountPercent) : 0;
 
-      // price is in paise; frontend computes sale/MRP with discountPercent
-      price: Number.isFinite(c.price) ? Number(c.price) : null,
-      discountPercent: Number.isFinite(c.discountPercent) ? Number(c.discountPercent) : 0,
-      discount: Number.isFinite(c.discountPercent) ? Number(c.discountPercent) : 0, // legacy alias
+      const mrpPaise =
+        pricePaiseRaw > 0 ? pricePaiseRaw : null;
 
-      rating: Number.isFinite(c.ratingAvg) ? Number(c.ratingAvg) : 0,
-      ratingCount: Number.isFinite(c.ratingCount) ? Number(c.ratingCount) : 0,
+      const salePaise =
+        mrpPaise != null && discountPercent > 0
+          ? Math.max(0, Math.round(mrpPaise * (1 - discountPercent / 100)))
+          : mrpPaise;
 
-      level: c.level || "all",
-      visibility: c.visibility || "unlisted",
-      status: c.status || "draft",
+      return {
+        id: String(c._id),
+        title: c.title || "",
+        slug: c.slug || null,
+        description: c.description || "",
+        category: c.category || null,
+        tags: Array.isArray(c.tags) ? c.tags.filter(Boolean) : [],
+        cover: c.bundleCoverUrl || c.coverUrl || null,
+        previewUrl: c.demoVideoUrl || null,
 
-      orgId: c.orgId ? String(c.orgId) : null,
-      ownerId: c.ownerId ? String(c.ownerId) : null,
+        // back-compat (paise)
+        price: mrpPaise,
+        // authoritative (paise)
+        pricePaise: mrpPaise,
+        // handy extras (paise)
+        mrpPaise,
+        salePaise,
 
-      duration: c.duration || null,
-      durationHours: Number.isFinite(c.durationHours) ? Number(c.durationHours) : undefined,
+        discountPercent,
+        discount: discountPercent, // legacy alias
 
-      createdAt: c.createdAt || null,
-      updatedAt: c.updatedAt || null,
-    }));
+        rating: Number.isFinite(c.ratingAvg) ? Number(c.ratingAvg) : 0,
+        ratingCount: Number.isFinite(c.ratingCount) ? Number(c.ratingCount) : 0,
+
+        level: c.level || "all",
+        visibility: c.visibility || "unlisted",
+        status: c.status || "draft",
+
+        orgId: c.orgId ? String(c.orgId) : null,
+        ownerId: c.ownerId ? String(c.ownerId) : null,
+
+        duration: c.duration || null,
+        durationHours: Number.isFinite(c.durationHours) ? Number(c.durationHours) : undefined,
+
+        createdAt: c.createdAt || null,
+        updatedAt: c.updatedAt || null,
+      };
+    });
 
     return res.json(items);
   } catch (e) {
@@ -191,6 +193,7 @@ export async function listCatalogCards(req, res) {
         cover: c.bundleCoverUrl || c.coverUrl || null,
         previewUrl: c.demoVideoUrl || null,
         price: Number.isFinite(c.price) ? Number(c.price) : null,
+        pricePaise: Number.isFinite(c.price) ? Number(c.price) : null,
         discountPercent: Number.isFinite(c.discountPercent) ? Number(c.discountPercent) : 0,
         // Optional alias, helps if any UI still reads `discount`
         discount: Number.isFinite(c.discountPercent) ? Number(c.discountPercent) : 0,

@@ -5,9 +5,15 @@ const PaymentSchema = new mongoose.Schema({
   type: { type: String, enum: ["online", "offline"], default: "offline" },
   method: { type: String, enum: ["razorpay","stripe","upi","cash","other"], default: "upi" },
 
- // lifecycle: pending (order created) → captured/verified → refunded/rejected
- // offline variants: submitted (awaiting verification), claimed (student matched receipt), verified
- status: { type: String, enum: ["pending","submitted","claimed","verified","captured","failed","refunded","rejected"], default: "submitted" },
+    // lifecycle:
+    // online: pending (order created) → captured → refunded/failed
+    // offline variants: submitted (awaiting verification) / claimed (student self-claim) → captured (verified by admin) → refunded/rejected
+    status: {
+      type: String,
+      enum: ["pending", "submitted", "claimed", "captured", "failed", "refunded", "rejected", "verified"],
+      default: "submitted",
+      index: true,
+    },
 
   amount: { type: Number, required: true }, // paise
   currency: { type: String, default: "INR" },

@@ -10,6 +10,8 @@ import ReviewsSection from "./ReviewsSection";
 import SuccessAnimation from "./SuccessAnimation";
 import CertificateModal from "./CertificateModal";
 import type { CourseData, Review as ReviewType } from "./types";
+import FlipBookViewer from "../notes/FlipBookViewer";
+import { listStudentNotes } from "../../api/notes";
 import Footer from "../common/Footer";
 import { api } from "../../config/api";
 
@@ -18,6 +20,13 @@ type LocationState = { course?: any } | undefined;
 export default function CourseDetail() {
   const { courseId } = useParams();
   const location = useLocation() as unknown as { state?: LocationState };
+
+  const [notesOpen, setNotesOpen] = useState(false);
+  const { data: studentNotes } = useQuery({ 
+    queryKey: ["student:notes", courseId], 
+    enabled: !!courseId, 
+    queryFn: async () => (courseId ? await listStudentNotes(courseId) : []), 
+  });
 
   // fetch one course (with chapters)
   const { data: detail } = useQuery({
@@ -223,9 +232,8 @@ export default function CourseDetail() {
     const url = (progress as any)?.certificateUrl;
     const pid = (progress as any)?._id; 
     if (!url || typeof url !== "string" || !url.trim()) return; 
-    const pid2 = (progress as any)?._id;
-    if (pid2) window.open(`/api/certificates/download/${pid2}`, "_blank", "noopener,noreferrer");
-    else window.open(url, "_blank", "noopener,noreferrer"); 
+    if (pid) window.open(`/api/certificates/download/${pid}`, "_blank", "noopener,noreferrer"); 
+    else window.open(url, "_blank", "noopener,noreferrer");
   };
 
   // fallback when no chapters → single card with “Complete this course”
@@ -465,6 +473,16 @@ export default function CourseDetail() {
                   )}
                 </button>
               )}
+                        {Array.isArray(studentNotes) && studentNotes.length > 0 && (
+  <button
+    onClick={() => setNotesOpen(true)}
+    className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow hover:bg-indigo-700"
+    title="Open course notes"
+  >
+    <i className="fas fa-book-open" />
+    View Notes
+  </button>
+)}
             </div>
           </div>
 
@@ -478,6 +496,19 @@ export default function CourseDetail() {
             studentName="John Doe"
           />
         </div>
+
+        <FlipBookViewer
+  open={notesOpen}
+  onClose={() => setNotesOpen(false)}
+  notes={(studentNotes || []).map(n => ({
+    id: n.id,
+    title: n.title,
+    kind: n.kind,
+    html: n.html,
+    pdfUrl: n.pdfUrl,
+  }))}
+/>
+
       </div>
 
       <Footer brandName="ECA Academy" tagline="Learn smarter. Build faster." />

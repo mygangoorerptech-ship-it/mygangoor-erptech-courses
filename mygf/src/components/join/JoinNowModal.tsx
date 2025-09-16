@@ -16,6 +16,7 @@ import { api } from "../../api/client"; // <-- added back
 //zustand catalog store
 import { useJoinCatalog, type CatalogState } from "./store/useJoinCatalog";
 import { useShallow } from "zustand/react/shallow";
+import { claimReceipt } from "../../api/payments";
 
 // lazy imports to keep bundle small
 const loadJsPDF = () => import("jspdf");
@@ -63,6 +64,8 @@ export default function JoinNowModal({
   const [partAmount, setPartAmount] = React.useState<number | "">("");
   const [isPaying, setIsPaying] = React.useState(false);
   const [paid, setPaid] = React.useState(false);
+   const [receiptNo, setReceiptNo] = React.useState<string>(""); 
+ const [referenceId, setReferenceId] = React.useState<string>("");
 
   // real receipt/status
   const [orderId, setOrderId] = React.useState<string | null>(null);
@@ -155,8 +158,10 @@ const pendingMap = React.useMemo(() => {
 }, [courseStates]);
 
   // price math
-const basePaise = selectedCourse?.price ?? 0;
-const base = basePaise / 100;
+const basePaise = (selectedCourse as any)?.pricePaise ?? 0; 
+const mrpPaise  = (selectedCourse as any)?.mrpPaise ?? basePaise; 
+const salePaise = (selectedCourse as any)?.salePaise ?? mrpPaise; 
+const base      = (salePaise ?? basePaise) / 100; // UI total uses sale price
 const discount = (() => {
   if (!selectedCourse) return 0;
   if (discountKind === "coupon" && couponCode.trim().toLowerCase() === "welcome10")
@@ -229,6 +234,67 @@ const total = Math.max(0, base - discount);
       alert("Could not start payment. Please try again.");
     }
   }
+
+    // ---- offline (cash) flow
+async function handleCashClaim() {
+  if (!selectedCourse || !user?.orgId) return;
+  if (Object.keys(errors).length) return;
+
+  setIsPaying(true);
+  try {
+    const rupees = mode === "part" ? Number(partAmount) || 0 : total;
+    const paise  = Math.round(rupees * 100);
+
+    const notePayload = {
+      method: "cash",
+      discountKind,
+      couponCode,
+      mode,
+      partAmount: mode === "part" ? Number(partAmount) || 0 : null,
+      joinForm: {
+        fullName, age, gender, birth, address, mobile, email, photoUrl
+      },
+      courseId: selectedCourse.id,
+      orgId: user.orgId,
+    };
+
+ await claimReceipt({
+   orgId: String(user.orgId),
+   courseId: selectedCourse.id,
+   amount: paise,
+   receiptNo: receiptNo?.trim() || undefined,
+   referenceId: referenceId?.trim() || undefined,
+   notes: JSON.stringify(notePayload),
+ });
+
+    // ... your existing success/receipt UI ...
+    setReceipt({
+      orderId: `CASH-${Date.now()}`,
+      paymentId: null,
+      status: "submitted",
+      verified: false,
+      method: "cash",
+      currency: "INR",
+      amount: paise,
+      dateISO: new Date().toISOString(),
+      student: { name: fullName },
+      course:  { title: selectedCourse.title },
+      enrollment: { present: false, status: "pending" },
+    });
+    setPaid(true);
+    setStep(4);
+
+    // clear the optional fields
+    setReceiptNo("");
+    setReferenceId("");
+  } catch (e) {
+    console.error("[cash claim] failed", e);
+    alert("Could not submit your cash payment request. Please try again.");
+  } finally {
+    setIsPaying(false);
+  }
+}
+
 
   // validators
   const errors: Record<string, string> = {};
@@ -545,6 +611,10 @@ const total = Math.max(0, base - discount);
               isPaying={isPaying}
               onPay={method === "online" ? handleOnlinePay : undefined}
               errors={errors}
+                receiptNo={receiptNo}
+  setReceiptNo={setReceiptNo}
+  referenceId={referenceId}
+  setReferenceId={setReferenceId}
             />
           )}
 
@@ -604,25 +674,29 @@ const total = Math.max(0, base - discount);
                 </button>
               )}
               {step === 3 && (
-                <button
-                  onClick={method === "online" ? handleOnlinePay : undefined}
-                  disabled={isPaying || Object.keys(errors).length > 0}
-                  className={classNames(
-                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white",
-                    isPaying ? "bg-indigo-400" : "bg-indigo-600 hover:bg-indigo-700",
-                    "disabled:opacity-60 disabled:cursor-not-allowed"
-                  )}
-                >
-                  {isPaying ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> Processing…
-                    </>
-                  ) : (
-                    <>
-                      Pay now <ChevronRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
+<button
+  onClick={method === "online" ? handleOnlinePay : handleCashClaim}
+  disabled={isPaying || Object.keys(errors).length > 0}
+  className={classNames(
+    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white",
+    isPaying ? "bg-indigo-400" : "bg-indigo-600 hover:bg-indigo-700",
+    "disabled:opacity-60 disabled:cursor-not-allowed"
+  )}
+>
+  {isPaying ? (
+    <>
+      <Loader2 className="w-4 h-4 animate-spin" /> Processing…
+    </>
+  ) : method === "online" ? (
+    <>
+      Pay now <ChevronRight className="w-4 h-4" />
+    </>
+  ) : (
+    <>
+      Submit request <ChevronRight className="w-4 h-4" />
+    </>
+  )}
+</button>
               )}
             </div>
           </div>

@@ -17,6 +17,7 @@ function toCard(c) {
     title: o.title || "",
     courseType,               // "free" | "paid"
     price: Number(o.price) || 0,              // paise
+    pricePaise: Number(o.price) || 0,
     coverUrl: o.bundleCoverUrl || o.coverUrl || o.image || null,
     ratingAvg: Number(o.ratingAvg) || 0,
     ratingCount: Number(o.ratingCount) || 0,

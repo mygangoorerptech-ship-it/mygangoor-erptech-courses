@@ -7,6 +7,7 @@
     "start": "node ./src/server.js"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^138.0.2",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
@@ -22,7 +23,9 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.5",
     "puppeteer": "^21.3.8",
+    "puppeteer-core": "^24.21.0",
     "qrcode": "^1.5.4",
+    "sanitize-html": "^2.17.0",
     "speakeasy": "^2.0.0",
     "xlsx": "^0.18.5"
   },

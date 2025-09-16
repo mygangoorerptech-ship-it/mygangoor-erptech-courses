@@ -35,6 +35,13 @@ api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
       (config.headers as any)['X-CSRF-Token'] = token;
     }
   }
+
+    // ⬇️ IMPORTANT: if sending FormData, let the browser set multipart boundary
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    const h = (config.headers ||= {});
+    delete (h as any)['Content-Type'];
+    delete (h as any)['content-type'];
+  }
   return config;
 });
 

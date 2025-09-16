@@ -73,7 +73,7 @@ export default function Orders(){
         customer:o.userName,
         email:o.userEmail,
         items:o.items.map(i=>i.name).join('; '),
-        total:(o.total/100).toFixed(2),
+        total: (o.total||0), // paise
         method:o.paymentMethod,
         status:o.status,
         date:new Date(o.createdAt).toISOString()
