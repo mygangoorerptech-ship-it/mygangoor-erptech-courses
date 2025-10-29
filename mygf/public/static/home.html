@@ -41,6 +41,37 @@
 <link rel="stylesheet" href="/static/assets/css/responsive.css">
 <link rel="stylesheet" id="layoutstyle" href="/static/assets/color/theme-default.css">
 
+<!-- API Base URL Configuration -->
+<script>
+// Determine API base URL based on environment
+(function() {
+    // Try to get from meta tag (can be injected during build)
+    const apiMeta = document.querySelector('meta[name="api-base-url"]');
+    const apiBaseFromMeta = apiMeta ? apiMeta.getAttribute('content') : null;
+    
+    // If meta tag exists, use it
+    if (apiBaseFromMeta) {
+        window.API_BASE_URL = apiBaseFromMeta;
+    } else {
+        // Auto-detect: if not localhost, assume production and use full API URL
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname.includes('localhost');
+        
+        if (isLocalhost) {
+            // Development: use relative path (Vite proxy handles it)
+            window.API_BASE_URL = '/api';
+        } else {
+            // Production: use Render backend URL
+            // This can be overridden by setting meta tag during build
+            window.API_BASE_URL = 'https://eca-uvco.onrender.com/api';
+        }
+    }
+    
+    console.log('[Home Page] API Base URL:', window.API_BASE_URL);
+})();
+</script>
+
 <style>
 /* Marquee Banner Styles */
 .marquee-banner {
@@ -2994,7 +3025,8 @@ async function handleJoinNow(event) {
     
     try {
         // Check authentication by calling the API
-        const response = await fetch('/api/auth/check', {
+        const apiBase = window.API_BASE_URL || '/api';
+        const response = await fetch(`${apiBase}/auth/check`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -3022,7 +3054,8 @@ async function handleJoinNow(event) {
 // Check authentication status and show/hide dashboard icon
 async function checkAuthAndShowDashboard() {
     try {
-        const response = await fetch('/api/auth/check', {
+        const apiBase = window.API_BASE_URL || '/api';
+        const response = await fetch(`${apiBase}/auth/check`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -3185,7 +3218,8 @@ function renderCourses(courses) {
 // Function to fetch courses from API
 async function fetchCourses() {
     try {
-        const response = await fetch('/api/public/catalog/by-program-type', {
+        const apiBase = window.API_BASE_URL || '/api';
+        const response = await fetch(`${apiBase}/public/catalog/by-program-type`, {
             method: 'GET',
             credentials: 'include',
             headers: {

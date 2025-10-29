@@ -28,6 +28,22 @@ export const mailer = nodemailer.createTransport({
   auth: process.env.SMTP_USER
     ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
     : undefined,
+  // Connection timeout settings for production environments (like Render)
+  connectionTimeout: 60000, // 60 seconds
+  greetingTimeout: 30000,   // 30 seconds
+  socketTimeout: 60000,     // 60 seconds
+  // Retry on connection failure
+  pool: true,
+  maxConnections: 1,
+  maxMessages: 3,
+  // Better error handling
+  logger: process.env.NODE_ENV === 'production' ? false : undefined,
+  debug: process.env.NODE_ENV === 'production' ? false : undefined,
+  // TLS options for better compatibility
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certificates (useful for some SMTP servers)
+    minVersion: 'TLSv1.2',
+  },
 });
 
 /** Shared headers for better deliverability and threading */
@@ -225,11 +241,29 @@ export async function verifyMailer() {
       return false;
     }
     
-    await mailer.verify();
+    // Use Promise.race to timeout verification after 10 seconds
+    const verifyPromise = mailer.verify();
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("SMTP verification timeout after 10 seconds")), 10000)
+    );
+    
+    await Promise.race([verifyPromise, timeoutPromise]);
     console.log("[smtp] transporter is ready");
     return true;
   } catch (e) {
-    console.error("[smtp] verify failed:", e?.message || e);
+    const errorMsg = e?.message || String(e);
+    console.error("[smtp] verify failed:", errorMsg);
+    
+    // Provide helpful error messages
+    if (errorMsg.includes("timeout") || errorMsg.includes("ETIMEDOUT") || errorMsg.includes("Connection timeout")) {
+      console.error("[smtp] Connection timeout - possible causes:");
+      console.error("[smtp]   1. Render may be blocking outbound SMTP connections (check Render docs)");
+      console.error("[smtp]   2. SMTP server firewall may be blocking Render's IP addresses");
+      console.error("[smtp]   3. SMTP server may require whitelisting Render's IP range");
+      console.error("[smtp]   4. Consider using a transactional email service (SendGrid, Resend, etc.)");
+      console.error("[smtp]   Alternative: Use SMTP relay service or API-based email service");
+    }
+    
     return false;
   }
 }
