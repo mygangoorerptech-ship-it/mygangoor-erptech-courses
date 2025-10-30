@@ -85,6 +85,8 @@ export default function App() {
       
       {/* Home is served as static HTML - commented out React home route */}
       {/* <Route path="/home" element={<HomeLanding />} /> */}
+      {/* Serve static landing inside iframe to keep URL as /home */}
+      <Route path="/home" element={<StaticHome />} />
       
       {/* ⬇️ Protected: orguser only. Other roles untouched. */}
 <Route path="/tracks" element={<TracksAndCollectionsSection />} />
@@ -210,6 +212,18 @@ function TracksGateLoader() {
   return (
     <div className="min-h-[40vh] grid place-items-center text-slate-500">
       Loading…
+    </div>
+  );
+}
+
+function StaticHome() {
+  return (
+    <div style={{width: "100%", height: "100vh", overflow: "hidden"}}>
+      <iframe
+        src="/static/home.html"
+        title="Home"
+        style={{border: "none", width: "100%", height: "100%"}}
+      />
     </div>
   );
 }
