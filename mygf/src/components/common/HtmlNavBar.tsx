@@ -299,39 +299,6 @@ export default function HtmlNavBar() {
                 <i className="ion-person"></i>
               </a>
             </li>
-            <li className="dropdown cart_wrap">
-              <a className="nav-link" href="#" data-toggle="dropdown">
-                <i className="ion-android-cart"></i>
-                <span className="cart_count">2</span>
-              </a>
-              <div className="cart_box dropdown-menu dropdown-menu-right">
-                <ul className="cart_list">
-                  <li>
-                    <a href="#" className="item_remove"><i className="ion-close"></i></a>
-                    <a href="#">
-                      <img src="/static/assets/images/cart_thamb1.jpg" alt="cart_thumb1" />
-                      yoga mat For Exercises
-                    </a>
-                    <span className="cart_quantity"> 1 x <span className="cart_amount"> <span className="price_symbole">$</span>23.00</span></span>
-                  </li>
-                  <li>
-                    <a href="#" className="item_remove"><i className="ion-close"></i></a>
-                    <a href="#">
-                      <img src="/static/assets/images/cart_thamb2.jpg" alt="cart_thumb2" />
-                      Running Shoes
-                    </a>
-                    <span className="cart_quantity"> 1 x <span className="cart_amount"> <span className="price_symbole">$</span>45.00</span></span>
-                  </li>
-                </ul>
-                <div className="cart_footer">
-                  <p className="cart_total">Total: <span className="cart_amount"> <span className="price_symbole">$</span>68.00</span></p>
-                  <p className="cart_buttons">
-                    <a href="cart.html" className="btn btn-default rounded-0 view-cart">View Cart</a>
-                    <a href="checkout.html" className="btn btn-dark rounded-0 checkout">Checkout</a>
-                  </p>
-                </div>
-              </div>
-            </li>
           </ul>
         </nav>
       </div>
