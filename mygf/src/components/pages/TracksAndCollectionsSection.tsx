@@ -1,6 +1,5 @@
 // mygf/src/components/pages/TracksAndCollectionsSection.tsx
 import { useMemo, useState, useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
 import type { Availability, Chip, Course, Level } from "./tracks/types";
 import HtmlNavBar from "../common/HtmlNavBar";
 import useDebouncedValue from "./tracks/useDebouncedValue";
@@ -15,6 +14,7 @@ import { useCourses } from "./tracks/useCourses";
 import useAutoLoadOnIntersect from "./tracks/useAutoLoadOnIntersect";
 import TopProgressBar from "../common/TopProgressBar";
 import Footer from "../common/Footer";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/store";
 import type { User } from "../../auth/store";
 import { useAuthHydration } from "../../hooks/useAuthHydration";
@@ -32,9 +32,8 @@ export default function TracksAndCollectionsSection() {
   const { user, status, hydrate } = useAuth();
   useEffect(() => { if (status === "idle") hydrate(); }, [status, hydrate]);
 
-  const loc = useLocation();
-  const role = String((user as any)?.role || "").toLowerCase();
-  const ALLOW = status === "ready" && !!user && role === "orguser";
+  // public view doesn't depend on router location for gating
+  // Public page: no auth/role gate
 
   // 1) Not hydrated yet -> skeleton (no heavy hooks here)
   if (status !== "ready") {
@@ -57,22 +56,13 @@ export default function TracksAndCollectionsSection() {
     );
   }
 
-  // 2) Hydrated but unauthenticated -> go to login
-  if (!user) {
-    return <Navigate to="/login" replace state={{ next: loc.pathname }} />;
-  }
-
-  // 3) Authenticated but role not allowed -> dashboard
-  if (!ALLOW) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // 4) Auth ok & allowed -> render the heavy child (all hooks inside)
-  return <TracksBody user={user} />;
+  // 2) Render page for everyone once hydrated (user may be undefined)
+  return <TracksBody user={user as User | undefined} />;
 }
 
 /** Child component: contains all hook-heavy logic/UI. Always renders fully when mounted. */
-function TracksBody({ user }: { user: User }) {
+function TracksBody({ user }: { user?: User }) {
+  const navigate = useNavigate();
   // Local UI state
   const [query, setQuery] = useState("");
   const [activeChip, setActiveChip] = useState<Chip>("All");
@@ -253,7 +243,7 @@ function TracksBody({ user }: { user: User }) {
         <HtmlNavBar />
       </div>
 
-      {/* Hero header: mimic classes.html black header */}
+      {/* Hero header: mimic /tracks black header */}
       <section className="relative w-full overflow-hidden !p-0 !m-0" style={{ padding: 0, margin: 0 }}>
         <div className="bg-black text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
@@ -302,7 +292,7 @@ function TracksBody({ user }: { user: User }) {
                   key={course.id}
                   course={course}
                   isWishlisted={!!isWishlisted?.(course.id)}
-                  onToggleWishlist={(c) => { if (!user) return; void toggle?.(c.id); }}
+                  onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
                   // NEW: pass premium + enroll handler (opens JoinNowModal)
                   isPremium={isPremium(course.id)}
                   onRequireEnroll={(c) => { setJoinCourseId(String(c.id)); setShowJoin(true); }}
@@ -350,7 +340,7 @@ function TracksBody({ user }: { user: User }) {
               ) : (
                 <SidebarSmartFilter
                   wishlist={sidebarWishlist}
-                  onToggleWishlist={(c) => { if (!user) return; void toggle?.(c.id); }}
+                  onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
                   availability={availability}
                   setAvailability={setAvailability}
                 />

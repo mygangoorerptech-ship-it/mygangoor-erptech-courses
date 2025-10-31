@@ -514,7 +514,11 @@
         padding-top: 0 !important;
         padding-bottom: 0 !important;
     }
-    .banner_slider .carousel-item:first-child .banner_img,
+    /* Add margin-top to first slider image on mobile to prevent navbar overflow */
+    .banner_slider .carousel-item:first-child .banner_img {
+        margin-top: 70px !important;
+        margin-bottom: 0 !important;
+    }
     .banner_slider .carousel-item:first-child .banner_content {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
@@ -582,6 +586,13 @@
     }
 }
 
+/* Desktop/Tablet: Increase banner title font size slightly */
+@media (min-width: 768px) {
+    .banner_slider .carousel-item:first-child .banner_content h2 {
+        font-size: 44px !important;
+    }
+}
+
 /* Full-screen carousel: width 100%, height 100vh */
 .banner_slider,
 .banner_slider .carousel,
@@ -632,6 +643,152 @@
 	margin-top: 0 !important;
 	padding-top: 10px !important;
 }
+
+/* Navbar logo sizing (medium) */
+.header_wrap .navbar-brand img {
+    height: 48px;
+    width: auto;
+}
+@media (max-width: 576px) {
+    .header_wrap .navbar-brand img {
+        height: 38px;
+    }
+}
+
+/* Reduce border frame height for about section guruji image */
+.bg_gray .about_img .border_img {
+    max-height: 500px;
+    overflow: hidden;
+}
+
+.bg_gray .about_img .border_img img {
+    max-height: 450px;
+    width: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    .bg_gray .about_img .border_img {
+        max-height: 400px;
+    }
+    
+    .bg_gray .about_img .border_img img {
+        max-height: 360px;
+    }
+}
+
+@media (max-width: 576px) {
+    .bg_gray .about_img .border_img {
+        max-height: 350px;
+    }
+    
+    .bg_gray .about_img .border_img img {
+        max-height: 320px;
+    }
+}
+
+/* Reduce border frame height for carousel 1st slider guruji image - make it square */
+.banner_img .border_img {
+    max-height: 500px;
+    overflow: hidden;
+}
+
+/* Hide border visibility for first slider only - keep borders for other sliders */
+.banner_slider .carousel-item:first-child .banner_img .border_img::before,
+.banner_slider .carousel-item:first-child .banner_img .border_img::after {
+    display: none !important;
+}
+
+.banner_img .border_img img {
+    max-height: 450px;
+    width: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    .banner_img .border_img {
+        max-height: 400px;
+    }
+    
+    .banner_img .border_img img {
+        max-height: 360px;
+    }
+}
+
+@media (max-width: 576px) {
+    .banner_img .border_img {
+        max-height: 350px;
+    }
+    
+    .banner_img .border_img img {
+        max-height: 320px;
+    }
+}
+
+/* Fixed size for carousel images in slides 2-8 (not the 1st welcome slider) */
+.banner_img2 .border_img,
+.banner_img3 .border_img {
+    max-height: 450px;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.banner_img2 .border_img img,
+.banner_img3 .border_img img {
+    max-height: 450px;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* Also target images without border_img wrapper in slides 2-8 */
+.banner_img2 img:not(.border_img),
+.banner_img3 img:not(.border_img) {
+    max-height: 450px;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+@media (max-width: 768px) {
+    .banner_img2 .border_img,
+    .banner_img3 .border_img {
+        max-height: 380px;
+    }
+    
+    .banner_img2 .border_img img,
+    .banner_img3 .border_img img {
+        max-height: 380px;
+    }
+    
+    .banner_img2 img:not(.border_img),
+    .banner_img3 img:not(.border_img) {
+        max-height: 380px;
+    }
+}
+
+@media (max-width: 576px) {
+    .banner_img2 .border_img,
+    .banner_img3 .border_img {
+        max-height: 220px;
+    }
+    
+    .banner_img2 .border_img img,
+    .banner_img3 .border_img img {
+        max-height: 220px;
+    }
+    
+    .banner_img2 img:not(.border_img),
+    .banner_img3 img:not(.border_img) {
+        max-height: 220px;
+    }
+}
 </style>
 
 </head>
@@ -666,89 +823,21 @@
                     </li>
                     <li class="dropdown">
                         <a class="dropdown-toggle nav-link" href="#" data-toggle="dropdown">Pages</a>
+                        
+                        
                         <div class="dropdown-menu">
                             <ul> 
                             	<li><a class="dropdown-item nav-link nav_item" href="/static/about.html">About Us</a></li>
-                                <li><a class="dropdown-item nav-link nav_item dropdown-toggler" href="#">Team</a>
-                                	<div class="dropdown-menu">
-                                        <ul> 
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/team.html">Team</a></li>
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/team-single.html">Team Single</a></li>
-                                        </ul>
-                                    </div>
-                                </li>
-                                <li><a class="dropdown-item nav-link nav_item dropdown-toggler" href="#">Classes</a>
-                                	<div class="dropdown-menu">
-                                        <ul> 
-                                            <li><a class="dropdown-item nav-link nav_item" href="/tracks" onclick="event.preventDefault(); window.location.href = '/tracks';">All Classes</a></li>
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/classes-details.html">Classes Details</a></li>
-                                        </ul>
-                                    </div>
-                                </li>
-                                <li><a class="dropdown-item nav-link nav_item dropdown-toggler" href="#">Events</a>
-                                    <div class="dropdown-menu">
-                                        <ul> 
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/events.html">All Events</a></li> 
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/events-details.html">Events Details</a></li> 
-                                        </ul>
-                                    </div>
-                                </li>
-                                <li><a class="dropdown-item nav-link nav_item dropdown-toggler" href="#">Gallery</a>
-                                	<div class="dropdown-menu">
-                                        <ul> 
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Grid 3 Columns</a></li>
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Grid 4 Columns</a></li>
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-masonry-three-columns.html">Masonry 3 Columns</a></li>
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-masonry-four-columns.html">Masonry 4 Columns</a></li>
-                                            <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-detail.html">Gallery Detail</a></li>
-                                        </ul>
-                                    </div>
-                                </li>  
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/faq.html">FAQ</a></li> 
+                                <li><a class="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/static/events.html">Events</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/static/team.html">Our Sister Concerns</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/static/team.html">Our Global Ambassadors</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Photo/Video Gallery</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Press/Media</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="#">Reviews</a></li>
                                 <li><a class="dropdown-item nav-link nav_item" href="/static/coming-soon.html">Coming Soon</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/404.html">404 Page</a></li>
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="dropdown dropdown-mega-menu">
-                        <a class="dropdown-toggle nav-link" href="#" data-toggle="dropdown">Element</a>
-                        <div class="dropdown-menu">
-                        	<ul class="mega-menu d-lg-flex">
-                            	<li class="mega-menu-col col-lg-3">
-                                    <ul> 
-                                        <li><a class="dropdown-item nav-link nav_item" href="accordions.html"><i class="ti-layout-accordion-separated"></i> Accordions</a></li> 
-                                        <li><a class="dropdown-item nav-link nav_item" href="blockquotes.html"><i class="ti-quote-left"></i> Blockquotes</a></li>
-                                        <li><a class="dropdown-item nav-link nav_item" href="buttons.html"><i class="ti-mouse"></i> Buttons</a></li>
-                                        <li><a class="dropdown-item nav-link nav_item" href="call-to-action.html"><i class="ti-headphone-alt"></i> Call to Action</a></li>
-                                        <li><a class="dropdown-item nav-link nav_item" href="columns.html"><i class="ti-layout-column3-alt"></i> Columns</a></li>
-                                    </ul>
-                                </li>
-                                <li class="mega-menu-col col-lg-3">
-                                    <ul>
-                                    	<li><a class="dropdown-item nav-link nav_item" href="countdown.html"><i class="ti-alarm-clock"></i> Countdown</a></li> 
-                                    	<li><a class="dropdown-item nav-link nav_item" href="counter.html"><i class="ti-timer"></i> Counters</a></li>
-                                        <li><a class="dropdown-item nav-link nav_item" href="form-controls.html"><i class="ti-clipboard"></i> Form Controls</a></li>
-                                        <li><a class="dropdown-item nav-link nav_item" href="heading.html"><i class="ti-text"></i> Heading</a></li>
-                                    	<li><a class="dropdown-item nav-link nav_item" href="highlights.html"><i class="ti-underline"></i> Highligts</a></li> 
-                                    </ul>
-                                </li>
-                                <li class="mega-menu-col col-lg-3">
-                                    <ul>
-                                    	<li><a class="dropdown-item nav-link nav_item" href="icon-boxes.html"><i class="ti-widget"></i> Icon Boxes</a></li> 
-                                    	<li><a class="dropdown-item nav-link nav_item" href="lists.html"><i class="ti-list"></i> Lists</a></li> 
-                                        <li><a class="dropdown-item nav-link nav_item" href="maps.html"><i class="ti-map-alt"></i> Maps</a></li>
-                                    	<li><a class="dropdown-item nav-link nav_item" href="pricing-table.html"><i class="ti-layout-column3"></i> Pricing Table</a></li> 
-                                        <li><a class="dropdown-item nav-link nav_item" href="progress-bars.html"><i class="ti-layout-list-post"></i> Progress Bars</a></li>
-                                    </ul>
-                                </li>
-                                <li class="mega-menu-col col-lg-3">
-                                    <ul>
-                                    	<li><a class="dropdown-item nav-link nav_item" href="subscribe.html"><i class="ti-bookmark"></i> Subscribe</a></li> 
-                                    	<li><a class="dropdown-item nav-link nav_item" href="tab.html"><i class="ti-layout-accordion-separated"></i> Tab</a></li> 
-                                    	<li><a class="dropdown-item nav-link nav_item" href="testimonial.html"><i class="ti-layout-slider-alt"></i> Testimonials</a></li>
-                                        <li><a class="dropdown-item nav-link nav_item" href="tooltips-popovers.html"><i class="ti-comment-alt"></i> Tooltip Popovers</a></li> 
-                                    </ul>
-                                </li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/static/contact.html">Contact Us</a></li>
                             </ul>
                         </div>
                     </li>
@@ -803,17 +892,6 @@
                             </ul>
                         </div>
                     </li>
-                    <li class="dropdown">
-                        <a class="dropdown-toggle nav-link" href="#" data-toggle="dropdown">Shop</a>
-                        <div class="dropdown-menu">
-                            <ul> 
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/shop.html">Shop List</a></li> 
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/product-details.html">Product Detail</a></li> 
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/cart.html">Cart</a></li> 
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/checkout.html">Checkout</a></li> 
-                            </ul>
-                        </div>
-                    </li>
                     <li>
                         <a class="nav-link" href="/static/contact.html">Contact</a>
                     </li>
@@ -835,27 +913,6 @@
                 </li>
                 -->
                 <li id="dashboardNavItem" style="display: none;"><a href="javascript:void(0);" class="nav-link dashboard" onclick="handleDashboardClick(event);" title="Dashboard"><i class="ion-person"></i></a></li>
-                <li class="dropdown cart_wrap">
-                    <a class="nav-link" href="#" data-toggle="dropdown"><i class="ion-android-cart"></i><span class="cart_count">2</span></a>
-                        <div class="cart_box dropdown-menu dropdown-menu-right">
-                            <ul class="cart_list">
-                                <li>
-                                    <a href="#" class="item_remove"><i class="ion-close"></i></a>
-                                    <a href="#"><img src="/static/assets/images/cart_thamb1.jpg" alt="cart_thumb1">yoga mat For Exercises</a>
-                                    <span class="cart_quantity"> 1 x <span class="cart_amount"> <span class="price_symbole">$</span>23.00</span></span>
-                                </li>
-                                <li>
-                                    <a href="#" class="item_remove"><i class="ion-close"></i></a>
-                                    <a href="#"><img src="/static/assets/images/cart_thamb2.jpg" alt="cart_thumb2">Running Shoes</a>
-                                    <span class="cart_quantity"> 1 x <span class="cart_amount"> <span class="price_symbole">$</span>45.00</span></span>
-                                </li>
-                            </ul>
-                        <div class="cart_footer">
-                            <p class="cart_total">Total: <span class="cart_amount"> <span class="price_symbole">$</span>68.00</span></p>
-                            <p class="cart_buttons"><a href="cart.html" class="btn btn-default rounded-0 view-cart">View Cart</a><a href="checkout.html" class="btn btn-dark rounded-0 checkout">Checkout</a></p>
-                        </div>
-                    </div>
-                </li>
             </ul>
         </nav>
     </div>
@@ -872,7 +929,7 @@
                         <div class="row justify-content-end align-items-center">
                         	<div class="col-xl-6 col-md-5">
 								<div class="banner_img text-center" style="position: relative; overflow: visible;">
-                                    <div class="animation" data-animation="fadeInLeft" data-animation-delay="0.5s" style="display: flex; justify-content: flex-start; align-items: center; width: 100%; padding-left: 5%;">
+                                    <div class="animation border_img" data-animation="fadeInLeft" data-animation-delay="0.5s" style="display: flex; justify-content: flex-start; align-items: center; width: 100%; padding-left: 5%;">
                                         <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Guruji.png" alt="image" style="display: block; max-width: 100%; height: auto;"/>
                                     </div>
                                     <div class="circle_bg1">
@@ -889,7 +946,7 @@
                             </div>
                             <div class="col-xl-6 col-md-7">
                                 <div class="banner_content animation" data-animation="zoomIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
-                                    <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 40px; line-height: 1.2;">M.Y. GANGOOR GLOBAL FOUNDATION'S®</h2>
+                                    <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 40px; line-height: 1.2;">M.Y. GANGOOR<br>GLOBAL FOUNDATION'S®</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s" style="font-weight: bold; font-size: 18px; margin: 10px 0;">Multi-Sciences Education & Research centre</p>
                                     <ul class="list_none countries_list animation" data-animation="fadeInUp" data-animation-delay="0.65s" style="display: flex; flex-wrap: wrap; gap: 15px 25px; margin: 20px 0; padding: 15px; border: 1px solid #e0e0e0; border-radius: 4px; background: rgba(255,255,255,0.5);">
                                         <li style="display: flex; align-items: center; font-size: 14px; font-weight: 500;">
@@ -918,7 +975,7 @@
                                         </li>
                                     </ul>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="handleJoinNow(event);">JOIN NOW</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                         		</div>
                             </div>
                         </div>
@@ -944,7 +1001,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img2 text-center">
                                     <div class="animation border_img" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img2.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Reiki.png" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -954,7 +1011,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 36px; line-height: 1.2;">Awaken The Power Within</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Discover the ancient Indian spiritual sciences like Reiki that bridge energy, mind, and nature for complete well-being. Join our global training programs and become a channel of light, healing, and higher consciousness.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                         		</div>
                             </div>
                         </div>
@@ -980,7 +1037,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img3.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Third Eye Activation.png" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -990,7 +1047,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Unlock the Vision Beyond—Activate Your Third EyeAppeal</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Awaken your intuitive wisdom and access higher realms of consciousness with our comprehensive Third Eye Activation training. Join our course globally and transform your perception, clarity, and spiritual insight through ancient techniques guided by M.Y. Gangoor International Foundation.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                        			 </div>
                             </div>
                         </div>
@@ -1021,7 +1078,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img2 text-center">
                                     <div class="animation border_img" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img2.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Hypnosis.jpg" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -1031,7 +1088,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Harness the Power of Your Subconscious Mind Through Hypnosis</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Unlock deep subconscious potential to overcome barriers, change habits, and achieve mental clarity with our expert-led Hypnosis training. Join our global course at M.Y. Gangoor International Foundation and master the transformative art of guided healing and personal empowerment.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                         		</div>
                             </div>
                         </div>
@@ -1057,7 +1114,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img3.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Vastushastra.png" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -1067,7 +1124,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Harmonize Your Space, Elevate Your Life with Vastushastra</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Discover the ancient science of Vastushastra to design and balance your living and working spaces for prosperity, health, and happiness. Join our global training at M.Y. Gangoor International Foundation and unlock the power of spatial energy alignment for holistic well-being.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                        			 </div>
                             </div>
                         </div>
@@ -1098,7 +1155,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img2 text-center">
                                     <div class="animation border_img" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img2.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Yogshatra.jpg" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -1108,7 +1165,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Unite Body, Mind, and Spirit with Yogashastra</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Embark on a transformative journey through the ancient science of Yogashastra to achieve harmony, strength, and spiritual growth. Join M.Y. Gangoor International Foundation's global training and master timeless practices that nurture well-being and elevate consciousness.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                         		</div>
                             </div>
                         </div>
@@ -1134,7 +1191,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img3.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Dowsing.png" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -1144,7 +1201,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Discover Hidden Energies with Dowsing Mastery</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Unlock the ancient art of dowsing to detect and balance unseen energies in your environment and life. Join the global course at M.Y. Gangoor International Foundation and develop intuitive skills that enhance your connection to Earth's subtle energies for healing and harmony.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                        			 </div>
                             </div>
                         </div>
@@ -1185,7 +1242,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Decode the Cosmic Blueprint. Master Astrology, Palmistry & NumerologyAppeal</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Explore the ancient sciences that reveal your destiny through the Stars, your Palms, and Numbers. Join the global training at M.Y. Gangoor International Foundation to gain deep insights into personality, life purpose, and future.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                         		</div>
                             </div>
                         </div>
@@ -1211,7 +1268,7 @@
                             <div class="col-lg-6 col-md-5">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/banner_img3.png" alt="image"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Natropathy.png" alt="image"/>
                                     </div>
                                 </div>
                             </div>
@@ -1221,7 +1278,7 @@
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Heal Naturally, Live Vibrantly with Naturopathy</h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Discover the power of nature and holistic healing to restore balance, boost immunity, and enhance well-being. Join M.Y. Gangoor International Foundation's global naturopathy course and learn time-tested natural therapies for a healthier, harmonious life.</p>
                                     <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
-                                    <a class="btn btn-white rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
+                                    <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
                        			 </div>
                             </div>
                         </div>
@@ -1424,20 +1481,22 @@
 <section class="bg_gray">
 	<div class="container">
     	<div class="row align-items-center">
-        	<div class="col-md-6 animation" data-animation="fadeInUp" data-animation-delay="0.2s">
+        	<div class="col-md-6 order-md-2">
+            	<div class="about_img text-center">
+            		<div class="animation border_img" data-animation="fadeInUp" data-animation-delay="0.2s">
+            			<img data-parallax='{"y": -30, "smoothness": 20}'  src="/static/assets/images/Guruji.png" alt="about_img" />
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 order-md-1 animation" data-animation="fadeInUp" data-animation-delay="0.2s">
             	<div class="heading_s1">
-                	<span class="sub_heading">Welcome to Dhyana</span>
+                	<span class="sub_heading">Welcome to M Y Gangoor Global Foundation's</span>
                 	<h2>Dr. Ramesh Gangoor</h2>
                 	<p style="font-weight: bold; margin-top: 10px; margin-bottom: 20px;">Ph.D (Goldmedalist)</p>
                 </div>
                 <p> Lorem ipsum dolor sit amet, consectetur blandit magna adipiscing elit ncididunt labore et dolore magna aliqua enim. </p>
                 <p>Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old.</p>
                 <a href="/static/about.html" class="btn btn-default rounded-0">Read More</a>
-            </div>
-            <div class="col-md-6">
-            	<div class="about_img animation" data-animation="fadeInUp" data-animation-delay="0.2s">
-            		<img data-parallax='{"y": -30, "smoothness": 20}'  src="/static/assets/images/Guruji.png" alt="about_img" />
-                </div>
             </div>
         </div>
     </div>
@@ -2335,11 +2394,11 @@
                 	<h5 class="widget_title">Quick Links</h5>
                 	<ul class="list_none widget_links links_style2">
                     	<li><a href="#">Join Us</a></li>
-                        <li><a href="#">About Us</a></li>
+                        <li><a href="/static/about.html">About Us</a></li>
                         <li><a href="#">Features</a></li>
                         <li><a href="#">Feedback</a></li>
                         <li><a href="#">Support center</a></li>
-                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="/static/contact.html">Contact Us</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-7 mb-4 mb-md-0">
@@ -2606,7 +2665,7 @@ const programs = {
             
             <div class="program-section">
                 <h4><i class="fas fa-certificate"></i>Certification</h4>
-                <p>Certificate issued by <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation</a>, Belgaum on successful completion and submission of practicum. Certificate names: Certified Reiki Practitioner; Certified Reiki Master-Teacher (for Level 3).</p>
+                <p>Certificate issued by <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M.Y. Gangoor Global (R) Foundation</a>, Belgaum on successful completion and submission of practicum. Certificate names: Certified Reiki Practitioner; Certified Reiki Master-Teacher (for Level 3).</p>
             </div>
             
             <div class="program-section">

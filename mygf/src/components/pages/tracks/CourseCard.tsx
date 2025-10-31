@@ -5,7 +5,7 @@ import type { Course } from "./types";
 import VideoPreviewModal from "./models/VideoPreviewModal";
 // ⬇️ use your paise→INR formatter
 import { formatINRFromPaise } from "../../../admin/utils/currency";
-import ViewDetails from "../tracks/viewDetails";
+// import ViewDetails from "../tracks/viewDetails"; // UNLINKED: Now using plain HTML page
 
 export default function CourseCard({
   course,
@@ -23,7 +23,7 @@ export default function CourseCard({
   onRequireEnroll?: (c: Course) => void;
 }) {
   const [showPreview, setShowPreview] = React.useState(false);
-  const [showDetails, setShowDetails] = React.useState(false);
+  // const [showDetails, setShowDetails] = React.useState(false); // UNLINKED: Now using plain HTML page
   const [imgLoaded, setImgLoaded] = React.useState(false);
   const [imgError, setImgError] = React.useState(false);
   const navigate = useNavigate();
@@ -221,7 +221,8 @@ export default function CourseCard({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setShowDetails(true);
+                // Navigate to plain HTML classes-details page with course ID as param
+                window.location.href = `/static/classes-details.html?id=${course.id}`;
               }}
             >
               View Detail
@@ -242,12 +243,13 @@ export default function CourseCard({
         onClose={() => setShowPreview(false)}
       />
 
-      <ViewDetails
+      {/* UNLINKED: ViewDetails modal - now using plain HTML page */}
+      {/* <ViewDetails
         open={showDetails}
         courseId={(course as any).id || (course as any)._id}
         onClose={() => setShowDetails(false)}
         onRequireEnroll={() => onRequireEnroll?.(course)}
-      />
+      /> */}
     </article>
   );
 }

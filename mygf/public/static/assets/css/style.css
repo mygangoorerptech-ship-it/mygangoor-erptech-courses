@@ -5302,3 +5302,18 @@ blockquote p:last-child {
         background-color: #FFC107;
     }
 }
+
+/*
+------------------------------------
+Global navbar logo sizing (applies to all pages)
+------------------------------------
+*/
+.header_wrap .navbar-brand img {
+    height: 48px;
+    width: auto;
+}
+@media (max-width: 576px) {
+    .header_wrap .navbar-brand img {
+        height: 38px;
+    }
+}

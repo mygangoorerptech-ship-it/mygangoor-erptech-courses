@@ -98,6 +98,10 @@ export default function HtmlNavBar() {
 
   return (
     <>
+    <style>{`
+      .header_wrap .navbar-brand img { height: 48px; width: auto; }
+      @media (max-width: 576px) { .header_wrap .navbar-brand img { height: 38px; } }
+    `}</style>
     <header className="header_wrap fixed-top dark_skin main_menu_uppercase main_menu_weight_600 transparent_header">
       <div className="container">
         <nav className="navbar navbar-expand-lg"> 
@@ -125,7 +129,7 @@ export default function HtmlNavBar() {
                     <li><a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Team</a>
                       <div className="dropdown-menu">
                         <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="/static/team.html">Team</a></li>
+                          <li><a className="dropdown-item nav-link nav_item" href="/static//static/team.html">Team</a></li>
                           <li><a className="dropdown-item nav-link nav_item" href="/static/team-single.html">Team Single</a></li>
                         </ul>
                       </div>
@@ -141,7 +145,7 @@ export default function HtmlNavBar() {
                     <li><a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Events</a>
                       <div className="dropdown-menu">
                         <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="/static/events.html">All Events</a></li> 
+                          <li><a className="dropdown-item nav-link nav_item" href="/static//static//static/events.html">All Events</a></li> 
                           <li><a className="dropdown-item nav-link nav_item" href="/static/events-details.html">Events Details</a></li> 
                         </ul>
                       </div>
@@ -149,8 +153,8 @@ export default function HtmlNavBar() {
                     <li><a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Gallery</a>
                       <div className="dropdown-menu">
                         <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Grid 3 Columns</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Grid 4 Columns</a></li>
+                          <li><a className="dropdown-item nav-link nav_item" href="/static//static/gallery-three-columns.html">Grid 3 Columns</a></li>
+                          <li><a className="dropdown-item nav-link nav_item" href="/static//static/gallery-four-columns.html">Grid 4 Columns</a></li>
                           <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-masonry-three-columns.html">Masonry 3 Columns</a></li>
                           <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-masonry-four-columns.html">Masonry 4 Columns</a></li>
                           <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-detail.html">Gallery Detail</a></li>

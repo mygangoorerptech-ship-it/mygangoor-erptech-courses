@@ -49,22 +49,36 @@ export async function fetchCoursesPage({
   };
 
   while (accepted.length < limit && guard < 10) {
-    const res = await api.get<RawCardsResponse>("/student-catalog/courses/cards", {
-      params: { limit, cursor: next, audience, orgId: orgId || undefined },
-    });
+    let payload: RawCardsResponse = { items: [], nextCursor: null };
+    try {
+      const res = await api.get<RawCardsResponse>("/student-catalog/courses/cards", {
+        params: { limit, cursor: next, audience, orgId: orgId || undefined },
+      });
+      payload = res.data || { items: [], nextCursor: null };
+    } catch (_err) {
+      // If unauthenticated and using public audience, fall back to public catalog
+      if (audience === "public") {
+        try {
+          const alt = await api.get<any>("/public/catalog/by-program-type");
+          const list = Array.isArray(alt?.data?.courses) ? alt.data.courses : [];
+          payload = { items: list, nextCursor: null } as RawCardsResponse;
+        } catch {
+          payload = { items: [], nextCursor: null } as RawCardsResponse;
+        }
+      }
+    }
 
-    const payload = res.data || { items: [], nextCursor: null };
     const items = Array.isArray(payload.items) ? payload.items : [];
     const filtered = items.filter(acceptRaw);
 
     filtered.forEach((it: any, idx: number) => {
       if (accepted.length >= limit) return;
 
-      const rating = Number.isFinite(it.rating) ? it.rating : 0;
+      const rating = Number.isFinite(it.rating) ? it.rating : (Number.isFinite(it.ratingAvg) ? it.ratingAvg : 0);
       const ratingCount = Number.isFinite(it.ratingCount) ? it.ratingCount : 0;
 
       // --- price math (paise) ---
-      const rawPricePaise = Number.isFinite(it.price) ? Number(it.price) : null;
+      const rawPricePaise = Number.isFinite(it.pricePaise) ? Number(it.pricePaise) : (Number.isFinite(it.price) ? Number(it.price) : null);
       const rawDiscount = Number.isFinite(it.discountPercent) ? Number(it.discountPercent) : 0;
       const mrpPaise = rawPricePaise;
       const salePaise =

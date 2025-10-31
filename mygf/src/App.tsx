@@ -88,7 +88,7 @@ export default function App() {
       {/* Serve static landing inside iframe to keep URL as /home */}
       <Route path="/home" element={<StaticHome />} />
       
-      {/* ⬇️ Protected: orguser only. Other roles untouched. */}
+      {/* Public: Tracks catalog is accessible without authentication */}
 <Route path="/tracks" element={<TracksAndCollectionsSection />} />
 
 <Route
