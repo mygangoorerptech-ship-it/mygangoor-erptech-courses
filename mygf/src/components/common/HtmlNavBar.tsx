@@ -190,14 +190,14 @@ export default function HtmlNavBar() {
                 <a className="nav-link" href="/static/schedule.html">Schedule</a>
               </li>
               <li className="dropdown">
-                <a className="dropdown-toggle nav-link" href="#" data-toggle="dropdown">Pages</a>
+                <a className="dropdown-toggle nav-link" href="#" data-toggle="dropdown">About Us</a>
                 <div className="dropdown-menu">
                   <ul> 
                     <li><a className="dropdown-item nav-link nav_item" href="/static/about.html">About Us</a></li>
                     <li><a className="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
                     <li><a className="dropdown-item nav-link nav_item" href="/static/events.html">Events</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/team.html">Our Sister Concerns</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/team.html">Our Global Ambassadors</a></li>
+                    <li><a className="dropdown-item nav-link nav_item" href="/static/our-sister-concern.html">Our Sister Concerns</a></li>
+                    <li><a className="dropdown-item nav-link nav_item" href="/static/our-global-ambassadors.html">Our Global Ambassadors</a></li>
                     <li><a className="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li>
                     <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Photo/Video Gallery</a></li>
                     <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Press/Media</a></li>
