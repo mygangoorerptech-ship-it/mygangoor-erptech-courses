@@ -14,7 +14,7 @@ import { useCourses } from "./tracks/useCourses";
 import useAutoLoadOnIntersect from "./tracks/useAutoLoadOnIntersect";
 import TopProgressBar from "../common/TopProgressBar";
 import Footer from "../common/Footer";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/store";
 import type { User } from "../../auth/store";
 import { useAuthHydration } from "../../hooks/useAuthHydration";
@@ -182,6 +182,27 @@ function TracksBody({ user }: { user?: User }) {
   const [premiumIds, setPremiumIds] = useState<Set<string>>(new Set());
   const [showJoin, setShowJoin] = useState(false);
   const [joinCourseId, setJoinCourseId] = useState<string | undefined>(undefined);
+  
+  // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const openJoinModal = searchParams.get('openJoinModal');
+    if (openJoinModal === 'true') {
+      if (user) {
+        // User is authenticated, open the modal
+        setShowJoin(true);
+        // Remove the parameter from URL to avoid reopening on refresh
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('openJoinModal');
+        setSearchParams(newParams, { replace: true });
+      } else {
+        // User is not authenticated, set flag and redirect to login
+        // StudentDashboard will check this flag after login and redirect here
+        sessionStorage.setItem('pendingJoinModal', 'true');
+        navigate('/login', { replace: true });
+      }
+    }
+  }, [searchParams, user, navigate, setSearchParams]);
 
   // Treat 0 or undefined paise as "free"
   const freeIds = useMemo(() => {

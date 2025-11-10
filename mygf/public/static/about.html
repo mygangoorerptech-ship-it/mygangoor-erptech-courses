@@ -42,6 +42,25 @@
 <link rel="stylesheet" href="/static/assets/css/responsive.css">
 <link rel="stylesheet" id="layoutstyle" href="/static/assets/color/theme-default.css">
 
+<style>
+@media (max-width: 1199.98px) {
+    html, body {
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    .container {
+        max-width: 100%;
+    }
+    .breadcrumb_section .shape_img,
+    footer .shape_img {
+        display: none !important;
+    }
+    .about-video-wrapper {
+        width: 100% !important;
+    }
+}
+</style>
+
 </head>
 
 <body>
@@ -213,7 +232,7 @@
 	<div class="container">
     	<div class="row">
         	<div class="col-12 animation" data-animation="fadeInUp" data-animation-delay="0.2s">
-                <div class="text-center mb-3 mb-sm-4 mb-md-5" style="width: 75%; max-width: 100%; margin-left: auto; margin-right: auto;">
+                <div class="text-center mb-3 mb-sm-4 mb-md-5 about-video-wrapper" style="width: 75%; max-width: 100%; margin-left: auto; margin-right: auto;">
                     <div class="video_box overlay_bg_30" style="position: relative; width: 100%; padding-bottom: 56.25%; overflow: hidden;">
                         <img src="/static/assets/images/about_video.jpg" alt="about_img11" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;">
                         <a href="https://www.youtube.com/watch?v=7e90gBu4pas" class="video_popup video_play" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2;"><span class="ripple"><i class="ion-play"></i></span></a>

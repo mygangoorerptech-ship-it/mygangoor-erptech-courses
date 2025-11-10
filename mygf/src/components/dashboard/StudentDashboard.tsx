@@ -1,5 +1,6 @@
 // mygf/src/components/dashboard/StudentDashboard.tsx
 import { useMemo, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import HtmlNavBar from "../common/HtmlNavBar";
 import DashboardHeader from "./DashboardHeader";
 import WelcomeBanner from "./WelcomeBanner";
@@ -41,6 +42,19 @@ function initialsFrom(name?: string | null, email?: string | null) {
 export default function StudentDashboard() {
   // Cookie session → hydrated once, then reused from Zustand
   const { user } = useAuthHydration();
+  const navigate = useNavigate();
+  
+  // Check for pendingJoinModal flag (set from home.html "Join Now" button)
+  useEffect(() => {
+    if (user) {
+      const pendingJoinModal = sessionStorage.getItem('pendingJoinModal');
+      if (pendingJoinModal === 'true') {
+        // User just logged in and wants to open JoinNowModal
+        sessionStorage.removeItem('pendingJoinModal');
+        navigate('/tracks?openJoinModal=true', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   // Only the allowed fields
   const {

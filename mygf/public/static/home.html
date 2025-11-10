@@ -345,6 +345,338 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* Hero slider responsive rebuild — overrides previous emergency fixes */
+.banner_slider {
+    position: relative;
+    padding: clamp(80px, 8vw, 140px) 0 0 !important;
+    margin: 0 auto !important;
+    background: transparent;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.banner_slider .carousel {
+    position: relative;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+.banner_slider .carousel-inner {
+    display: block !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    gap: 0 !important;
+    scroll-snap-type: none !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y !important;
+}
+
+.banner_slider .carousel-item {
+    position: relative;
+    display: block !important;
+    width: 100% !important;
+    opacity: 1 !important;
+    height: auto !important;
+    min-height: clamp(520px, 68vh, 820px) !important;
+    padding: 0 !important;
+    transform: none !important;
+}
+
+.banner_slider .carousel-item:not(.active) {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.banner_slider .carousel-item .banner_slide_content {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    height: 100%;
+    padding: clamp(32px, 6vw, 72px) 0 !important;
+}
+
+.hero-grid {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: clamp(24px, 4vw, 64px);
+    width: 100%;
+    margin: 0 !important;
+}
+
+.hero-grid.reverse-desktop {
+    flex-direction: row-reverse;
+}
+
+.hero-media,
+.hero-content {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    gap: clamp(18px, 3vw, 32px);
+    flex: 1 1 0;
+}
+
+.hero-media {
+    align-items: center;
+    text-align: center;
+}
+
+.hero-media .banner_img,
+.hero-media .banner_img2,
+.hero-media .banner_img3 {
+    width: 100%;
+    max-width: 560px;
+    position: relative;
+}
+
+.hero-media img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.hero-content {
+    align-items: flex-start;
+}
+
+.hero-content .banner_content {
+    display: flex !important;
+    flex-direction: column;
+    gap: clamp(12px, 2vw, 20px);
+    width: 100%;
+}
+
+.hero-content .banner_content h2 {
+    font-size: clamp(32px, 5vw, 46px);
+    line-height: 1.15;
+    margin: 0;
+}
+
+.hero-content .banner_content > span {
+    font-size: clamp(14px, 2vw, 18px) !important;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.hero-content .banner_content p {
+    font-size: clamp(15px, 2.1vw, 18px);
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.hero-description {
+    line-height: 1.5 !important;
+    margin-bottom: 0 !important;
+    text-align: justify;
+    text-justify: inter-word;
+}
+
+@media (max-width: 991px) {
+    .hero-buttons-wrapper {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+        width: 100% !important;
+        align-items: stretch !important;
+        justify-content: center !important;
+        justify-items: center !important;
+    }
+
+    .hero-buttons-wrapper .btn {
+        width: 100% !important;
+        max-width: 280px !important;
+        justify-self: center !important;
+        align-self: center !important;
+        text-align: center !important;
+        display: block !important;
+        flex: 1 1 auto !important;
+    }
+}
+
+.hero-buttons-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    width: 100% !important;
+}
+
+.hero-buttons-wrapper .btn {
+    width: 100% !important;
+    max-width: 320px !important;
+    align-self: flex-start !important;
+    text-align: center !important;
+}
+
+.countries_list {
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px 20px;
+    padding: 12px 18px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.16);
+    align-items: center;
+}
+
+.countries_list li {
+    font-size: 14px;
+    letter-spacing: 0.4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+}
+
+.countries_list .country-bullet {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+}
+
+.child-carousel-container {
+    width: min(520px, 100%);
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.child-carousel-track {
+    display: flex !important;
+    transition: transform 0.45s ease;
+}
+
+.child-carousel-slide {
+    flex: 0 0 100%;
+}
+
+.child-carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.child-carousel-nav {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    color: #333 !important;
+}
+
+.child-carousel-dots {
+    bottom: 16px;
+}
+
+.banner_slider .carousel_nav .carousel-control-prev,
+.banner_slider .carousel_nav .carousel-control-next,
+.banner_slider .carousel .carousel-control-prev,
+.banner_slider .carousel .carousel-control-next {
+    width: 54px !important;
+    height: 54px !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    border-radius: 50%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+}
+
+.banner_slider .carousel_nav .carousel-control-prev,
+.banner_slider .carousel .carousel-control-prev {
+    left: 24px !important;
+}
+
+.banner_slider .carousel_nav .carousel-control-next,
+.banner_slider .carousel .carousel-control-next {
+    right: 24px !important;
+}
+
+@media (max-width: 1199px) {
+    .hero-grid {
+        gap: clamp(18px, 6vw, 48px);
+    }
+}
+
+@media (max-width: 991px) {
+    .banner_slider {
+        padding-top: 96px !important;
+    }
+    
+    .banner_slider .carousel-item .banner_slide_content {
+        padding: clamp(24px, 9vw, 56px) 0 !important;
+    }
+    
+    .hero-grid,
+    .hero-grid.reverse-desktop {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .hero-media,
+    .hero-content {
+        width: 100%;
+    }
+    
+    .hero-content {
+        align-items: center;
+    }
+    
+    .hero-content .banner_content {
+        align-items: center;
+        text-align: center;
+    }
+    
+    .hero-buttons-wrapper {
+        justify-content: center;
+    }
+    
+    .countries_list {
+        justify-content: center;
+    }
+    
+    .banner_slider .carousel_nav,
+    .banner_slider .carousel .carousel-control-prev,
+    .banner_slider .carousel .carousel-control-next {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .child-carousel-container {
+        border-radius: 16px;
+    }
+}
+
+@media (max-width: 575px) {
+    .hero-buttons-wrapper .btn {
+        width: 100%;
+        max-width: 260px;
+    }
+    
+    .child-carousel-container {
+        border-radius: 14px;
+    }
+}
+
 .marquee-container {
     display: flex;
     width: 100%;
@@ -1703,19 +2035,19 @@
         max-height: none !important;
         display: flex !important;
         flex-direction: column !important;
-        padding-top: 0 !important; /* NO top padding - remove gap */
-        padding-bottom: 0 !important; /* Remove bottom padding to eliminate gaps */
-        padding-left: 15px !important;
-        padding-right: 15px !important;
-        align-items: center !important;
-        text-align: center !important;
-        gap: 0 !important; /* Remove gap between child elements */
+        padding-top: 10px !important;
+        padding-bottom: 0 !important;
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+        align-items: flex-start !important;
+        text-align: left !important;
+        gap: 14px !important;
         visibility: visible !important;
         opacity: 1 !important;
         position: relative !important;
         overflow: visible !important;
-        margin-top: -30px !important; /* Large negative margin to eliminate gap */
-        margin-bottom: 0 !important; /* Remove gap below content */
+        margin-top: -10px !important;
+        margin-bottom: 0 !important;
         order: 2 !important; /* Content second (below image) */
         z-index: 1 !important;
         width: 100% !important;
@@ -1765,8 +2097,10 @@
         visibility: visible !important;
         opacity: 1 !important;
         font-size: 14px !important;
-        margin: 0 !important; /* Remove all margins */
+        margin: 0 !important;
         padding: 0 !important;
+        text-align: justify !important;
+        text-justify: inter-word !important;
     }
     
     /* Ensure headings are visible - NO GAPS */
@@ -1774,10 +2108,12 @@
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
-        font-size: 24px !important;
-        line-height: 1.2 !important;
-        margin: 0 !important; /* Remove all margins */
+        font-size: 26px !important;
+        line-height: 1.3 !important;
+        margin: 0 !important;
         padding: 0 !important;
+        text-align: justify !important;
+        text-justify: inter-word !important;
     }
     
     /* Ensure paragraphs are visible - NO GAPS */
@@ -1786,12 +2122,14 @@
         visibility: visible !important;
         opacity: 1 !important;
         font-size: 14px !important;
-        line-height: 1.4 !important;
-        margin: 0 !important; /* Remove all margins */
+        line-height: 1.5 !important;
+        margin: 0 0 6px 0 !important;
         padding: 0 !important;
         white-space: normal !important;
         overflow: visible !important;
         text-overflow: clip !important;
+        text-align: justify !important;
+        text-justify: inter-word !important;
     }
     
     /* Ensure animation elements inside banner_content are visible */
@@ -1927,12 +2265,12 @@
         min-height: auto !important;
     }
     
-    /* Buttons should be inline-block */
+    /* Buttons should stack vertically on mobile */
     .banner_slider .banner_slide_content .banner_content > .btn,
     .banner_slider .banner_slide_content .banner_content .hero-buttons-wrapper .btn,
     .banner_slider .banner_slide_content .banner_content .animation.btn,
     .banner_slider .banner_slide_content .banner_content .animation a.btn {
-        display: inline-block !important;
+        display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
         transform: none !important;
@@ -1970,11 +2308,12 @@
 
     /* Center heading and subtitle on mobile - COMPACT SPACING */
     .banner_slider .carousel-item:first-child .banner_content {
-        text-align: center !important;
-        align-items: center !important;
-        margin-top: -30px !important; /* Large negative margin to eliminate gap */
-        margin-bottom: 0 !important; /* Remove gap below content */
-        padding-top: 10px !important; /* Minimal padding */
+        text-align: justify !important;
+        text-justify: inter-word !important;
+        align-items: flex-start !important;
+        margin-top: -10px !important;
+        margin-bottom: 0 !important;
+        padding-top: 12px !important;
     }
     
     /* Ensure all banner_content elements have consistent alignment on desktop */
@@ -2001,10 +2340,11 @@
     }
     
     .banner_slider .carousel-item:first-child .banner_content h2 {
-        text-align: center !important;
+        text-align: justify !important;
+        text-justify: inter-word !important;
         font-size: 28px !important;
-        line-height: 1.2 !important;
-        margin: 0 !important; /* Remove all margins */
+        line-height: 1.3 !important;
+        margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
     }
@@ -2017,13 +2357,15 @@
     
     .banner_slider .carousel-item:first-child .banner_content > p {
         font-size: 14px !important;
-        line-height: 1.4 !important;
-        margin: 0 !important; /* Remove all margins */
+        line-height: 1.5 !important;
+        margin: 0 0 8px 0 !important;
         padding: 0 !important;
         width: 100% !important;
         white-space: normal !important;
         overflow: visible !important;
         text-overflow: clip !important;
+        text-align: justify !important;
+        text-justify: inter-word !important;
     }
 
     /* Countries list: 4 items per row, full width */
@@ -2050,19 +2392,20 @@
     
     /* Mobile button alignment - buttons in a single row on mobile */
     .hero-buttons-wrapper {
-        gap: 10px !important;
+        gap: 12px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
         justify-content: center !important;
     }
     
     .banner_slider .banner_slide_content .banner_content .btn {
-        display: inline-block !important;
-        width: auto !important;
+        display: block !important;
+        width: 100% !important;
+        max-width: none !important;
         margin: 0 !important;
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
-        vertical-align: middle !important;
-        white-space: nowrap !important;
+        white-space: normal !important;
         flex-shrink: 0 !important;
+        align-self: stretch !important;
     }
 }
 
@@ -2087,8 +2430,8 @@
     }
     
     .banner_slider .carousel-item:first-child .banner_img img {
-        width: 65% !important;
-        max-width: 250px !important;
+        width: 80% !important;
+        max-width: 300px !important;
     }
     
     .banner_slider .carousel-item:first-child .banner_content h2 {
@@ -2114,17 +2457,22 @@
     }
     
     .hero-buttons-wrapper {
-        gap: 8px !important;
-        flex-wrap: nowrap !important;
-        flex-direction: row !important;
-        display: flex !important;
-        align-items: center !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        align-items: stretch !important;
+        justify-content: center !important;
+        justify-items: center !important;
     }
     
     .banner_slider .banner_slide_content .banner_content .btn {
         font-size: 14px !important;
-        padding: 10px 18px !important;
+        padding: 12px 18px !important;
         flex: 0 0 auto !important;
+        width: 100% !important;
+        max-width: 260px !important;
+        align-self: center !important;
+        justify-self: center !important;
     }
 }
 
@@ -2303,45 +2651,47 @@ section.banner_slider {
     max-width: 100%;
 }
 
-/* Button wrapper container for horizontal button layout */
-.hero-buttons-wrapper {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 15px !important;
-    align-items: center !important;
-    flex-wrap: nowrap !important; /* Keep buttons in same row */
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-top: 15px !important;
-}
+@media (min-width: 992px) {
+    /* Button wrapper container for horizontal button layout */
+    .hero-buttons-wrapper {
+        display: flex;
+        flex-direction: row;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: nowrap; /* Keep buttons in same row */
+        width: 100%;
+        max-width: 100%;
+        margin-top: 15px;
+    }
 
-.banner_slider .banner_slide_content .banner_content .hero-buttons-wrapper {
-    flex-shrink: 0 !important;
-}
+    .banner_slider .banner_slide_content .banner_content .hero-buttons-wrapper {
+        flex-shrink: 0;
+    }
 
-/* Button container alignment - group buttons together in a single row - ALL VIEWS */
-.banner_slider .banner_slide_content .banner_content .btn {
-    display: inline-block !important;
-    margin: 0 !important;
-    margin-right: 0 !important;
-    margin-bottom: 0 !important;
-    margin-top: 0 !important;
-    vertical-align: middle !important;
-    white-space: nowrap !important;
-    width: auto !important;
-    float: none !important;
-    flex-shrink: 0 !important;
-}
+    /* Button container alignment - group buttons together in a single row */
+    .banner_slider .banner_slide_content .banner_content .btn {
+        display: inline-block;
+        margin: 0;
+        margin-right: 0;
+        margin-bottom: 0;
+        margin-top: 0;
+        vertical-align: middle;
+        white-space: nowrap;
+        width: auto;
+        float: none;
+        flex-shrink: 0;
+    }
 
-.banner_slider .banner_slide_content .banner_content .btn:last-child {
-    margin-right: 0 !important;
-}
+    .banner_slider .banner_slide_content .banner_content .btn:last-child {
+        margin-right: 0;
+    }
 
-/* Ensure buttons are grouped in a row with proper spacing */
-.banner_slider .banner_slide_content .banner_content .btn + .btn {
-    margin-left: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    /* Ensure buttons are grouped in a row with proper spacing */
+    .banner_slider .banner_slide_content .banner_content .btn + .btn {
+        margin-left: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+    }
 }
 
 /* Desktop/Tablet: Buttons should be in a row with proper spacing */
@@ -2358,16 +2708,6 @@ section.banner_slider {
     .hero-buttons-wrapper {
         justify-content: flex-start !important;
         gap: 15px !important;
-    }
-    
-    .banner_slider .banner_slide_content .banner_content .btn {
-        display: inline-block !important;
-        margin: 0 !important;
-        margin-bottom: 0 !important;
-        margin-top: 0 !important;
-        vertical-align: middle !important;
-        white-space: nowrap !important;
-        width: auto !important;
     }
 }
 
@@ -2544,7 +2884,8 @@ section.banner_slider {
         border: 1px solid #e0e0e0 !important;
         border-radius: 4px !important;
         background: rgba(255,255,255,0.5) !important;
-        text-align: left !important;
+        text-align: justify !important;
+        text-justify: inter-word !important;
     }
     
     /* First slider countries list - specifically narrower */
@@ -2578,8 +2919,8 @@ section.banner_slider {
 @media (max-width: 991px) {
     .banner_slider .banner_slide_content .banner_content .countries_list {
         display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 10px !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 8px 12px !important;
         width: 100% !important;
         max-width: 100% !important;
         padding: 12px !important;
@@ -2696,7 +3037,7 @@ section.banner_slider {
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_img .border_img {
         position: relative !important;
         width: 100% !important;
-        max-width: 250px !important; /* Reasonable size for mobile */
+        max-width: 320px !important; /* Slightly larger for mobile/tablet */
         margin: 0 auto !important; /* Center horizontally */
         padding: 0 !important;
         z-index: 2 !important;
@@ -2711,7 +3052,7 @@ section.banner_slider {
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
         width: 120% !important;
-        max-width: 300px !important;
+        max-width: 360px !important;
         height: auto !important;
         z-index: 1 !important;
         opacity: 0.3 !important;
@@ -2726,7 +3067,7 @@ section.banner_slider {
     
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_img .border_img img[src*="Guruji.png"] {
         width: 100% !important;
-        max-width: 250px !important; /* Reasonable size for mobile */
+        max-width: 320px !important; /* Slightly larger for mobile/tablet */
         height: auto !important;
         display: block !important;
         position: relative !important;
@@ -2741,12 +3082,10 @@ section.banner_slider {
         top: 50% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
-        width: 70% !important;
-        max-width: 180px !important; /* Reduced size to prevent overflow */
-        height: 70% !important;
-        max-height: 180px !important; /* Reduced size to prevent overflow */
+        width: clamp(100px, 115vw, 200px) !important;
+        height: clamp(100px, 115vw, 200px) !important;
         z-index: 0 !important;
-        opacity: 0.6 !important;
+        opacity: 0.60 !important;
         pointer-events: none !important;
     }
     
@@ -2808,10 +3147,10 @@ section.banner_slider {
         visibility: visible !important;
         opacity: 1 !important;
         font-size: 14px !important; /* Reduced size to fit better */
-        line-height: 1.3 !important;
-        margin: 0 0 10px 0 !important;
+        line-height: 1.5 !important;
+        margin: 0 0 12px 0 !important;
         padding: 0 !important;
-        text-align: center !important;
+        text-align: left !important;
         width: 100% !important;
         color: inherit !important;
         word-wrap: break-word !important;
@@ -2820,11 +3159,11 @@ section.banner_slider {
     /* Slider 1: Countries list visibility and proper layout */
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_content .countries_list {
         display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 6px !important; /* Reduced gap to reduce height */
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 6px 10px !important;
         width: 100% !important;
         max-width: 100% !important;
-        padding: 8px !important; /* Reduced padding to reduce height */
+        padding: 8px !important;
         margin: 15px 0 !important;
         border: 1px solid #e0e0e0 !important;
         border-radius: 4px !important;
@@ -2841,12 +3180,12 @@ section.banner_slider {
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_content .countries_list li {
         display: flex !important;
         align-items: center !important;
-        font-size: 11px !important; /* Slightly smaller font to reduce height */
+        font-size: 11px !important;
         margin: 0 !important;
-        padding: 2px 0 !important; /* Minimal padding */
+        padding: 2px 0 !important;
         visibility: visible !important;
         opacity: 1 !important;
-        line-height: 1.3 !important; /* Tighter line height */
+        line-height: 1.3 !important;
     }
     
     /* Slider 1: Country bullet icons - ensure visibility in mobile/tablet */
@@ -2866,12 +3205,12 @@ section.banner_slider {
     
     /* Slider 1: Buttons visibility and layout - ensure buttons are visible */
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_content .hero-buttons-wrapper {
-        display: flex !important;
-        flex-direction: row !important;
-        gap: 8px !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
         justify-content: center !important;
-        align-items: center !important;
-        flex-wrap: wrap !important;
+        justify-items: center !important;
+        align-items: stretch !important;
         width: 100% !important;
         margin: 10px 0 0 0 !important;
         padding: 0 !important;
@@ -2882,18 +3221,19 @@ section.banner_slider {
     }
     
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_content .btn {
-        display: inline-block !important;
+        display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
-        padding: 10px 20px !important; /* Reduced padding to fit better */
-        font-size: 13px !important; /* Reduced font size */
-        white-space: nowrap !important;
+        padding: 12px 20px !important;
+        font-size: 13px !important;
         margin: 0 !important;
-        flex-shrink: 0 !important;
-        min-width: auto !important;
-        width: auto !important;
-        max-width: 100% !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 260px !important;
+        align-self: center !important;
+        justify-self: center !important;
         box-sizing: border-box !important;
+        white-space: normal !important;
     }
     
     /* Slider 1: Override any animation library hiding elements */
@@ -2925,8 +3265,9 @@ section.banner_slider {
     }
     
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_img .circle_bg1 {
-        max-width: 280px !important;
-        max-height: 280px !important;
+        width: clamp(150px, 95vw, 250px) !important;
+        height: clamp(150px, 95vw, 250px) !important;
+        opacity: 0.80 !important;
     }
     
     /* Slider 1: Larger title on tablet */
@@ -2981,16 +3322,17 @@ section.banner_slider {
     }
     
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_img .border_img img[src*="Guruji.png"] {
-        max-width: 240px !important;
+        max-width: 400px !important;
     }
     
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_img .border_img .guruji-pattern-bg {
-        max-width: 250px !important;
+        max-width: 440px !important;
     }
     
     .banner_slider .carousel-item:first-child.bg_light_pink .banner_img .circle_bg1 {
-        max-width: 200px !important;
-        max-height: 200px !important;
+        width: clamp(100px, 100vw, 200px) !important;
+        height: clamp(100px, 100vw, 200px) !important;
+        opacity: 0.50 !important;
     }
     
     /* Slider 1: Smaller title on mobile */
@@ -3760,6 +4102,105 @@ section.banner_slider {
     }
 }
 
+/* Slightly enlarge Guruji image on mobile/tablet in first slider */
+@media (max-width: 768px) {
+    .banner_slider .carousel-item:first-child .banner_img .border_img {
+        max-height: 440px;
+    }
+    
+    .banner_slider .carousel-item:first-child .banner_img .border_img img {
+        max-height: 400px;
+    }
+}
+
+@media (max-width: 576px) {
+    .banner_slider .carousel-item:first-child .banner_img .border_img {
+        max-height: 380px;
+    }
+    
+    .banner_slider .carousel-item:first-child .banner_img .border_img img {
+        max-height: 340px;
+    }
+}
+
+/* Add top gap for all hero sliders except the first */
+.banner_slider .carousel-item:not(:first-child) .banner_slide_content {
+    margin-top: 60px !important;
+}
+
+.banner_slider .carousel-item:not(:first-child) .banner_slide_content .container {
+    margin-top: 0 !important;
+    padding-top: 30px !important;
+}
+
+@media (max-width: 991px) {
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content {
+        margin-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .container {
+        padding-top: 8px !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .banner_content {
+        padding-top: 16px !important;
+    }
+}
+
+@media (min-width: 577px) and (max-width: 991px) {
+    .banner_slider .carousel-item:not(:first-child) {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content {
+        margin-top: -80px !important;
+        padding-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .container {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .banner_content {
+        margin-top: 0 !important;
+        padding-top: 4px !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .container > .row {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .container > .row > [class*="col-"] {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .banner_img,
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .banner_img2,
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .banner_img3 {
+        margin-top: -6px !important;
+        padding-top: 0 !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .child-carousel-container {
+        margin-top: -6px !important;
+        padding-top: 0 !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content {
+        margin-top: 30px !important;
+    }
+    
+    .banner_slider .carousel-item:not(:first-child) .banner_slide_content .container {
+        padding-top: 15px !important;
+    }
+}
+
 /* Pattern background layer for first slider Guruji image - full screen width */
 .banner_slider .carousel-item:first-child {
     position: relative;
@@ -3860,6 +4301,121 @@ section.banner_slider {
     .banner_slider .carousel-item:first-child .guruji-pattern-bg img {
         max-height: 320px;
         object-position: center;
+    }
+}
+
+/* Mobile & tablet performance fix for Guruji circle animation */
+@media (max-width: 991px) {
+    .banner_slider .carousel-item:first-child .circle_bg1 {
+        width: clamp(360px, 120vw, 640px) !important;
+        height: clamp(360px, 120vw, 640px) !important;
+        -webkit-transform: translate3d(-50%, -50%, 0) !important;
+        transform: translate3d(-50%, -50%, 0) !important;
+        -webkit-transform-origin: center center !important;
+        transform-origin: center center !important;
+        will-change: transform;
+        pointer-events: none;
+        filter: blur(0);
+        opacity: 0.9;
+        transition: none;
+        max-width: none;
+    }
+
+    body {
+        margin: 0 !important;
+    }
+
+    header.header_wrap:not([class*="bg_"]):not([class*="bg-"]),
+    header.header_wrap.nav-fixed:not([class*="bg_"]):not([class*="bg-"]) {
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .header_wrap .navbar {
+        background-color: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .header_wrap .navbar-nav > li > a,
+    .header_wrap .navbar-toggler {
+        color: #333 !important;
+    }
+
+    .banner_slider.banner_slide_half {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+
+    .banner_slider .banner_slide_content {
+        padding-top: 0 !important;
+    }
+
+    .banner_slider .banner_slide_content .container {
+        padding-top: 0 !important;
+    }
+
+    .banner_slider .banner_slide_content .banner_content {
+        padding-top: 40px !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span {
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        background-image: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 70%) !important;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        will-change: transform, opacity;
+        animation-name: circleRippleMobile !important;
+        animation-duration: 7.5s !important;
+        animation-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+        animation-iteration-count: infinite !important;
+        animation-direction: normal !important;
+        animation-fill-mode: none !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(1) {
+        animation-delay: 0s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(2) {
+        animation-delay: 0.8s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(3) {
+        animation-delay: 1.6s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(4) {
+        animation-delay: 2.4s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(5) {
+        animation-delay: 3.2s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(6) {
+        animation-delay: 4s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(7) {
+        animation-delay: 4.8s !important;
+    }
+
+    .banner_slider .carousel-item:first-child .circle_bg1 span:nth-child(8) {
+        animation-delay: 5.6s !important;
+    }
+
+    @keyframes circleRippleMobile {
+        0% {
+            transform: scale(0.45);
+            opacity: 0.55;
+        }
+        60% {
+            opacity: 0.35;
+        }
+        100% {
+            transform: scale(1.7);
+            opacity: 0;
+        }
     }
 }
 
@@ -4794,15 +5350,15 @@ section.banner_slider {
             <div class="carousel-item active bg_light_pink">
             	<div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                        	<div class="col-xl-5 col-lg-5 col-md-5">
-								<div class="banner_img text-center" style="position: relative; overflow: visible;">
-                                    <div class="animation border_img" data-animation="fadeInLeft" data-animation-delay="0.5s" style="position: relative; z-index: 1;">
+                        <div class="hero-grid">
+                            <div class="hero-media">
+								<div class="banner_img text-center">
+                                    <div class="animation border_img" data-animation="fadeInLeft" data-animation-delay="0.5s">
                                         <!-- Pattern background layer for first slider - full screen width -->
                                         <div class="guruji-pattern-bg">
                                             <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/slider_pattern6.png" alt="pattern background" />
                                         </div>
-                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Guruji.png" alt="image" style="display: block; max-width: 100%; height: auto; position: relative; z-index: 2;"/>
+                                        <img data-parallax='{"y": -30, "smoothness": 20}' src="/static/assets/images/Guruji.png" alt="image"/>
                                     </div>
                                     <div class="circle_bg1">
                                         <span></span>
@@ -4816,7 +5372,7 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-7 col-lg-7 col-md-7">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="zoomIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 40px; line-height: 1.2;">M.Y. GANGOOR<br><span class="foundation-title">GLOBAL FOUNDATION'S®</span></h2>
                                     <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s" style="font-weight: bold; font-size: 18px; margin: 10px 0;">Multi-Sciences Education & Research centre</p>
@@ -4871,8 +5427,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_yellow">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img2 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -4904,11 +5460,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Reiki</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 36px; line-height: 1.2;">Awaken The Power Within</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Discover the ancient Indian spiritual sciences like Reiki that bridge energy, mind, and nature for complete well-being. Join our global training programs and become a channel of light, healing, and higher consciousness.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Experience the original Reiki lineage with guided attunements, daily rituals, and mentoring that open your energy channels. Learn to sense, balance, and share universal life force so you can support healing for yourself, family, and clients with confidence.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('reiki'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -4934,8 +5490,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_gold">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -4966,11 +5522,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Third Eye</span>
-                                    <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Unlock the Vision Beyond—Activate Your Third EyeAppeal</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Awaken your intuitive wisdom and access higher realms of consciousness with our comprehensive Third Eye Activation training. Join our course globally and transform your perception, clarity, and spiritual insight through ancient techniques guided by M.Y. Gangoor International Foundation.</p>
+                                    <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Unlock the Vision Beyond—Activate Your Third Eye</h2>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Move through ancient kriyas, mudras, and mantra meditations that safely stimulate the Ajna chakra under expert care. Strengthen intuitive sight, lucid awareness, and spiritual discernment while staying grounded in everyday clarity.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('ancient-sciences'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -5001,8 +5557,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_yellow">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img2 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -5033,11 +5589,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Hypnosis</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Harness the Power of Your Subconscious Mind Through Hypnosis</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Unlock deep subconscious potential to overcome barriers, change habits, and achieve mental clarity with our expert-led Hypnosis training. Join our global course at M.Y. Gangoor International Foundation and master the transformative art of guided healing and personal empowerment.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Study suggestibility tests, trance induction, and therapeutic scripting through immersive practice sessions. Apply hypnosis ethically for habit change, emotional release, and peak performance across coaching and wellness journeys.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('reiki'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -5063,8 +5619,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_gold">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -5095,11 +5651,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Vastushastra</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Harmonize Your Space, Elevate Your Life with Vastushastra</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Discover the ancient science of Vastushastra to design and balance your living and working spaces for prosperity, health, and happiness. Join our global training at M.Y. Gangoor International Foundation and unlock the power of spatial energy alignment for holistic well-being.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Master site analysis, energy mapping, and elemental balancing for homes, workplaces, and sacred venues. Blend classical Vastu sutras with contemporary design so every project nurtures prosperity, health, and enduring harmony.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('vastu'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -5130,8 +5686,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_yellow">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img2 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -5162,11 +5718,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Yogashastra</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Unite Body, Mind, and Spirit with Yogashastra</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Embark on a transformative journey through the ancient science of Yogashastra to achieve harmony, strength, and spiritual growth. Join M.Y. Gangoor International Foundation's global training and master timeless practices that nurture well-being and elevate consciousness.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Explore progressive sequences of asana, pranayama, mudra, and meditation tailored to every body and life stage. Establish a disciplined daily sadhana that builds resilience, emotional balance, and a joyful spiritual outlook.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('yogshastra'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -5192,8 +5748,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_gold">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -5224,11 +5780,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Dowsing</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Discover Hidden Energies with Dowsing Mastery</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Unlock the ancient art of dowsing to detect and balance unseen energies in your environment and life. Join the global course at M.Y. Gangoor International Foundation and develop intuitive skills that enhance your connection to Earth's subtle energies for healing and harmony.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Train with pendulums, rods, and bio-sensory techniques to interpret subtle fields in land, water, and the human aura. Translate intuitive findings into practical guidance for healing, geopathic stress correction, and conscious decision-making.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('dowsing'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -5259,8 +5815,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_yellow">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img2 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -5291,11 +5847,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Astrology, Palmestry & Numerology</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Decode the Cosmic Blueprint. Master Astrology, Palmistry & NumerologyAppeal</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Explore the ancient sciences that reveal your destiny through the Stars, your Palms, and Numbers. Join the global training at M.Y. Gangoor International Foundation to gain deep insights into personality, life purpose, and future.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Decode planetary cycles, palm mounts, and numerical vibrations through an integrated, practice-rich curriculum. Offer precise life readings, career guidance, and remedial solutions that empower seekers to align with their cosmic blueprint.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s" onclick="openProgramModal('ancient-sciences'); return false;">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -5321,8 +5877,8 @@ section.banner_slider {
             <div class="carousel-item bg_light_gold">
                 <div class="banner_slide_content">
                     <div class="container">
-                        <div class="row align-items-center">
-                            <div class="col-lg-6 col-md-5">
+                        <div class="hero-grid reverse-desktop">
+                            <div class="hero-media">
                                 <div class="banner_img3 text-center">
                                     <div class="animation" data-animation="fadeInRight" data-animation-delay="0.5s">
                                         <!-- Child Carousel Container -->
@@ -5353,11 +5909,11 @@ section.banner_slider {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 col-md-7 order-md-first">
+                            <div class="hero-content">
                                 <div class="banner_content animation" data-animation="fadeIn" data-animation-delay="0.4s" data-parallax='{"y": 30, "smoothness": 10}'>
                                     <span class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 16px; color: #d32f2f; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Naturopathy</span>
                                     <h2 class="animation" data-animation="fadeInDown" data-animation-delay="0.5s" style="font-size: 32px; line-height: 1.2;">Heal Naturally, Live Vibrantly with Naturopathy</h2>
-                                    <p class="animation" data-animation="fadeInUp" data-animation-delay="0.6s">Discover the power of nature and holistic healing to restore balance, boost immunity, and enhance well-being. Join M.Y. Gangoor International Foundation's global naturopathy course and learn time-tested natural therapies for a healthier, harmonious life.</p>
+                                    <p class="animation hero-description" data-animation="fadeInUp" data-animation-delay="0.6s">Learn detoxification, nutrition, hydrotherapy, and mind-body protocols rooted in classical naturopathic wisdom. Design holistic wellness plans that restore vitality naturally and inspire lifelong self-care for individuals and communities.</p>
                                     <div class="hero-buttons-wrapper">
                                         <a class="btn btn-default rounded-0 animation" href="#" data-animation="fadeInUp" data-animation-delay="0.7s">Learn More</a>
                                         <a class="btn btn-white rounded-0 animation" href="/static/contact.html" data-animation="fadeInUp" data-animation-delay="0.8s">Contact Us</a>
@@ -7106,9 +7662,9 @@ section.banner_slider {
                     if (child.classList.contains('countries_list')) {
                         child.style.cssText = baseStyles + 'display: grid !important;';
                     } else if (child.classList.contains('hero-buttons-wrapper')) {
-                        child.style.cssText = baseStyles + 'display: flex !important;';
+                        child.style.cssText = baseStyles + 'display: grid !important; grid-template-columns: 1fr !important; gap: 12px !important; justify-items: center !important; align-items: center !important;';
                     } else if (child.classList.contains('btn') || child.tagName === 'A') {
-                        child.style.cssText = baseStyles + 'display: inline-block !important;';
+                        child.style.cssText = baseStyles + 'display: block !important; width: 100% !important; max-width: 260px !important; margin-left: auto !important; margin-right: auto !important;';
                     } else if (child.tagName === 'H2' || child.tagName === 'H3' || child.tagName === 'H4') {
                         child.style.cssText = baseStyles + 'display: block !important;';
                     } else if (child.tagName === 'P' || child.tagName === 'SPAN') {
@@ -7417,16 +7973,25 @@ section.banner_slider {
                 $el.find('.hero-buttons-wrapper').css({
                     'opacity': '1',
                     'visibility': 'visible',
-                    'display': 'flex',
+                    'display': 'grid',
+                    'grid-template-columns': '1fr',
+                    'gap': '12px',
                     'height': 'auto',
-                    'min-height': 'auto'
+                    'min-height': 'auto',
+                    'width': '100%',
+                    'justify-items': 'center',
+                    'align-items': 'center'
                 });
                 
                 // Force buttons to be visible
                 $el.find('.btn').css({
                     'opacity': '1',
                     'visibility': 'visible',
-                    'display': 'inline-block'
+                    'display': 'block',
+                    'width': '100%',
+                    'max-width': '260px',
+                    'align-self': 'center',
+                    'justify-self': 'center'
                 });
             });
             
@@ -7854,7 +8419,10 @@ section.banner_slider {
                     var $wrapper = $(this);
                     $wrapper[0].style.setProperty('opacity', '1', 'important');
                     $wrapper[0].style.setProperty('visibility', 'visible', 'important');
-                    $wrapper[0].style.setProperty('display', 'flex', 'important');
+                    $wrapper[0].style.setProperty('display', 'grid', 'important');
+                    $wrapper[0].style.setProperty('grid-template-columns', '1fr', 'important');
+                    $wrapper[0].style.setProperty('gap', '12px', 'important');
+                    $wrapper[0].style.setProperty('width', '100%', 'important');
                     $wrapper[0].style.setProperty('height', 'auto', 'important');
                     $wrapper[0].style.setProperty('min-height', 'auto', 'important');
                 });
@@ -7864,7 +8432,9 @@ section.banner_slider {
                     var $btn = $(this);
                     $btn[0].style.setProperty('opacity', '1', 'important');
                     $btn[0].style.setProperty('visibility', 'visible', 'important');
-                    $btn[0].style.setProperty('display', 'inline-block', 'important');
+                    $btn[0].style.setProperty('display', 'block', 'important');
+                    $btn[0].style.setProperty('width', '100%', 'important');
+                    $btn[0].style.setProperty('max-width', '100%', 'important');
                 });
             });
             
@@ -8243,9 +8813,9 @@ const programs = {
         description: 'Reiki is a simple, gentle method of channeling universal life energy through touch or intention to support physical relaxation, emotional balance, and mental clarity. Anyone can learn basic Reiki practices to self-heal, help family, or begin a professional healing practice.',
         subtitle: 'Reiki',
         headerTitle: 'Awaken The Power Within',
-        headerDescription: 'Discover the ancient Indian spiritual sciences like Reiki that bridge energy, mind, and nature for complete well-being. Join our global training programs and become a channel of light, healing, and higher consciousness.',
-        image: '/static/assets/images/Reiki.png',
-        images: ['/static/assets/images/Reiki.png', '/static/assets/images/banner_img2.png', '/static/assets/images/Third Eye Activation.png'],
+        headerDescription: 'Experience the original Reiki lineage with guided attunements, daily rituals, and mentoring that open your energy channels. Learn to sense, balance, and share universal life force so you can support healing for yourself, family, and clients with confidence.',
+        image: '/static/assets/images/Reiki1.png',
+        images: ['/static/assets/images/Reiki2.png', '/static/assets/images/Reiki2.png', '/static/assets/images/Reiki1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Short Introduction</h4>
@@ -8380,9 +8950,9 @@ const programs = {
         description: 'Discover the ancient skill of sensing subtle energies to find answers, objects, and healing pathways. Dowsing is a spiritual science that uses tools like pendulums or rods to detect energy fields, locate water, objects, or answers from the subconscious. It bridges intuition and universal energy.',
         subtitle: 'Dowsing',
         headerTitle: 'Master The Art of Energy Detection',
-        headerDescription: 'Discover the ancient skill of sensing subtle energies to find answers, objects, and healing pathways. Learn to use tools like pendulums and rods to detect energy fields and connect with your intuition.',
-        image: '/static/assets/images/Dowsing.png',
-        images: ['/static/assets/images/Dowsing.png', '/static/assets/images/banner_img2.png'],
+        headerDescription: 'Train with pendulums, rods, and bio-sensory techniques to interpret subtle fields in land, water, and the human aura. Translate intuitive findings into practical guidance for healing, geopathic stress correction, and conscious decision-making.',
+        image: '/static/assets/images/Dowsing1.png',
+        images: ['/static/assets/images/Dowsing1.png', '/static/assets/images/Dowsing1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Short Introduction</h4>
@@ -8484,9 +9054,9 @@ const programs = {
         description: 'A structured, practical course that brings together three classical divinatory sciences—Jyotish (Astrology), Hast Rekha Vidya (Palmistry), and Sankhya Vidya (Numerology)—to offer students a coherent, ethical skillset for personal insight, counselling, and professional consultation.',
         subtitle: 'Ancient Sciences',
         headerTitle: 'Integrative Wisdom of Ages',
-        headerDescription: 'Explore the profound connection between Jyotish (Astrology), Hast Rekha Vidya (Palmistry), and Sankhya Vidya (Numerology). Master three powerful sciences for personal insight and professional guidance.',
-        image: '/static/assets/images/Third Eye Activation.png',
-        images: ['/static/assets/images/Third Eye Activation.png', '/static/assets/images/Vastushastra.png', '/static/assets/images/Dowsing.png'],
+        headerDescription: 'Decode planetary cycles, palm mounts, and numerical vibrations through an integrated, practice-rich curriculum. Offer precise life readings, career guidance, and remedial solutions that empower seekers to align with their cosmic blueprint.',
+        image: '/static/assets/images/Third Eye Activation1.png',
+        images: ['/static/assets/images/Third Eye Activation1.png', '/static/assets/images/Vastushastra1.png', '/static/assets/images/Dowsing1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Brief Overview</h4>
@@ -8623,9 +9193,9 @@ const programs = {
         description: 'Yogshastra combines classical yogic science—posture, breath, meditation, subtle anatomy, and ethical living—with Life Coaching techniques that clarify values, set goals, and build sustainable habits. The course trains practitioners to guide clients toward physical wellbeing, emotional balance, and purposeful living.',
         subtitle: 'Yogshastra',
         headerTitle: 'Transform Mind, Body & Spirit',
-        headerDescription: 'Combine ancient yogic wisdom with modern life coaching techniques. Learn to guide others toward physical wellbeing, emotional balance, and purposeful living through this integrated approach.',
-        image: '/static/assets/images/Yogshatra.jpg',
-        images: ['/static/assets/images/Yogshatra.jpg'],
+        headerDescription: 'Explore progressive sequences of asana, pranayama, mudra, and meditation tailored to every body and life stage. Establish a disciplined daily sadhana that builds resilience, emotional balance, and a joyful spiritual outlook.',
+        image: '/static/assets/images/Yoga1.png',
+        images: ['/static/assets/images/Yoga1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>What Is Yogshastra and Life Coaching</h4>
@@ -8709,9 +9279,9 @@ const programs = {
         description: 'Discover practical and sacred principles of Vastu Shastra to align living and working spaces with natural energies for wellbeing, prosperity, and clarity. Vastu Shastra is the ancient Indian science of architecture and spatial harmony that uses orientation, proportions, and elemental balance to create supportive environments for life and work.',
         subtitle: 'Vastu Shastra',
         headerTitle: 'Create Harmony in Your Space',
-        headerDescription: 'Discover the ancient Indian science of architecture and spatial harmony. Learn to align your living and working spaces with natural energies for wellbeing, prosperity, and clarity.',
-        image: '/static/assets/images/Vastushastra.png',
-        images: ['/static/assets/images/Vastushastra.png', '/static/assets/images/Yogshatra.jpg'],
+        headerDescription: 'Master site analysis, energy mapping, and elemental balancing for homes, workplaces, and sacred venues. Blend classical Vastu sutras with contemporary design so every project nurtures prosperity, health, and enduring harmony.',
+        image: '/static/assets/images/Vastushastra1.png',
+        images: ['/static/assets/images/Vastushastra1.png', '/static/assets/images/Yoga1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Brief Introduction</h4>
@@ -8821,9 +9391,9 @@ const programs = {
         description: 'Discover the power of nature and holistic healing to restore balance, boost immunity, and enhance well-being.',
         subtitle: 'Naturopathy',
         headerTitle: 'Heal Naturally, Live Vibrantly',
-        headerDescription: 'Discover the power of nature and holistic healing to restore balance, boost immunity, and enhance well-being. Learn natural healing methods for complete wellness.',
-        image: '/static/assets/images/Natropathy.png',
-        images: ['/static/assets/images/Natropathy.png']
+        headerDescription: 'Learn detoxification, nutrition, hydrotherapy, and mind-body protocols rooted in classical naturopathic wisdom. Design holistic wellness plans that restore vitality naturally and inspire lifelong self-care for individuals and communities.',
+        image: '/static/assets/images/Natropathy1.png',
+        images: ['/static/assets/images/Natropathy1.png', '/static/assets/images/Natropathy1.png']
     }
 };
 
@@ -9672,17 +10242,20 @@ async function handleJoinNow(event) {
         const data = await response.json();
         
         if (data.ok && data.user) {
-            // User is authenticated - navigate to dashboard with flag to open modal
-            sessionStorage.setItem('autoOpenJoinModal', 'true');
-            window.location.href = '/dashboard';
+            // User is authenticated - navigate to tracks page with flag to open JoinNowModal
+            window.location.href = '/tracks?openJoinModal=true';
         } else {
-            // User is not authenticated, redirect to login
-            window.location.href = '/login?returnUrl=/home';
+            // User is not authenticated - set sessionStorage flag and redirect to login
+            // After login, the user will be redirected to their dashboard, but we'll check
+            // for this flag in TracksAndCollectionsSection and redirect to tracks with modal
+            sessionStorage.setItem('pendingJoinModal', 'true');
+            window.location.href = '/login';
         }
     } catch (error) {
         console.error('Error checking authentication:', error);
-        // On error, redirect to login to be safe
-        window.location.href = '/login?returnUrl=/home';
+        // On error, set flag and redirect to login to be safe
+        sessionStorage.setItem('pendingJoinModal', 'true');
+        window.location.href = '/login';
     }
 }
 

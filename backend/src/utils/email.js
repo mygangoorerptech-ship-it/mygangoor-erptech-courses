@@ -18,33 +18,56 @@ function getBrandName() {
 }
 const BRAND = getBrandName();
 
-/** Nodemailer transporter (keeps your env-driven config) */
-export const mailer = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT || 587),
-  secure:
-    String(process.env.SMTP_SECURE || "").toLowerCase() === "true" ||
-    Number(process.env.SMTP_PORT) === 465,
-  auth: process.env.SMTP_USER
-    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
-    : undefined,
-  // Connection timeout settings for production environments (like Render)
-  connectionTimeout: 60000, // 60 seconds
-  greetingTimeout: 30000,   // 30 seconds
-  socketTimeout: 60000,     // 60 seconds
-  // Retry on connection failure
-  pool: true,
-  maxConnections: 1,
-  maxMessages: 3,
-  // Better error handling
-  logger: process.env.NODE_ENV === 'production' ? false : undefined,
-  debug: process.env.NODE_ENV === 'production' ? false : undefined,
-  // TLS options for better compatibility
-  tls: {
-    rejectUnauthorized: false, // Allow self-signed certificates (useful for some SMTP servers)
-    minVersion: 'TLSv1.2',
-  },
-});
+/** Create nodemailer transporter with production-optimized settings */
+function createMailer() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure:
+      String(process.env.SMTP_SECURE || "").toLowerCase() === "true" ||
+      Number(process.env.SMTP_PORT) === 465,
+    auth: process.env.SMTP_USER
+      ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      : undefined,
+    // Extended timeout settings for production environments (like Render)
+    // Increased timeouts to handle slow network connections
+    connectionTimeout: 90000, // 90 seconds (increased from 60)
+    greetingTimeout: 60000,   // 60 seconds (increased from 30)
+    socketTimeout: 90000,     // 90 seconds (increased from 60)
+    // Disable connection pooling to avoid stale connections
+    // Each email will use a fresh connection, which is more reliable in production
+    pool: false,
+    // Better error handling - don't log in production to avoid noise
+    logger: false,
+    debug: false,
+    // TLS options for better compatibility
+    tls: {
+      rejectUnauthorized: false, // Allow self-signed certificates (useful for some SMTP servers)
+      minVersion: 'TLSv1.2',
+    },
+    // Additional options for production reliability
+    // requireTLS will be automatically handled based on secure flag and port
+    // Don't wait for connection to close
+    disableFileAccess: true,
+    disableUrlAccess: true,
+  });
+}
+
+/** Nodemailer transporter (recreated on errors for resilience) */
+let mailer = createMailer();
+
+/** Recreate transporter if connection fails (helps recover from timeouts) */
+function recreateMailer() {
+  try {
+    // Close existing transporter if it exists
+    if (mailer && typeof mailer.close === 'function') {
+      mailer.close().catch(() => {}); // Ignore errors when closing
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+  mailer = createMailer();
+}
 
 /** Shared headers for better deliverability and threading */
 function baseHeaders() {
@@ -120,6 +143,51 @@ function escapeHtml(s) {
     .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 
+/** Send email with retry logic for production reliability */
+async function sendEmailWithRetry(mailOptions, maxRetries = 2) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      await mailer.sendMail(mailOptions);
+      return; // Success
+    } catch (error) {
+      lastError = error;
+      const errorMsg = (error?.message || String(error)).toLowerCase();
+      const errorCode = error?.code || "";
+      
+      // Detect timeout and connection-related errors that should be retried
+      const isRetryableError = 
+        errorMsg.includes("timeout") || 
+        errorMsg.includes("etimedout") || 
+        errorMsg.includes("connection timeout") ||
+        errorMsg.includes("econnreset") ||
+        errorMsg.includes("econnrefused") ||
+        errorMsg.includes("enotfound") ||
+        errorMsg.includes("socket hang up") ||
+        errorCode === "ETIMEDOUT" ||
+        errorCode === "ECONNRESET" ||
+        errorCode === "ECONNREFUSED" ||
+        errorCode === "ENOTFOUND";
+      
+      if (isRetryableError && attempt < maxRetries) {
+        // Recreate transporter on connection error to get fresh connection
+        console.warn(`[smtp] Connection error on attempt ${attempt + 1}/${maxRetries + 1}: ${errorMsg.substring(0, 100)}`);
+        console.warn(`[smtp] Recreating transporter and retrying...`);
+        recreateMailer();
+        // Wait before retry (exponential backoff: 1s, 2s, 3s)
+        const delayMs = 1000 * (attempt + 1);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+        continue;
+      }
+      
+      // If not a retryable error or out of retries, throw immediately
+      // (e.g., authentication errors, invalid recipient, etc.)
+      throw error;
+    }
+  }
+  throw lastError;
+}
+
 /** ========== Public API ========== */
 
 export async function sendOtpEmail(to, code) {
@@ -130,7 +198,7 @@ export async function sendOtpEmail(to, code) {
     <p>Hello,</p>
     <p>Your verification code is:</p>
     <p class="code">${escapeHtml(code)}</p>
-    <p class="muted">This code expires in 10 minutes. If you didn’t request it, you can ignore this email.</p>
+    <p class="muted">This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>
   `;
   const html = renderTemplate({ title: "Verify your sign-in", preheader, contentHtml });
 
@@ -138,11 +206,11 @@ export async function sendOtpEmail(to, code) {
 
 Your verification code is: ${code}
 
-This code expires in 10 minutes. If you didn’t request it, you can ignore this email.`;
+This code expires in 10 minutes. If you didn't request it, you can ignore this email.`;
 
   const messageId = `<otp-${Date.now()}-${Math.random().toString(36).slice(2)}@${APP_HOST}>`;
 
-  await mailer.sendMail({
+  await sendEmailWithRetry({
     from: process.env.MAIL_FROM || "ECA <no-reply@example.com>",
     to,
     subject,
@@ -179,7 +247,7 @@ If you didn’t expect this, you can ignore this email.`;
 
   const messageId = `<invite-${Date.now()}-${Math.random().toString(36).slice(2)}@${APP_HOST}>`;
 
-  await mailer.sendMail({
+  await sendEmailWithRetry({
     from: process.env.MAIL_FROM || "ECA <no-reply@example.com>",
     to,
     subject,
@@ -216,7 +284,7 @@ This link expires in 1 hour. If you didn't request this, you can ignore this ema
 
   const messageId = `<reset-${Date.now()}-${Math.random().toString(36).slice(2)}@${APP_HOST}>`;
 
-  await mailer.sendMail({
+  await sendEmailWithRetry({
     from: process.env.MAIL_FROM || "ECA <no-reply@example.com>",
     to,
     subject,
@@ -241,10 +309,17 @@ export async function verifyMailer() {
       return false;
     }
     
-    // Use Promise.race to timeout verification after 10 seconds
+    // Don't verify on startup in production - it can cause timeouts and block the server
+    // Instead, we'll verify on first email send (lazy verification)
+    if (process.env.NODE_ENV === 'production') {
+      console.log("[smtp] SMTP configured (verification skipped in production - will verify on first send)");
+      return true;
+    }
+    
+    // In development, verify with a shorter timeout
     const verifyPromise = mailer.verify();
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("SMTP verification timeout after 10 seconds")), 10000)
+      setTimeout(() => reject(new Error("SMTP verification timeout")), 15000)
     );
     
     await Promise.race([verifyPromise, timeoutPromise]);
@@ -252,18 +327,9 @@ export async function verifyMailer() {
     return true;
   } catch (e) {
     const errorMsg = e?.message || String(e);
-    console.error("[smtp] verify failed:", errorMsg);
-    
-    // Provide helpful error messages
-    if (errorMsg.includes("timeout") || errorMsg.includes("ETIMEDOUT") || errorMsg.includes("Connection timeout")) {
-      console.error("[smtp] Connection timeout - possible causes:");
-      console.error("[smtp]   1. Render may be blocking outbound SMTP connections (check Render docs)");
-      console.error("[smtp]   2. SMTP server firewall may be blocking Render's IP addresses");
-      console.error("[smtp]   3. SMTP server may require whitelisting Render's IP range");
-      console.error("[smtp]   4. Consider using a transactional email service (SendGrid, Resend, etc.)");
-      console.error("[smtp]   Alternative: Use SMTP relay service or API-based email service");
-    }
-    
+    console.warn("[smtp] verify failed (non-blocking):", errorMsg);
+    // Don't throw - allow server to start even if verification fails
+    // Emails will be attempted and errors handled at send time
     return false;
   }
 }
@@ -357,7 +423,7 @@ export async function sendStaffCredentialsEmail(
   ].join('\n');
 
   const messageId = `<staff-${Date.now()}-${Math.random().toString(36).slice(2)}@${APP_HOST}>`;
-  await mailer.sendMail({
+  await sendEmailWithRetry({
     from: process.env.MAIL_FROM || "ECA <no-reply@example.com>",
     to,
     subject,
