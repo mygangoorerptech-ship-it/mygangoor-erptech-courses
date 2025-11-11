@@ -133,12 +133,19 @@ export default function ADUsers(){
           initial={open.initial}
           onClose={()=> setOpen(null)}
           onSubmit={async (payload) => {
-            if (open.mode === 'create') {
-              await createOne(payload)
-            } else if (open.initial?.id) {
-              await updateOne(open.initial.id, payload)
+            // Error handling is in the modal component
+            // The modal will only call onClose() on success
+            try {
+              if (open.mode === 'create') {
+                await createOne(payload)
+              } else if (open.initial?.id) {
+                await updateOne(open.initial.id, payload)
+              }
+            } catch (error) {
+              // Re-throw error so modal can handle it
+              // Modal will display error and prevent closing
+              throw error
             }
-            setOpen(null)
           }}
         />
       )}
@@ -167,6 +174,7 @@ function EditUserModal({
   const [mfaRequired, setMfaRequired] = useState<boolean>(initial?.mfa?.required ?? (role === 'student'))
   const [mfaMethod, setMfaMethod] = useState<'otp'|'totp'|null>((initial?.mfa?.method as any) ?? (role === 'student' ? 'otp' : null))
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
     // when role switches to student, default MFA ON
  React.useEffect(()=>{
@@ -181,15 +189,24 @@ function EditUserModal({
       <div className="space-y-3">
         <div>
           <Label>Name</Label>
-          <Input value={name} onChange={e=> setName(e.target.value)}/>
+          <Input value={name} onChange={e=> {
+            setName(e.target.value);
+            if (error) setError(null); // Clear error when user starts typing
+          }}/>
         </div>
         <div>
           <Label>Email</Label>
-          <Input type="email" value={email} onChange={e=> setEmail(e.target.value)} disabled={mode==='edit'}/>
+          <Input type="email" value={email} onChange={e=> {
+            setEmail(e.target.value);
+            if (error) setError(null); // Clear error when user starts typing
+          }} disabled={mode==='edit'}/>
         </div>
         <div>
           <Label>Role</Label>
-          <Select value={role} onChange={e=> setRole(e.target.value as AdminUserRole)} disabled={mode==='edit'}>
+          <Select value={role} onChange={e=> {
+            setRole(e.target.value as AdminUserRole);
+            if (error) setError(null); // Clear error when user changes role
+          }} disabled={mode==='edit'}>
             <option value="student">Student</option>
             <option value="vendor">Vendor</option>
           </Select>
@@ -210,19 +227,130 @@ function EditUserModal({
           )}
         </div>
 
+        {error && (
+          <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg shadow-sm">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-red-900 mb-2 text-base">
+                  {mode === 'create' ? 'Unable to Create User' : 'Unable to Update User'}
+                </h4>
+                <div className="text-red-800 text-sm leading-relaxed whitespace-pre-line space-y-2">
+                  {error.split('\n\n').map((paragraph, idx) => (
+                    <p key={idx} className={idx > 0 ? 'mt-2' : ''}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="pt-2 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button
             onClick={async ()=>{
+              setError(null); // Clear previous errors
+              
+              // Client-side validation
+              if (!email || !email.trim()) {
+                setError("Email address is required. Please enter a valid email address.");
+                return;
+              }
+              
+              // Basic email format validation
+              const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+              if (!emailRegex.test(email.trim())) {
+                setError("Please enter a valid email address (e.g., user@example.com).");
+                return;
+              }
+              
               setSaving(true)
               try {
                 await onSubmit({
                   name: name || undefined,
-                  email,
+                  email: email.trim(),
                   role,
                   mfa: { required: mfaRequired, method: mfaRequired ? (mfaMethod || 'otp') : null }
                 })
                 onClose()
+              } catch (err: any) {
+                console.error("[EditUserModal] Error:", err);
+                
+                // Extract error details from the backend response
+                const errorData = err?.data || err?.response?.data || {};
+                const errorDetails = errorData?.details || {};
+                const statusCode = err?.status || err?.response?.status;
+                const isNetworkError = !statusCode && err?.message?.includes('Network');
+                const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+                
+                // Build a comprehensive, user-friendly error message based on error type
+                let errorMessage = errorData?.message || err?.message || "An unexpected error occurred.";
+                
+                // Handle different error scenarios
+                if (isNetworkError) {
+                  errorMessage = "Network connection error. Please check your internet connection and try again.";
+                } else if (isTimeout) {
+                  errorMessage = "Request timed out. The server is taking too long to respond. Please try again.";
+                } else if (statusCode === 409) {
+                  // User already exists - already handled by backend message, but enhance it
+                  errorMessage = errorData?.message || "This email address is already registered in the system.";
+                } else if (statusCode === 400) {
+                  errorMessage = errorData?.message || "Invalid input. Please check your entries and try again.";
+                } else if (statusCode === 403) {
+                  errorMessage = errorData?.message || "You do not have permission to perform this action.";
+                } else if (statusCode === 404) {
+                  errorMessage = errorData?.message || "The requested resource was not found.";
+                } else if (statusCode === 500) {
+                  errorMessage = errorData?.message || "A server error occurred. Please try again later or contact support.";
+                } else if (statusCode && statusCode >= 500) {
+                  errorMessage = errorData?.message || "Server error. Please try again later or contact support if the issue persists.";
+                }
+                
+                // Build a comprehensive error message
+                const errorParts: string[] = [errorMessage];
+                
+                // Add existing user details if available (for 409 conflicts)
+                if (errorDetails?.existingEmail && statusCode === 409) {
+                  const details: string[] = [];
+                  if (errorDetails.existingUserRoleDisplay) {
+                    details.push(`Role: ${errorDetails.existingUserRoleDisplay}`);
+                  }
+                  if (errorDetails.existingUserStatusDisplay) {
+                    details.push(`Status: ${errorDetails.existingUserStatusDisplay}`);
+                  }
+                  if (errorDetails.existingUserId && errorDetails.existingUserId !== 'Unknown') {
+                    details.push(`User ID: ${errorDetails.existingUserId}`);
+                  }
+                  
+                  if (details.length > 0) {
+                    errorParts.push(`\nExisting Account Details:\n${details.map(d => `• ${d}`).join('\n')}`);
+                  }
+                }
+                
+                // Add suggestion if available
+                if (errorDetails?.suggestion) {
+                  errorParts.push(`\n\n${errorDetails.suggestion}`);
+                } else if (!errorDetails?.suggestion && statusCode === 409) {
+                  errorParts.push(`\n\nPlease use a different email address or update the existing user if you intended to modify their account.`);
+                }
+                
+                setError(errorParts.join('\n'));
+                
+                // Log detailed error for debugging
+                console.error("[EditUserModal] Full error details:", {
+                  error: err,
+                  status: statusCode,
+                  statusText: err?.statusText || err?.response?.statusText,
+                  data: errorData,
+                  details: errorDetails,
+                  errorCode: errorData?.errorCode,
+                  isNetworkError,
+                  isTimeout,
+                });
               } finally {
                 setSaving(false)
               }

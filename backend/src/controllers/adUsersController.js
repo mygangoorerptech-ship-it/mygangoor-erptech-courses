@@ -53,6 +53,21 @@ export async function list(req, res) {
 // POST /ad/users
 export async function create(req, res) {
   const actor = req.user;
+  const startTime = Date.now();
+  
+  console.log("[adUsers.create] Request received:", {
+    actorId: actor?.id || actor?._id || actor?.sub,
+    actorRole: actor?.role,
+    actorOrgId: actor?.orgId,
+    body: {
+      email: req.body?.email,
+      name: req.body?.name,
+      role: req.body?.role,
+      mfa: req.body?.mfa,
+      orgId: req.body?.orgId,
+    }
+  });
+  
   let scopeOrgId = actor?.orgId || null;
   // For superadmins, the organisation must be explicitly provided.  Without an
   // organisation ID, the new student would end up with no org membership.  This
@@ -60,22 +75,98 @@ export async function create(req, res) {
   if (actor?.role === 'superadmin') {
     scopeOrgId = req.body?.orgId || null;
     if (!scopeOrgId) {
+      console.warn("[adUsers.create] Missing orgId for superadmin");
       return res.status(400).json({ ok: false, message: "orgId is required for superadmin" });
     }
   }
-  if (!scopeOrgId) return res.status(403).json({ ok:false, message:"No org" });
+  if (!scopeOrgId) {
+    console.warn("[adUsers.create] No org scope available");
+    return res.status(403).json({ ok:false, message:"No org" });
+  }
 
   const { email, name, role: inputRole, mfa } = req.body || {};
-  if (!email || !inputRole) return res.status(400).json({ ok:false, message:"email and role required" });
-  if (!['vendor','student'].includes(inputRole)) return res.status(400).json({ ok:false, message:"invalid role" });
+  if (!email || !inputRole) {
+    console.warn("[adUsers.create] Missing required fields:", { email: !!email, role: !!inputRole });
+    return res.status(400).json({ ok:false, message:"email and role required" });
+  }
+  if (!['vendor','student'].includes(inputRole)) {
+    console.warn("[adUsers.create] Invalid role:", inputRole);
+    return res.status(400).json({ ok:false, message:"invalid role" });
+  }
+
+  // Normalize email to lowercase (emails are case-insensitive)
+  const normalizedEmail = String(email).toLowerCase().trim();
+  if (!normalizedEmail) {
+    console.warn("[adUsers.create] Invalid email after normalization:", email);
+    return res.status(400).json({ ok: false, message: "Invalid email address" });
+  }
+
+  console.log("[adUsers.create] Processing:", {
+    originalEmail: email,
+    normalizedEmail,
+    inputRole,
+    scopeOrgId,
+  });
 
   // For "student" inputs, assign the organisation-member role "orguser".
   // This keeps the learner type but records them as an organisation user for access
   // control.  Vendors remain vendors.
   const role = inputRole === 'student' ? 'orguser' : inputRole;
 
-  const exists = await User.findOne({ email });
-  if (exists) return res.status(409).json({ ok:false, message:"User already exists" });
+  // Check if user already exists (case-insensitive email check)
+  // Use regex for case-insensitive match to catch any existing users with different case
+  try {
+    const exists = await User.findOne({ 
+      email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+    });
+    
+    if (exists) {
+      const roleDisplayName = exists.role === 'orguser' ? 'Student' : exists.role === 'vendor' ? 'Vendor' : exists.role === 'admin' ? 'Admin' : exists.role;
+      const statusDisplayName = exists.status === 'active' ? 'Active' : exists.status === 'inactive' ? 'Inactive' : exists.status === 'pending' ? 'Pending' : exists.status;
+      
+      console.error("[adUsers.create] ❌ User already exists (case-insensitive match):", {
+        normalizedEmail,
+        existingEmail: exists.email,
+        existingUserId: exists._id,
+        existingUserRole: exists.role,
+        existingUserOrgId: exists.orgId,
+        existingUserStatus: exists.status,
+        emailMatches: exists.email.toLowerCase() === normalizedEmail,
+      });
+      
+      return res.status(409).json({ 
+        ok: false, 
+        message: `Unable to create user: An account with email "${exists.email}" already exists in the system.`,
+        error: "USER_EXISTS",
+        errorCode: "EMAIL_ALREADY_REGISTERED",
+        details: {
+          requestedEmail: normalizedEmail,
+          existingEmail: exists.email,
+          existingUserId: String(exists._id),
+          existingUserRole: exists.role,
+          existingUserRoleDisplay: roleDisplayName,
+          existingUserStatus: exists.status,
+          existingUserStatusDisplay: statusDisplayName,
+          suggestion: `Please use a different email address, or update the existing user (ID: ${String(exists._id)}) if you intended to modify their account.`,
+        }
+      });
+    }
+    console.log("[adUsers.create] ✅ Email check passed - user does not exist (case-insensitive)");
+  } catch (dbError) {
+    console.error("[adUsers.create] Database error checking for existing user:", {
+      error: dbError?.message,
+      stack: dbError?.stack?.split('\n').slice(0, 5).join('\n'),
+    });
+    return res.status(500).json({ 
+      ok: false, 
+      message: "A database error occurred while processing your request. Please try again later or contact support if the issue persists.",
+      error: "DB_ERROR",
+      errorCode: "DATABASE_ERROR",
+      details: {
+        suggestion: "This is a temporary issue. Please wait a moment and try again. If the problem continues, contact your system administrator.",
+      }
+    });
+  }
 
   // --- shared values for both branches ---
   const appBase  = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
@@ -86,69 +177,328 @@ export async function create(req, res) {
     orgName = org?.name;
   } catch {}
 
-  if (role === 'vendor') {
+  try {
+    if (role === 'vendor') {
+      console.log("[adUsers.create] Creating vendor user...");
+      const password = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi,'').slice(0,12) + "9!";
+      const passwordHash = await bcrypt.hash(password, 12);
+      
+      let doc;
+      try {
+        doc = await User.create({
+          email: normalizedEmail, // Use normalized email
+          name: name || null,
+          role: 'vendor', status: 'active',
+          orgId: scopeOrgId,
+          managerId: actor.sub || actor._id || actor.id || null,
+          invitedBy: actor.sub || actor._id || actor.id || null,
+          mfa: { required: true, method: (mfa?.method === 'totp' ? 'totp' : 'otp') },
+          isVerified: false,
+          passwordHash,
+        });
+        console.log("[adUsers.create] ✅ Vendor user created:", { userId: doc._id, email: normalizedEmail });
+      } catch (createError) {
+        console.error("[adUsers.create] ❌ Failed to create vendor user:", {
+          error: createError?.message,
+          code: createError?.code,
+          keyPattern: createError?.keyPattern,
+          keyValue: createError?.keyValue,
+        });
+        
+        // Check for duplicate key error (MongoDB E11000)
+        if (createError?.code === 11000 || createError?.codeName === 'DuplicateKey') {
+          // Try to find the existing user to provide better error details
+          let existingUser = null;
+          try {
+            existingUser = await User.findOne({ email: normalizedEmail });
+          } catch (lookupError) {
+            console.warn("[adUsers.create] Could not lookup existing user:", lookupError?.message);
+          }
+          
+          const roleDisplayName = existingUser?.role === 'orguser' ? 'Student' : existingUser?.role === 'vendor' ? 'Vendor' : existingUser?.role === 'admin' ? 'Admin' : existingUser?.role || 'Unknown';
+          const statusDisplayName = existingUser?.status === 'active' ? 'Active' : existingUser?.status === 'inactive' ? 'Inactive' : existingUser?.status === 'pending' ? 'Pending' : existingUser?.status || 'Unknown';
+          
+          return res.status(409).json({ 
+            ok: false, 
+            message: `Unable to create vendor: An account with email "${normalizedEmail}" already exists in the system.`,
+            error: "USER_EXISTS",
+            errorCode: "EMAIL_ALREADY_REGISTERED",
+            details: {
+              requestedEmail: normalizedEmail,
+              existingEmail: existingUser?.email || normalizedEmail,
+              existingUserId: existingUser ? String(existingUser._id) : 'Unknown',
+              existingUserRole: existingUser?.role || 'Unknown',
+              existingUserRoleDisplay: roleDisplayName,
+              existingUserStatus: existingUser?.status || 'Unknown',
+              existingUserStatusDisplay: statusDisplayName,
+              duplicateKey: createError?.keyValue,
+              suggestion: existingUser 
+                ? `Please use a different email address, or update the existing user (ID: ${String(existingUser._id)}) if you intended to modify their account.`
+                : `Please use a different email address. This email is already registered in the system.`,
+            }
+          });
+        }
+        throw createError;
+      }
+
+      let emailSent = false;
+      let emailError = null;
+      try {
+        await sendStaffCredentialsEmail(normalizedEmail, {
+          role: 'vendor', signinUrl: signInUrl, email: normalizedEmail, password,
+          mfaMethod: doc.mfa.method, mfaRequired: true,
+          orgName, adminName: actor?.name || actor?.email,
+        });
+        emailSent = true;
+        console.log("[adUsers.create] ✅ Vendor credentials email sent successfully");
+      } catch (e) {
+        emailError = e;
+        const errorMessage = e?.message || String(e);
+        const statusCode = e?.response?.statusCode || e?.code || (errorMessage.includes('403') ? 403 : null);
+        
+        console.error("[adUsers.create] ⚠️ Vendor email failed:");
+        console.error("[adUsers.create]   Error:", errorMessage);
+        console.error("[adUsers.create]   Status:", statusCode || 'unknown');
+        
+        // Check for Resend 403 error (test domain restriction)
+        const isTestDomainRestriction = 
+          statusCode === 403 ||
+          errorMessage.includes('only send testing emails to your own email address') ||
+          errorMessage.includes('verify a domain') ||
+          errorMessage.includes('Test domain can only send to account owner');
+        
+        if (isTestDomainRestriction) {
+          console.error("[adUsers.create] ❌ RESEND 403 ERROR: Test Domain Restriction");
+          console.error("[adUsers.create] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          console.error("[adUsers.create] 📌 CAUSE: Using test domain (onboarding@resend.dev)");
+          console.error("[adUsers.create] 📌 Test domain can ONLY send to account owner's email");
+          console.error("[adUsers.create] 📌 SOLUTION: Verify your domain in Resend");
+          console.error("[adUsers.create]     1. Go to: https://resend.com/domains");
+          console.error("[adUsers.create]     2. Add your domain");
+          console.error("[adUsers.create]     3. Add DNS records (SPF, DKIM, DMARC)");
+          console.error("[adUsers.create]     4. Wait for verification");
+          console.error("[adUsers.create]     5. Update EMAIL_FROM to use verified domain");
+          console.error("[adUsers.create]     6. Restart server");
+          console.error("[adUsers.create] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
+        
+        // Check for credit/quota exhaustion (Resend free tier: 3,000/month, 100/day)
+        const errorMessages = errorMessage.toLowerCase();
+        const isCreditExceeded = 
+          errorMessages.includes('quota exceeded') ||
+          errorMessages.includes('rate limit') ||
+          errorMessages.includes('too many requests') ||
+          errorMessages.includes('monthly sending limit') ||
+          errorMessages.includes('daily sending limit') ||
+          errorMessages.includes('usage limit');
+        
+        // Log actionable error messages based on error type
+        if (isCreditExceeded) {
+          console.error("[adUsers.create] 💡 ACTION REQUIRED: Resend free tier quota exceeded");
+          console.error("[adUsers.create] 💡 Your Resend account has run out of email credits");
+          console.error("[adUsers.create] 💡 Free tier limits:");
+          console.error("[adUsers.create]     • Daily: 100 emails/day (resets every 24 hours)");
+          console.error("[adUsers.create]     • Monthly: 3,000 emails/month (resets on 1st)");
+          console.error("[adUsers.create] 💡 Check which limit was hit:");
+          console.error("[adUsers.create]     → Go to: https://resend.com/emails");
+          console.error("[adUsers.create] 💡 If DAILY limit: Wait ~24 hours for reset");
+          console.error("[adUsers.create] 💡 If MONTHLY limit: Wait for 1st of month or upgrade");
+          console.error("[adUsers.create] 💡 User was created successfully, but email was not sent");
+        } else if (statusCode === 401) {
+          console.error("[adUsers.create] 💡 ACTION REQUIRED: Invalid Resend API key");
+          console.error("[adUsers.create] 💡 Check your RESEND_API_KEY in .env file");
+        } else if (statusCode === 403) {
+          console.error("[adUsers.create] 💡 ACTION REQUIRED: Resend permission issue");
+          console.error("[adUsers.create] 💡 Verify your domain and FROM email address in Resend dashboard");
+        } else if (statusCode === 400) {
+          console.error("[adUsers.create] 💡 ACTION REQUIRED: Invalid email configuration");
+          console.error("[adUsers.create] 💡 Check your EMAIL_FROM environment variable and domain verification");
+        }
+        
+        // Don't fail the request if email fails - user is still created
+      }
+      
+      const duration = Date.now() - startTime;
+      console.log("[adUsers.create] ✅ Vendor creation completed in", duration, "ms");
+      return res.json({ ...sanitize(doc), emailSent });
+    }
+
+    // organisation member (learner)
+    console.log("[adUsers.create] Creating student/orguser...");
     const password = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi,'').slice(0,12) + "9!";
     const passwordHash = await bcrypt.hash(password, 12);
-    const doc = await User.create({
-      email, name: name || null,
-      role: 'vendor', status: 'active',
-      orgId: scopeOrgId,
-      managerId: actor.sub || actor._id || actor.id || null,
-      invitedBy: actor.sub || actor._id || actor.id || null,
-      mfa: { required: true, method: (mfa?.method === 'totp' ? 'totp' : 'otp') },
-      isVerified: false,
-      passwordHash,
-    });
+    
+    let doc;
+    try {
+      doc = await User.create({
+        email: normalizedEmail, // Use normalized email
+        name: name || null,
+        role,
+        status: 'active',
+        // Use the final role here.  For learners this will be 'orguser'.
+        orgId: scopeOrgId,
+        invitedBy: actor.sub || actor._id || actor.id || null,
+        managerId: actor.sub || actor._id || actor.id || null,
+        mfa: mfa?.required ? { required:true, method: mfa.method || 'otp' } : { required:false, method:null },
+        isVerified: false,
+        passwordHash,
+      });
+      console.log("[adUsers.create] ✅ Student user created:", { userId: doc._id, email: normalizedEmail, role: doc.role });
+    } catch (createError) {
+      console.error("[adUsers.create] ❌ Failed to create student user:", {
+        error: createError?.message,
+        code: createError?.code,
+        codeName: createError?.codeName,
+        keyPattern: createError?.keyPattern,
+        keyValue: createError?.keyValue,
+        stack: createError?.stack?.split('\n').slice(0, 5).join('\n'),
+      });
+      
+      // Check for duplicate key error (MongoDB E11000)
+      if (createError?.code === 11000 || createError?.codeName === 'DuplicateKey') {
+        // Try to find the existing user to provide better error details
+        let existingUser = null;
+        try {
+          existingUser = await User.findOne({ email: normalizedEmail });
+        } catch (lookupError) {
+          console.warn("[adUsers.create] Could not lookup existing user:", lookupError?.message);
+        }
+        
+        const roleDisplayName = existingUser?.role === 'orguser' ? 'Student' : existingUser?.role === 'vendor' ? 'Vendor' : existingUser?.role === 'admin' ? 'Admin' : existingUser?.role || 'Unknown';
+        const statusDisplayName = existingUser?.status === 'active' ? 'Active' : existingUser?.status === 'inactive' ? 'Inactive' : existingUser?.status === 'pending' ? 'Pending' : existingUser?.status || 'Unknown';
+        
+        return res.status(409).json({ 
+          ok: false, 
+          message: `Unable to create student: An account with email "${normalizedEmail}" already exists in the system.`,
+          error: "USER_EXISTS",
+          errorCode: "EMAIL_ALREADY_REGISTERED",
+          details: {
+            requestedEmail: normalizedEmail,
+            existingEmail: existingUser?.email || normalizedEmail,
+            existingUserId: existingUser ? String(existingUser._id) : 'Unknown',
+            existingUserRole: existingUser?.role || 'Unknown',
+            existingUserRoleDisplay: roleDisplayName,
+            existingUserStatus: existingUser?.status || 'Unknown',
+            existingUserStatusDisplay: statusDisplayName,
+            duplicateKey: createError?.keyValue,
+            suggestion: existingUser 
+              ? `Please use a different email address, or update the existing user (ID: ${String(existingUser._id)}) if you intended to modify their account.`
+              : `Please use a different email address. This email is already registered in the system.`,
+          }
+        });
+      }
+      throw createError;
+    }
 
     let emailSent = false;
+    let emailError = null;
     try {
-      await sendStaffCredentialsEmail(email, {
-        role: 'vendor', signinUrl: signInUrl, email, password,
-        mfaMethod: doc.mfa.method, mfaRequired: true,
-        orgName, adminName: actor?.name || actor?.email,
+      await sendStaffCredentialsEmail(normalizedEmail, {
+        // We still mention 'student' in the email to the recipient, but the actual
+        // stored role is doc.role.  The public-facing term can remain 'student'
+        // while the backend uses 'orguser' for access control.
+        role: inputRole,
+        signinUrl: signInUrl,
+        email: normalizedEmail,
+        password,
+        mfaMethod: doc.mfa.method,
+        mfaRequired: !!doc.mfa.required,
+        orgName,
+        adminName: actor?.name || actor?.email,
       });
       emailSent = true;
-    } catch (e) { console.warn("[adUsers.create] vendor email failed:", e?.message); }
+      console.log("[adUsers.create] ✅ Student credentials email sent successfully");
+    } catch (e) {
+      emailError = e;
+      const statusCode = e?.response?.statusCode || e?.code;
+      const errorBody = e?.response?.body;
+      
+      console.error("[adUsers.create] ⚠️ Student email failed:");
+      console.error("[adUsers.create]   Error:", e?.message);
+      console.error("[adUsers.create]   Status:", statusCode || 'unknown');
+      
+      if (errorBody) {
+        console.error("[adUsers.create]   Resend Error Details:", typeof errorBody === 'object' ? JSON.stringify(errorBody, null, 2) : errorBody);
+      }
+      
+      // Check for credit/quota exhaustion (Resend free tier: 3,000/month, 100/day)
+      const errorMessages = (typeof errorBody === 'string' ? errorBody : JSON.stringify(errorBody || {})).toLowerCase();
+      const isCreditExceeded = 
+        errorMessages.includes('quota exceeded') ||
+        errorMessages.includes('rate limit') ||
+        errorMessages.includes('too many requests') ||
+        errorMessages.includes('monthly sending limit') ||
+        errorMessages.includes('daily sending limit') ||
+        errorMessages.includes('usage limit');
+      
+      // Log actionable error messages based on error type
+      if (isCreditExceeded) {
+        console.error("[adUsers.create] 💡 ACTION REQUIRED: Resend free tier quota exceeded");
+        console.error("[adUsers.create] 💡 Your Resend account has run out of email credits");
+        console.error("[adUsers.create] 💡 Free tier limits:");
+        console.error("[adUsers.create]     • Daily: 100 emails/day (resets every 24 hours)");
+        console.error("[adUsers.create]     • Monthly: 3,000 emails/month (resets on 1st)");
+        console.error("[adUsers.create] 💡 Check which limit was hit:");
+        console.error("[adUsers.create]     → Go to: https://resend.com/emails");
+        console.error("[adUsers.create] 💡 If DAILY limit: Wait ~24 hours for reset");
+        console.error("[adUsers.create] 💡 If MONTHLY limit: Wait for 1st of month or upgrade");
+        console.error("[adUsers.create] 💡 User was created successfully, but email was not sent");
+      } else if (statusCode === 401) {
+        console.error("[adUsers.create] 💡 ACTION REQUIRED: Invalid Resend API key");
+        console.error("[adUsers.create] 💡 Check your RESEND_API_KEY in .env file");
+      } else if (statusCode === 403) {
+        // Check if it's the test domain restriction error
+        const errorMessage = e?.message || String(e);
+        const isTestDomainRestriction = 
+          errorMessage.includes('only send testing emails to your own email address') ||
+          errorMessage.includes('verify a domain') ||
+          errorMessage.includes('Test domain can only send to account owner');
+        
+        if (isTestDomainRestriction) {
+          console.error("[adUsers.create] ❌ RESEND 403 ERROR: Test Domain Restriction");
+          console.error("[adUsers.create] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          console.error("[adUsers.create] 📌 CAUSE: Using test domain (onboarding@resend.dev)");
+          console.error("[adUsers.create] 📌 Test domain can ONLY send to account owner's email");
+          console.error("[adUsers.create] 📌 SOLUTION: Verify your domain in Resend");
+          console.error("[adUsers.create]     1. Go to: https://resend.com/domains");
+          console.error("[adUsers.create]     2. Add your domain");
+          console.error("[adUsers.create]     3. Add DNS records (SPF, DKIM, DMARC)");
+          console.error("[adUsers.create]     4. Wait for verification");
+          console.error("[adUsers.create]     5. Update EMAIL_FROM to use verified domain");
+          console.error("[adUsers.create]     6. Restart server");
+          console.error("[adUsers.create] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+          console.error("[adUsers.create] ⚠️  User was created successfully, but email was NOT sent");
+          console.error("[adUsers.create] ⚠️  User will need to use 'Forgot Password' to set their password");
+        } else {
+          console.error("[adUsers.create] 💡 ACTION REQUIRED: Resend permission issue");
+          console.error("[adUsers.create] 💡 Verify your domain and FROM email address in Resend dashboard");
+        }
+      } else if (statusCode === 400) {
+        console.error("[adUsers.create] 💡 ACTION REQUIRED: Invalid email configuration");
+        console.error("[adUsers.create] 💡 Check your EMAIL_FROM environment variable and domain verification");
+      }
+      
+      // Don't fail the request if email fails - user is still created
+      // The user can manually send credentials or fix email configuration
+    }
+    
+    const duration = Date.now() - startTime;
+    console.log("[adUsers.create] ✅ Student creation completed in", duration, "ms");
     return res.json({ ...sanitize(doc), emailSent });
-  }
-
-  // organisation member (learner)
-  const password = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi,'').slice(0,12) + "9!";
-  const passwordHash = await bcrypt.hash(password, 12);
-  const doc = await User.create({
-    email,
-    name: name || null,
-    role,
-    status: 'active',
-    // Use the final role here.  For learners this will be 'orguser'.
-    orgId: scopeOrgId,
-    invitedBy: actor.sub || actor._id || actor.id || null,
-    managerId: actor.sub || actor._id || actor.id || null,
-    mfa: mfa?.required ? { required:true, method: mfa.method || 'otp' } : { required:false, method:null },
-    isVerified: false,
-    passwordHash,
-  });
-
-  let emailSent = false;
-  try {
-    await sendStaffCredentialsEmail(email, {
-      // We still mention 'student' in the email to the recipient, but the actual
-      // stored role is doc.role.  The public-facing term can remain 'student'
-      // while the backend uses 'orguser' for access control.
-      role: inputRole,
-      signinUrl: signInUrl,
-      email,
-      password,
-      mfaMethod: doc.mfa.method,
-      mfaRequired: !!doc.mfa.required,
-      orgName,
-      adminName: actor?.name || actor?.email,
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error("[adUsers.create] ❌ Unexpected error after", duration, "ms:", {
+      error: error?.message,
+      code: error?.code,
+      codeName: error?.codeName,
+      stack: error?.stack?.split('\n').slice(0, 10).join('\n'),
     });
-    emailSent = true;
-  } catch (e) {
-    console.warn("[adUsers.create] student email failed:", e?.message);
+    return res.status(500).json({ 
+      ok: false, 
+      message: error?.message || "Internal server error",
+      error: "INTERNAL_ERROR"
+    });
   }
-  return res.json({ ...sanitize(doc), emailSent });
 }
 
 // PATCH /ad/users/:id

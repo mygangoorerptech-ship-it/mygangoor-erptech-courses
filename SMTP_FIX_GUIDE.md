@@ -5,25 +5,33 @@ SMTP connection timeouts in production on Render, but works fine locally.
 
 ## Root Causes
 
-1. **Render may block outbound SMTP connections** on free tier or certain ports
+1. **Render may block outbound SMTP connections** on free tier (port 587 is commonly blocked)
 2. **SMTP server firewall** may block Render's IP addresses
-3. **Network latency** causing timeouts (default timeouts too short)
-4. **TLS/SSL handshake issues** in production environment
+3. **Network latency** causing timeouts
+4. **Nodemailer timeout settings** may not be respected in some environments
 
-## Solutions Implemented
+## Solutions Implemented ✅
 
-### 1. Extended Timeout Settings ✅
+### 1. Optimized SMTP Configuration
 
-Added to `backend/src/utils/email.js`:
-- `connectionTimeout: 60000` (60 seconds)
-- `greetingTimeout: 30000` (30 seconds)
-- `socketTimeout: 60000` (60 seconds)
+- **Connection pooling disabled** (`pool: false`) - Each email uses a fresh connection
+- **Extended timeouts**: 60 seconds (maximum nodemailer allows)
+- **Automatic port fallback**: Tries port 2525 if 587 fails
+- **Retry logic**: Up to 2 retries with exponential backoff
+- **Non-blocking startup**: SMTP verification skipped in production
 
-### 2. Better Error Handling ✅
+### 2. Alternative Port Support
 
-- Non-blocking SMTP verification with 10-second timeout
-- Detailed error messages for troubleshooting
-- Connection pooling enabled
+If port 587 is blocked, you can use port 2525 (often not blocked):
+```bash
+SMTP_ALT_PORT=2525
+```
+
+### 3. Better Error Handling
+
+- Automatic retry on timeout/connection errors
+- Detailed error logging with troubleshooting tips
+- Graceful degradation (emails fail silently, don't crash server)
 
 ## Recommended Solutions
 
@@ -74,11 +82,31 @@ If using Gmail or custom SMTP:
 ```bash
 SMTP_HOST=smtp.gmail.com           # Your SMTP server
 SMTP_PORT=587                      # Usually 587 (TLS) or 465 (SSL)
+SMTP_ALT_PORT=2525                 # OPTIONAL: Alternative port if 587 is blocked
 SMTP_SECURE=false                  # true for port 465, false for 587
 SMTP_USER=your-email@gmail.com     # Your email address
 SMTP_PASS=your-app-password        # App password (not regular password!)
 MAIL_FROM=ECA Academy <noreply@yourapp.com>
 ```
+
+### If Port 587 is Blocked (Render Free Tier)
+
+1. **Try Port 2525** (often not blocked):
+   ```bash
+   SMTP_ALT_PORT=2525
+   ```
+   Or set it as primary:
+   ```bash
+   SMTP_PORT=2525
+   ```
+
+2. **Contact Render Support**:
+   - Ask them to unblock port 587 for outbound SMTP
+   - Or request access to port 2525
+
+3. **Check SMTP Provider**:
+   - Some providers (like Gmail) support multiple ports
+   - Check if your SMTP provider supports port 2525
 
 ### For Gmail Specifically:
 
@@ -137,12 +165,52 @@ The notification fetch error suggests the API endpoint isn't configured correctl
 - Backend CORS allows the Vercel origin
 - The notification endpoint exists and is accessible
 
+## Troubleshooting Connection Timeouts
+
+### If you're still getting timeouts:
+
+1. **Check Render Logs**:
+   - Look for `[smtp]` messages in logs
+   - Check if it's trying alternative ports
+
+2. **Try Alternative Port**:
+   ```bash
+   # In Render environment variables:
+   SMTP_ALT_PORT=2525
+   ```
+   Then redeploy
+
+3. **Verify SMTP Provider Supports Port 2525**:
+   - Gmail: Only supports 587 and 465
+   - Many providers support 2525 as alternative
+   - Check your SMTP provider's documentation
+
+4. **Contact Render Support**:
+   - Explain that SMTP port 587 is timing out
+   - Ask if outbound SMTP is blocked on free tier
+   - Request port 587 to be unblocked
+
+5. **Last Resort - Use Transactional Email Service**:
+   - **Mailgun** (free tier: 100 emails/day for 3 months)
+   - **SendGrid** (free tier: 100 emails/day)
+   - **Resend** (free tier: 3000 emails/month)
+   - These use HTTP API instead of SMTP (not blocked)
+
+## Current Implementation Status
+
+✅ **Connection pooling disabled** - Fresh connection per email  
+✅ **Automatic retry logic** - Up to 2 retries with backoff  
+✅ **Alternative port support** - Tries 2525 if 587 fails  
+✅ **Non-blocking startup** - Server starts even if SMTP fails  
+✅ **Better error messages** - Helpful troubleshooting tips  
+
 ## Next Steps
 
-1. **Try the timeout fixes** - Redeploy backend and test
-2. **If still timing out**, switch to a transactional email service (Resend/SendGrid)
-3. **Fix Google OAuth** by adding authorized origins
+1. **Deploy the latest changes** - The code now handles timeouts better
+2. **Set SMTP_ALT_PORT=2525** if port 587 is blocked
+3. **Monitor logs** - Check for `[smtp]` messages
 4. **Test email sending** - Try forgot password or OTP email flow
+5. **If still failing**, consider switching to a transactional email service (Mailgun, SendGrid, Resend)
 
-ilikiสำหรับ production ที่มีปัญหา connection timeout, แนะนำให้ใช้ transactional email service แทน direct SMTP เพราะเร็วกว่าและ reliable กว่า.
+**Note**: Render's free tier may block SMTP port 587. Port 2525 is often not blocked and works as an alternative.
 

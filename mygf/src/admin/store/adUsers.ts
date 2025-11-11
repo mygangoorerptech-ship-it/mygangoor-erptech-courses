@@ -78,22 +78,70 @@ export const useAdUsers = create<State>((set, get) => ({
   },
 
   async createOne(payload) {
-    const r = await api.post('/ad/users', payload)
-    // Vendor returns the created doc; student may also return a doc; normalize when present
-    const data = r.data
-    if (data && data.id) {
-      const item = toClient(data)
-      set((s) => ({ items: [item, ...s.items] }))
+    try {
+      console.log("[adUsers.store] Creating user:", payload);
+      const r = await api.post('/ad/users', payload);
+      console.log("[adUsers.store] ✅ User created successfully:", r.data);
+      
+      // Vendor returns the created doc; student may also return a doc; normalize when present
+      const data = r.data;
+      if (data && data.id) {
+        const item = toClient(data);
+        set((s) => ({ items: [item, ...s.items] }));
+      }
+      // If it was an invite/ok-only response, caller can refetch if needed
+      return data;
+    } catch (error: any) {
+      console.error("[adUsers.store] ❌ Failed to create user:", {
+        error: error?.message,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        payload,
+      });
+      
+      // Re-throw with enhanced error info
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to create user";
+      const errorDetails = error?.response?.data?.details || error?.response?.data;
+      
+      const enhancedError = new Error(errorMessage);
+      (enhancedError as any).status = error?.response?.status;
+      (enhancedError as any).data = error?.response?.data;
+      (enhancedError as any).details = errorDetails;
+      
+      throw enhancedError;
     }
-    // If it was an invite/ok-only response, caller can refetch if needed
-    return data
   },
 
   async updateOne(id, patch) {
-    const r = await api.patch(`/ad/users/${id}`, patch)
-    const item = toClient(r.data)
-    set((s) => ({ items: s.items.map((x) => (x.id === id ? item : x)) }))
-    return item
+    try {
+      console.log("[adUsers.store] Updating user:", { id, patch });
+      const r = await api.patch(`/ad/users/${id}`, patch)
+      console.log("[adUsers.store] ✅ User updated successfully:", r.data);
+      const item = toClient(r.data)
+      set((s) => ({ items: s.items.map((x) => (x.id === id ? item : x)) }))
+      return item
+    } catch (error: any) {
+      console.error("[adUsers.store] ❌ Failed to update user:", {
+        error: error?.message,
+        status: error?.response?.status,
+        statusText: error?.response?.statusText,
+        data: error?.response?.data,
+        id,
+        patch,
+      });
+      
+      // Re-throw with enhanced error info
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update user";
+      const errorDetails = error?.response?.data?.details || error?.response?.data;
+      
+      const enhancedError = new Error(errorMessage);
+      (enhancedError as any).status = error?.response?.status;
+      (enhancedError as any).data = error?.response?.data;
+      (enhancedError as any).details = errorDetails;
+      
+      throw enhancedError;
+    }
   },
 
   async deleteOne(id) {

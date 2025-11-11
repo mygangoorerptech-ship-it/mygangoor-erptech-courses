@@ -5,6 +5,8 @@ import { list, markRead, dismiss, stream } from "../controllers/notificationsCon
 
 const router = express.Router();
 
+// Support both /notifications and /notifications/list for frontend compatibility
+router.get("/notifications/list", requireAuth, list);
 router.get("/notifications", requireAuth, list);
 router.post("/notifications/:id/read", requireAuth, markRead);
 router.post("/notifications/:id/dismiss", requireAuth, dismiss);

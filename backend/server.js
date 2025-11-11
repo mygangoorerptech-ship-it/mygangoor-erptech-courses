@@ -305,10 +305,10 @@ connectMongo()
     app.listen(PORT, () => { 
       console.log("Server running on", PORT); 
       startScheduler();
-      // Verify SMTP configuration on startup (non-blocking)
-      // Don't await - let server start even if SMTP verification fails
+      // Verify email service configuration on startup (non-blocking)
+      // Don't await - let server start even if email verification fails
       verifyMailer().catch(err => {
-        console.warn("[smtp] Startup verification failed (non-blocking):", err?.message);
+        console.warn("[resend] Startup verification failed (non-blocking):", err?.message);
       });
     });
   })
