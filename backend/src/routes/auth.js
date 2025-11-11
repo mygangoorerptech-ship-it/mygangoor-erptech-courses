@@ -28,6 +28,7 @@ r.post("/auth/logout", ctrl.logout);
 
 r.post("/auth/invitations", authz, ctrl.invite);
 r.post("/invitations/accept", ctrl.acceptInvite);
+r.get("/invitations/verify", ctrl.verifyInvitation);
 
 r.get('/auth/precheck', ctrl.precheckEmail);
 r.post('/auth/signup-student', ctrl.signupStudent);

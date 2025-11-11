@@ -9,6 +9,7 @@ const invitationSchema = new mongoose.Schema({
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Org", default: null },
   tokenHash: { type: String, required: true },
+  token: { type: String, default: null }, // Store plain token temporarily for email sending (optional, for admin flow)
   expiresAt: { type: Date, required: true },
   accepted: { type: Boolean, default: false },
   invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }

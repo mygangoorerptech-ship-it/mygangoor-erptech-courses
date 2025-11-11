@@ -83,13 +83,22 @@ export const useAdUsers = create<State>((set, get) => ({
       const r = await api.post('/ad/users', payload);
       console.log("[adUsers.store] ✅ User created successfully:", r.data);
       
-      // Vendor returns the created doc; student may also return a doc; normalize when present
       const data = r.data;
+      
+      // If invitation was created, return the full response (including invitation link)
+      if (data?.invitation) {
+        // Invitation created - return full response for modal to display link
+        return data;
+      }
+      
+      // Vendor/student with credentials - returns the created user doc
       if (data && data.id) {
         const item = toClient(data);
         set((s) => ({ items: [item, ...s.items] }));
+        return item;
       }
-      // If it was an invite/ok-only response, caller can refetch if needed
+      
+      // Fallback: return data as-is
       return data;
     } catch (error: any) {
       console.error("[adUsers.store] ❌ Failed to create user:", {

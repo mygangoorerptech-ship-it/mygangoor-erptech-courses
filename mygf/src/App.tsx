@@ -10,6 +10,7 @@ import ReminderPopup from "./components/notifications/ReminderPopup";
 import TracksAndCollectionsSection from "./components/pages/TracksAndCollectionsSection";
 import SignIn from "./components/screens/SignIn";
 import SignUp from "./components/screens/SignUp";
+import AcceptInvitation from "./components/screens/AcceptInvitation";
 import CourseDetail from "./components/course/CourseDetail";
 import ForgotPassword from "./components/screens/ForgotPassword";
 import ResetPassword from "./components/screens/ResetPassword";
@@ -102,6 +103,7 @@ export default function App() {
       <Route path="/about" element={<AboutSection />} />
       <Route path="/login" element={<SignIn />} />
       <Route path="/signup" element={<SignUp />} />
+      <Route path="/accept-invitation" element={<AcceptInvitation />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />

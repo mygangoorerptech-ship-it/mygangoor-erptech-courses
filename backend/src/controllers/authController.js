@@ -410,9 +410,10 @@ export async function acceptInvite(req, res) {
     ? { required: true, method: effMfaMethod || "otp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null }
     : { required: false, method: null,               totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
 
-    const roleFinal = (verifiedNow && inv.role === "student" && inv.orgId) ? "orguser" : inv.role;
   // Students: verified after successful first login/MFA. If no MFA is required, verify now.
   const verifiedNow = !mfaPolicy.required;
+  // Convert 'student' role to 'orguser' for database storage when orgId is present
+  const roleFinal = (inv.role === "student" && inv.orgId) ? "orguser" : inv.role;
 
   // --- Create or update the user with ORG MEMBERSHIP from the invite ---
   const passwordHash = await bcrypt.hash(password, 12);
@@ -423,7 +424,7 @@ export async function acceptInvite(req, res) {
       email: inv.email,
       name,
       passwordHash,
-      role: inv.roleFinal,
+      role: roleFinal,
       status: "active",
       isVerified: verifiedNow,
       orgId: inv.orgId || null,           // <-- org membership
@@ -434,7 +435,7 @@ export async function acceptInvite(req, res) {
   } else {
     user.name = name;
     user.passwordHash = passwordHash;
-    user.role = inv.roleFinal;
+    user.role = roleFinal;
     user.orgId = inv.orgId || null;      // <-- ensure membership
     user.managerId = inv.managerId || null;
     user.mfa = mfaPolicy;
@@ -446,13 +447,84 @@ export async function acceptInvite(req, res) {
   inv.accepted = true;
   await inv.save();
 
-  // --- Issue cookies with orgId embedded so the session immediately sees membership ---
-  const device = req.get("User-Agent") || "unknown";
-  const { access, refresh, jti, refreshExp } = mintTokens(user, device);
-  await saveRefresh(user.id, jti, refreshExp, device);
-  setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+  // Don't auto-login - redirect to login page instead
+  // The user should log in manually after setting their password
+  return res.json({ 
+    ok: true, 
+    message: "Account created successfully. Please log in with your credentials.",
+    user: {
+      id: String(user._id),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    },
+    redirectTo: "/login",
+  });
+}
 
-  return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+// GET /invitations/verify?token=xxx
+// Verify invitation token and return invitation details (for frontend page)
+export async function verifyInvitation(req, res) {
+  const { token } = req.query;
+  if (!token) {
+    return res.status(400).json({ ok: false, message: "Invitation token is required" });
+  }
+  
+  const tokenHash = hash(token);
+  
+  try {
+    const inv = await Invitation.findOne({
+      tokenHash,
+      accepted: false,
+      expiresAt: { $gt: new Date() },
+    });
+    
+    if (!inv) {
+      // Check if it's expired or already accepted
+      const invExpired = await Invitation.findOne({ tokenHash });
+      if (invExpired) {
+        if (invExpired.accepted) {
+          return res.status(400).json({ 
+            ok: false, 
+            message: "This invitation has already been used.",
+            error: "INVITATION_ALREADY_USED",
+          });
+        }
+        if (invExpired.expiresAt <= new Date()) {
+          return res.status(400).json({ 
+            ok: false, 
+            message: "This invitation has expired. Please request a new invitation.",
+            error: "INVITATION_EXPIRED",
+            expiredAt: invExpired.expiresAt.toISOString(),
+          });
+        }
+      }
+      return res.status(400).json({ 
+        ok: false, 
+        message: "Invalid or expired invitation token.",
+        error: "INVITATION_INVALID",
+      });
+    }
+    
+    // Return invitation details (without sensitive info)
+    return res.json({
+      ok: true,
+      invitation: {
+        email: inv.email,
+        role: inv.role,
+        mfaRequired: inv.mfaRequired || false,
+        mfaMethod: inv.mfaMethod || null,
+        expiresAt: inv.expiresAt.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("[verifyInvitation] Error:", error);
+    return res.status(500).json({ 
+      ok: false, 
+      message: "An error occurred while verifying the invitation.",
+      error: "VERIFICATION_ERROR",
+    });
+  }
 }
 
 export async function check(req, res) {

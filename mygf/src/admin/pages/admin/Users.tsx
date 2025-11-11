@@ -134,12 +134,15 @@ export default function ADUsers(){
           onClose={()=> setOpen(null)}
           onSubmit={async (payload) => {
             // Error handling is in the modal component
-            // The modal will only call onClose() on success
+            // The modal will only call onClose() on success (or show invitation link)
             try {
               if (open.mode === 'create') {
-                await createOne(payload)
+                const result = await createOne(payload)
+                // Return result so modal can check for invitation link
+                return result
               } else if (open.initial?.id) {
                 await updateOne(open.initial.id, payload)
+                return null
               }
             } catch (error) {
               // Re-throw error so modal can handle it
@@ -166,15 +169,17 @@ function EditUserModal({
   mode: 'create' | 'edit'
   initial?: AdminUser
   onClose: ()=>void
-  onSubmit: (payload: { name?:string; email:string; role:AdminUserRole; mfa?:{required:boolean; method:'otp'|'totp'|null} })=>Promise<any>
+  onSubmit: (payload: { name?:string; email:string; role:AdminUserRole; mfa?:{required:boolean; method:'otp'|'totp'|null}; sendMethod?:'credentials'|'invitation'; generateOnly?:boolean })=>Promise<any>
 }) {
   const [name, setName]   = useState(initial?.name || '')
   const [email, setEmail] = useState(initial?.email || '')
   const [role, setRole]   = useState<AdminUserRole>((initial?.role as AdminUserRole) || 'student')
   const [mfaRequired, setMfaRequired] = useState<boolean>(initial?.mfa?.required ?? (role === 'student'))
   const [mfaMethod, setMfaMethod] = useState<'otp'|'totp'|null>((initial?.mfa?.method as any) ?? (role === 'student' ? 'otp' : null))
+  const [sendMethod, setSendMethod] = useState<'credentials' | 'invitation'>('credentials')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [invitationLink, setInvitationLink] = useState<string | null>(null)
 
     // when role switches to student, default MFA ON
  React.useEffect(()=>{
@@ -211,9 +216,118 @@ function EditUserModal({
             <option value="vendor">Vendor</option>
           </Select>
           <p className="text-xs text-gray-500 mt-1">
-            Students will receive login credentials by email, and must complete MFA ({mfaRequired ? (mfaMethod?.toUpperCase() || 'OTP') : 'optional'}). No Sign Up needed.
+            {sendMethod === 'credentials' 
+              ? `Students will receive login credentials by email, and must complete MFA (${mfaRequired ? (mfaMethod?.toUpperCase() || 'OTP') : 'optional'}). No Sign Up needed.`
+              : `Invitation link will be sent to the user. They will set their own password and create their account.`}
           </p>
         </div>
+
+        {mode === 'create' && (
+          <div>
+            <Label>Send Method</Label>
+            <Select 
+              value={sendMethod || 'credentials'} 
+              onChange={e=> {
+                setSendMethod(e.target.value as 'credentials' | 'invitation');
+                setInvitationLink(null); // Clear invitation link when method changes
+                if (error) setError(null);
+              }}
+            >
+              <option value="credentials">Send Credentials (Auto-create account)</option>
+              <option value="invitation">Send Invitation Link (User sets password)</option>
+            </Select>
+            <p className="text-xs text-gray-500 mt-1">
+              {sendMethod === 'credentials' 
+                ? 'User account will be created immediately with auto-generated password sent via email.'
+                : 'User will receive an invitation link to set their own password. Link expires in 24 hours.'}
+            </p>
+            
+            {sendMethod === 'invitation' && !invitationLink && (
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={async () => {
+                    setError(null);
+                    
+                    // Client-side validation
+                    if (!email || !email.trim()) {
+                      setError("Email address is required. Please enter a valid email address.");
+                      return;
+                    }
+                    
+                    // Basic email format validation
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email.trim())) {
+                      setError("Please enter a valid email address (e.g., user@example.com).");
+                      return;
+                    }
+                    
+                    setSaving(true);
+                    try {
+                      const result = await onSubmit({
+                        name: name || undefined,
+                        email: email.trim(),
+                        role,
+                        mfa: { required: mfaRequired, method: mfaRequired ? (mfaMethod || 'otp') : null },
+                        sendMethod: 'invitation',
+                        generateOnly: true, // Only generate link, don't send email
+                      });
+                      
+                      // If invitation was created, show the link
+                      if (result?.invitation?.invitationLink) {
+                        setInvitationLink(result.invitation.invitationLink);
+                      } else {
+                        setError("Failed to generate invitation link. Please try again.");
+                      }
+                    } catch (err: any) {
+                      console.error("[EditUserModal] Generate link error:", err);
+                      const errorData = err?.data || err?.response?.data || {};
+                      setError(errorData?.message || err?.message || "Failed to generate invitation link. Please try again.");
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving || !email.trim()}
+                  className="w-full"
+                >
+                  {saving ? 'Generating...' : 'Generate Link'}
+                </Button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Click to generate invitation link. You can copy it and send manually, or click Create to also send via email.
+                </p>
+              </div>
+            )}
+            
+            {sendMethod === 'invitation' && invitationLink && (
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <Label>Invitation Link (Generated)</Label>
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="text"
+                    readOnly
+                    value={invitationLink}
+                    className="flex-1 px-3 py-2 border border-blue-300 rounded bg-white font-mono text-xs"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      navigator.clipboard.writeText(invitationLink);
+                      alert('Invitation link copied to clipboard!');
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-blue-700 mt-2">
+                  ✅ Link generated! You can copy and send it manually, or click "Send Email" below to send it via email.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <input id="mfa" type="checkbox" className="scale-110" checked={mfaRequired} onChange={e=> setMfaRequired(e.target.checked)}/>
@@ -226,6 +340,49 @@ function EditUserModal({
             </Select>
           )}
         </div>
+
+        {invitationLink && sendMethod === 'invitation' && (
+          <div className="p-4 bg-green-50 border-2 border-green-300 rounded-lg shadow-sm">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-semibold text-green-900 mb-2 text-base">
+                  ✅ Invitation Link Ready
+                </h4>
+                <p className="text-green-800 text-sm mb-3">
+                  The invitation link has been generated successfully. You can copy it and share manually (via email, social media, etc.), or click "Send Email" below to send it automatically via email.
+                </p>
+                <div className="mb-3">
+                  <Label>Invitation Link</Label>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      type="text"
+                      readOnly
+                      value={invitationLink}
+                      className="flex-1 px-3 py-2 border border-green-300 rounded bg-white font-mono text-xs"
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        navigator.clipboard.writeText(invitationLink);
+                        alert('Invitation link copied to clipboard!');
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-green-700">
+                  This link will expire in 24 hours. The user can use it to set their password and create their account.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg shadow-sm">
@@ -250,7 +407,10 @@ function EditUserModal({
         )}
 
         <div className="pt-2 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={() => {
+            setInvitationLink(null)
+            onClose()
+          }}>{invitationLink && sendMethod === 'invitation' ? 'Close' : 'Cancel'}</Button>
           <Button
             onClick={async ()=>{
               setError(null); // Clear previous errors
@@ -268,15 +428,40 @@ function EditUserModal({
                 return;
               }
               
+              // For invitation method:
+              // - If link is already generated, this sends the email
+              // - If link is not generated, this creates invitation + sends email
+              // For credentials method, this creates user + sends credentials
+              
               setSaving(true)
               try {
-                await onSubmit({
+                const result = await onSubmit({
                   name: name || undefined,
                   email: email.trim(),
                   role,
-                  mfa: { required: mfaRequired, method: mfaRequired ? (mfaMethod || 'otp') : null }
+                  mfa: { required: mfaRequired, method: mfaRequired ? (mfaMethod || 'otp') : null },
+                  sendMethod: mode === 'create' ? sendMethod : undefined,
+                  generateOnly: false, // This is the create action
                 })
-                onClose()
+                
+                // If invitation was created, show the link
+                if (result?.invitation?.invitationLink) {
+                  setInvitationLink(result.invitation.invitationLink);
+                  // For invitation method, show success message
+                  // If email was sent, show success message; modal stays open so admin can copy the link
+                  if (result.invitation.emailSent && sendMethod === 'invitation') {
+                    // Email sent successfully - show success but keep modal open for copying
+                    // Modal will stay open so admin can copy the link
+                  }
+                  // Don't close modal for invitation method - let admin copy link
+                  // For credentials method, close modal
+                  if (sendMethod !== 'invitation') {
+                    onClose();
+                  }
+                } else {
+                  // Normal user creation (credentials method) - close modal
+                  onClose();
+                }
               } catch (err: any) {
                 console.error("[EditUserModal] Error:", err);
                 
@@ -358,7 +543,11 @@ function EditUserModal({
             disabled={saving}
             aria-busy={saving}
           >
-            {saving ? 'Saving…' : (mode==='create' ? 'Create' : 'Save')}
+            {saving 
+              ? 'Saving…' 
+              : (sendMethod === 'invitation' && invitationLink 
+                ? 'Send Email' 
+                : (mode==='create' ? 'Create' : 'Save'))}
           </Button>
         </div>
       </div>

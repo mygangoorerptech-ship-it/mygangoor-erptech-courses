@@ -65,6 +65,8 @@ export async function create(req, res) {
       role: req.body?.role,
       mfa: req.body?.mfa,
       orgId: req.body?.orgId,
+      sendMethod: req.body?.sendMethod,
+      generateOnly: req.body?.generateOnly,
     }
   });
   
@@ -84,7 +86,7 @@ export async function create(req, res) {
     return res.status(403).json({ ok:false, message:"No org" });
   }
 
-  const { email, name, role: inputRole, mfa } = req.body || {};
+  const { email, name, role: inputRole, mfa, sendMethod, generateOnly } = req.body || {};
   if (!email || !inputRole) {
     console.warn("[adUsers.create] Missing required fields:", { email: !!email, role: !!inputRole });
     return res.status(400).json({ ok:false, message:"email and role required" });
@@ -92,6 +94,19 @@ export async function create(req, res) {
   if (!['vendor','student'].includes(inputRole)) {
     console.warn("[adUsers.create] Invalid role:", inputRole);
     return res.status(400).json({ ok:false, message:"invalid role" });
+  }
+  
+  // Validate sendMethod if provided
+  const validSendMethod = sendMethod || 'credentials'; // Default to credentials for backward compatibility
+  if (!['credentials', 'invitation'].includes(validSendMethod)) {
+    console.warn("[adUsers.create] Invalid sendMethod:", sendMethod);
+    return res.status(400).json({ ok:false, message:"sendMethod must be 'credentials' or 'invitation'" });
+  }
+  
+  // If generateOnly is true, it must be invitation method
+  if (generateOnly && validSendMethod !== 'invitation') {
+    console.warn("[adUsers.create] generateOnly can only be used with invitation method");
+    return res.status(400).json({ ok:false, message:"generateOnly can only be used with invitation sendMethod" });
   }
 
   // Normalize email to lowercase (emails are case-insensitive)
@@ -171,12 +186,265 @@ export async function create(req, res) {
   // --- shared values for both branches ---
   const appBase  = (process.env.PUBLIC_APP_URL || "").split(",")[0]?.trim() || "http://localhost:5173";
   const signInUrl = `${appBase.replace(/\/$/, "")}/signin`;
+  const acceptInvitationUrl = `${appBase.replace(/\/$/, "")}/accept-invitation`;
   let orgName;
   try {
     const org = await Organization.findById(scopeOrgId).select("name").lean();
     orgName = org?.name;
   } catch {}
 
+  // Helper function to create invitation (used by both generate and create)
+  async function createInvitation(sendEmail = true) {
+    console.log("[adUsers.create] Creating invitation link...", { sendEmail });
+    
+    // Check if user already exists
+    try {
+      const exists = await User.findOne({ 
+        email: { $regex: new RegExp(`^${normalizedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+      });
+      
+      if (exists) {
+        const roleDisplayName = exists.role === 'orguser' ? 'Student' : exists.role === 'vendor' ? 'Vendor' : exists.role === 'admin' ? 'Admin' : exists.role;
+        const statusDisplayName = exists.status === 'active' ? 'Active' : exists.status === 'inactive' ? 'Inactive' : exists.status === 'pending' ? 'Pending' : exists.status;
+        
+        return {
+          error: true,
+          status: 409,
+          data: { 
+            ok: false, 
+            message: `Unable to create invitation: An account with email "${exists.email}" already exists in the system.`,
+            error: "USER_EXISTS",
+            errorCode: "EMAIL_ALREADY_REGISTERED",
+            details: {
+              requestedEmail: normalizedEmail,
+              existingEmail: exists.email,
+              existingUserId: String(exists._id),
+              existingUserRole: exists.role,
+              existingUserRoleDisplay: roleDisplayName,
+              existingUserStatus: exists.status,
+              existingUserStatusDisplay: statusDisplayName,
+              suggestion: `Please use a different email address, or update the existing user (ID: ${String(exists._id)}) if you intended to modify their account.`,
+            }
+          }
+        };
+      }
+    } catch (dbError) {
+      console.error("[adUsers.create] Database error checking for existing user:", {
+        error: dbError?.message,
+        stack: dbError?.stack?.split('\n').slice(0, 5).join('\n'),
+      });
+      return {
+        error: true,
+        status: 500,
+        data: { 
+          ok: false, 
+          message: "A database error occurred while processing your request. Please try again later or contact support if the issue persists.",
+          error: "DB_ERROR",
+          errorCode: "DATABASE_ERROR",
+          details: {
+            suggestion: "This is a temporary issue. Please wait a moment and try again. If the problem continues, contact your system administrator.",
+          }
+        }
+      };
+    }
+    
+    // Check if there's already a pending invitation for this email (and we want to reuse it)
+    let existingInvitation = null;
+    let reuseToken = false;
+    
+    if (!sendEmail) {
+      // If we're just generating the link (not sending email), check for existing invitation
+      try {
+        existingInvitation = await Invitation.findOne({
+          email: normalizedEmail,
+          accepted: false,
+          expiresAt: { $gt: new Date() },
+        });
+        
+        if (existingInvitation && existingInvitation.token) {
+          // We have an existing invitation with a stored token - reuse it
+          console.log("[adUsers.create] Reusing existing invitation:", existingInvitation._id);
+          reuseToken = true;
+        } else if (existingInvitation) {
+          // Existing invitation but no token stored - invalidate and create new one
+          console.log("[adUsers.create] Existing invitation has no token, creating new one");
+          existingInvitation.accepted = true;
+          await existingInvitation.save();
+          existingInvitation = null;
+        }
+      } catch (invError) {
+        console.warn("[adUsers.create] Error checking existing invitations:", invError?.message);
+      }
+    } else {
+      // If we're sending email, check if there's an existing invitation we can send email for
+      try {
+        existingInvitation = await Invitation.findOne({
+          email: normalizedEmail,
+          accepted: false,
+          expiresAt: { $gt: new Date() },
+        });
+        
+        if (existingInvitation && existingInvitation.token) {
+          // We have an existing invitation with a stored token - send email for it
+          console.log("[adUsers.create] Found existing invitation, sending email for it:", existingInvitation._id);
+          reuseToken = true;
+        } else if (existingInvitation) {
+          // Existing invitation but no token - invalidate and create new one
+          existingInvitation.accepted = true;
+          await existingInvitation.save();
+          existingInvitation = null;
+        }
+      } catch (invError) {
+        console.warn("[adUsers.create] Error checking existing invitations:", invError?.message);
+      }
+    }
+    
+    // Generate invitation token with 24-hour expiration (or reuse existing)
+    let token;
+    let tokenHash;
+    let expiresAt;
+    let invitation;
+    
+    if (reuseToken && existingInvitation) {
+      // Reuse existing invitation
+      token = existingInvitation.token;
+      tokenHash = existingInvitation.tokenHash;
+      expiresAt = existingInvitation.expiresAt;
+      invitation = existingInvitation;
+      
+      console.log("[adUsers.create] ✅ Reusing existing invitation:", { 
+        invitationId: invitation._id, 
+        email: normalizedEmail,
+        expiresAt: expiresAt.toISOString(),
+      });
+    } else {
+      // Create new invitation
+      token = crypto.randomBytes(32).toString("hex");
+      tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      
+      const actorId = actor?.sub || actor?._id || actor?.id || null;
+      
+      try {
+        // Create invitation with token stored (for admin flow to send email later)
+        invitation = await Invitation.create({
+          email: normalizedEmail,
+          role: inputRole === 'student' ? 'orguser' : inputRole, // Convert student to orguser
+          orgId: scopeOrgId,
+          mfaRequired: mfa?.required || false,
+          mfaMethod: mfa?.required ? (mfa.method || 'otp') : null,
+          managerId: actorId,
+          tokenHash,
+          token: token, // Store plain token for email sending (admin flow only)
+          expiresAt,
+          invitedBy: actorId,
+          accepted: false,
+        });
+        
+        console.log("[adUsers.create] ✅ Invitation created:", { 
+          invitationId: invitation._id, 
+          email: normalizedEmail,
+          expiresAt: expiresAt.toISOString(),
+        });
+      } catch (invitationError) {
+        console.error("[adUsers.create] ❌ Failed to create invitation:", {
+          error: invitationError?.message,
+          code: invitationError?.code,
+          stack: invitationError?.stack?.split('\n').slice(0, 5).join('\n'),
+        });
+        return {
+          error: true,
+          status: 500,
+          data: {
+            ok: false,
+            message: "Failed to create invitation. Please try again later.",
+            error: "INVITATION_CREATION_ERROR",
+            errorCode: "INVITATION_CREATION_FAILED",
+          }
+        };
+      }
+    }
+    
+    // Generate invitation link
+    const invitationLink = `${acceptInvitationUrl}?token=${token}`;
+    
+    // Send invitation email only if sendEmail is true
+    let emailSent = false;
+    let emailError = null;
+    if (sendEmail) {
+      try {
+        await sendInvitationEmail(normalizedEmail, invitationLink);
+        emailSent = true;
+        console.log("[adUsers.create] ✅ Invitation email sent successfully");
+      } catch (e) {
+        emailError = e;
+        const errorMessage = e?.message || String(e);
+        const statusCode = e?.response?.statusCode || e?.code || (errorMessage.includes('403') ? 403 : null);
+        
+        console.error("[adUsers.create] ⚠️ Invitation email failed:");
+        console.error("[adUsers.create]   Error:", errorMessage);
+        console.error("[adUsers.create]   Status:", statusCode || 'unknown');
+        
+        // Check for Resend 403 error (test domain restriction)
+        const isTestDomainRestriction = 
+          statusCode === 403 ||
+          errorMessage.includes('only send testing emails to your own email address') ||
+          errorMessage.includes('verify a domain') ||
+          errorMessage.includes('Test domain can only send to account owner');
+        
+        if (isTestDomainRestriction) {
+          console.error("[adUsers.create] ❌ RESEND 403 ERROR: Test Domain Restriction");
+          console.error("[adUsers.create] ⚠️  Invitation created, but email was NOT sent");
+          console.error("[adUsers.create] 💡 You can manually share the invitation link");
+        }
+        
+        // Don't fail the request if email fails - invitation is still created
+      }
+    }
+    
+    return {
+      error: false,
+      data: {
+        ok: true,
+        invitation: {
+          id: String(invitation._id),
+          email: normalizedEmail,
+          role: inputRole,
+          expiresAt: expiresAt.toISOString(),
+          invitationLink: invitationLink,
+          emailSent,
+          emailError: emailError ? {
+            message: emailError?.message || String(emailError),
+            statusCode: emailError?.response?.statusCode || emailError?.code || null,
+          } : null,
+        },
+        message: sendEmail 
+          ? (emailSent 
+            ? "Invitation created and email sent successfully" 
+            : "Invitation created. Email sending failed - you can manually share the invitation link.")
+          : "Invitation link generated successfully. You can copy it and send manually, or click Create to send via email.",
+      }
+    };
+  }
+
+  // --- Handle Invitation Link Method ---
+  if (validSendMethod === 'invitation') {
+    // Check if this is a request to just generate link (generateOnly flag)
+    const generateOnly = req.body?.generateOnly === true;
+    
+    const result = await createInvitation(!generateOnly); // Send email only if not generateOnly
+    
+    if (result.error) {
+      return res.status(result.status).json(result.data);
+    }
+    
+    const duration = Date.now() - startTime;
+    console.log("[adUsers.create] ✅ Invitation creation completed in", duration, "ms");
+    
+    return res.json(result.data);
+  }
+
+  // --- Original Credentials Method (Keep Intact) ---
   try {
     if (role === 'vendor') {
       console.log("[adUsers.create] Creating vendor user...");

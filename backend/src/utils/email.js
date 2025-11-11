@@ -637,7 +637,26 @@ export async function verifyMailer() {
     
     // In development, log configuration
     console.log("[resend] ✅ Resend configured and ready");
-    console.log("[resend] 📧 FROM address:", process.env.EMAIL_FROM || process.env.MAIL_FROM);
+    const fromEmail = process.env.EMAIL_FROM || process.env.MAIL_FROM;
+    console.log("[resend] 📧 FROM address:", fromEmail);
+    
+    // Warn if using test domain
+    if (fromEmail && (fromEmail.includes('onboarding@resend.dev') || fromEmail.includes('resend.dev'))) {
+      console.log("[resend] ⚠️  DEV MODE: Using test domain (onboarding@resend.dev)");
+      console.log("[resend] ⚠️  RESTRICTION: Test domain can ONLY send to your Resend account email");
+      console.log("[resend] 📌 Your Resend account email: mithunkumarkulal33@gmail.com");
+      console.log("[resend] 💡 For DEV testing:");
+      console.log("[resend]     • Send test emails to: mithunkumarkulal33@gmail.com");
+      console.log("[resend]     • This is fine for development/testing");
+      console.log("[resend] 💡 For PRODUCTION (send to any email):");
+      console.log("[resend]     1. Verify your domain: https://resend.com/domains");
+      console.log("[resend]     2. Update EMAIL_FROM to: noreply@mygangoor.com");
+      console.log("[resend]     3. Restart your server");
+    } else if (fromEmail && fromEmail.includes('mygangoor.com')) {
+      console.log("[resend] ✅ Using verified domain: mygangoor.com");
+      console.log("[resend] 💡 Make sure domain is verified in Resend: https://resend.com/domains");
+    }
+    
     console.log("[resend] 💡 Test by sending an email (OTP, invitation, etc.)");
     return true;
   } catch (e) {

@@ -24,6 +24,7 @@ export type CreateAdminUserPayload = {
   role: AdminUserRole
   // server forces orgId from session
   mfa?: AdminMfa
+  sendMethod?: 'credentials' | 'invitation' // New: method to send credentials or invitation link
 }
 
 export type UpdateAdminUserPayload = Partial<CreateAdminUserPayload> & {
