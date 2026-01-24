@@ -2,11 +2,11 @@
   "rewrites": [
     {
       "source": "/home",
-      "destination": "/static/home.html"
+      "destination": "/home"
     },
     {
       "source": "/home/",
-      "destination": "/static/home.html"
+      "destination": "/home"
     },
     {
       "source": "/(.*)",

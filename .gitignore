@@ -59,3 +59,4 @@ mygf/.netlify/
 *.zip
 
 .vercel
+*.md

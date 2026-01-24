@@ -84,10 +84,9 @@ export default function App() {
       {/* Default route redirects to static HTML home page */}
       <Route path="/" element={<Navigate to="/home" replace />} />
       
-      {/* Home is served as static HTML - commented out React home route */}
-      {/* <Route path="/home" element={<HomeLanding />} /> */}
-      {/* Serve static landing inside iframe to keep URL as /home */}
-      <Route path="/home" element={<StaticHome />} />
+      {/* Home is served as static HTML from html-pages folder (outside React) */}
+      {/* The backend and vite.config.ts handle serving /home directly */}
+      {/* We don't need a React route for /home anymore - it's served as plain HTML */}
       
       {/* Public: Tracks catalog is accessible without authentication */}
 <Route path="/tracks" element={<TracksAndCollectionsSection />} />
@@ -218,14 +217,5 @@ function TracksGateLoader() {
   );
 }
 
-function StaticHome() {
-  return (
-    <div style={{width: "100%", height: "100vh", overflow: "hidden"}}>
-      <iframe
-        src="/static/home.html"
-        title="Home"
-        style={{border: "none", width: "100%", height: "100%"}}
-      />
-    </div>
-  );
-}
+// StaticHome component removed - HTML files are now served directly from html-pages folder
+// The backend server.js and vite.config.ts handle serving /home and other HTML files

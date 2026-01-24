@@ -592,6 +592,62 @@ This link expires in 1 hour. If you didn't request this, you can ignore this ema
   });
 }
 
+export async function sendContactNotification(to, payload) {
+  const {
+    name,
+    email,
+    phone,
+    subject,
+    message,
+    submittedAt,
+    ipAddress,
+    userAgent,
+  } = payload || {};
+
+  const subjectLine = subject ? `New Contact: ${subject}` : "New Contact Message";
+  const preheader = `${name || "Someone"} sent a contact form message.`;
+  const contentHtml = `
+    <p><b>Name:</b> ${escapeHtml(name || "Unknown")}</p>
+    <p><b>Email:</b> ${escapeHtml(email || "Unknown")}</p>
+    ${phone ? `<p><b>Phone:</b> ${escapeHtml(phone)}</p>` : ""}
+    ${subject ? `<p><b>Subject:</b> ${escapeHtml(subject)}</p>` : ""}
+    <p><b>Message:</b></p>
+    <p>${escapeHtml(message || "")}</p>
+    <hr />
+    <p class="muted"><b>Submitted:</b> ${escapeHtml(submittedAt || "")}</p>
+    <p class="muted"><b>IP:</b> ${escapeHtml(ipAddress || "")}</p>
+    <p class="muted"><b>User Agent:</b> ${escapeHtml(userAgent || "")}</p>
+  `;
+  const html = renderTemplate({ title: subjectLine, preheader, contentHtml });
+  const text = [
+    "New contact form submission",
+    `Name: ${name || "Unknown"}`,
+    `Email: ${email || "Unknown"}`,
+    phone ? `Phone: ${phone}` : null,
+    subject ? `Subject: ${subject}` : null,
+    "",
+    message || "",
+    "",
+    `Submitted: ${submittedAt || ""}`,
+    `IP: ${ipAddress || ""}`,
+    `User Agent: ${userAgent || ""}`,
+  ].filter(Boolean).join("\n");
+
+  const messageId = crypto.randomUUID();
+
+  await sendEmailWithRetry({
+    from: getFromEmail(),
+    to,
+    subject: subjectLine,
+    text,
+    html,
+    headers: {
+      ...baseHeaders(),
+      "Message-ID": `<contact-${messageId}@${APP_HOST}>`,
+    },
+  });
+}
+
 export async function verifyMailer() {
   try {
     // Check if Resend is configured

@@ -47,9 +47,11 @@ import certificatesRouter from "./src/routes/certificates.js";
 import notificationsRouter from "./src/routes/notifications.js";
 import { startScheduler } from "./src/utils/scheduler.js";
 import publicRoutes from "./src/routes/public.js";
+import publicContactRoutes from "./src/routes/publicContact.js";
 import adminReviewRouter from "./src/routes/adminReviewsRoutes.js";
 import notesRouter from "./src/routes/notes.js";
 import studentNotesRouter from "./src/routes/studentNotes.js";
+import contactMessagesRouter from "./src/routes/contactMessages.js";
 
 import path from "path";
 import fs from "fs";
@@ -163,6 +165,8 @@ const CSRF_EXEMPT = [
   "/api/auth/refresh",
   "/api/auth/logout",
   "/api/checkout/razorpay/webhook",
+  "/api/public/contact",
+  "/public/contact",
 ];
 
 // Helper: detect "effectively https" when sitting behind a proxy
@@ -178,8 +182,12 @@ app.use((req, res, next) => {
   if (req.method === "OPTIONS") return next();
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) return next();
 
-  const path = req.path || req.originalUrl || "";
-  if (CSRF_EXEMPT.some((p) => path === p || path.startsWith(p))) return next();
+  // Prefer the full URL path (includes mount path like /api/public/*)
+  // because req.path is only the "local" path under a mounted router.
+  const fullPath = (req.originalUrl || req.path || "").split("?")[0];
+  const localPath = (req.path || "").split("?")[0];
+  const candidates = [fullPath, localPath].filter(Boolean);
+  if (candidates.some((c) => CSRF_EXEMPT.some((p) => c === p || c.startsWith(p)))) return next();
 
   const headerTok = req.get("X-CSRF-Token") || "";
   const cookieTok = req.cookies?.["__Host-csrf"] || req.cookies?.["csrf"] || "";
@@ -253,6 +261,7 @@ if (DEBUG_STUDENT) {
 }
 
 app.use("/api/public", publicRoutes);
+app.use("/api/public", publicContactRoutes);
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api/organizations", organizationsRouter);
@@ -295,8 +304,47 @@ app.use("/api/static/templates", express.static(templatesDir));
 app.use("/api", certificatesRouter);
 app.use("/api", notificationsRouter);
 app.use("/api/admin", adminReviewRouter);
+app.use("/api/admin", contactMessagesRouter);
 app.use("/api/notes", notesRouter);
 app.use("/api/student/notes", studentNotesRouter);
+
+// Serve HTML pages from html-pages folder (outside React)
+const htmlPagesDir = path.join(process.cwd(), "html-pages");
+if (fs.existsSync(htmlPagesDir)) {
+  // Serve static assets (CSS, JS, images) from html-pages/assets
+  // Serve from both /html-assets and /static/assets to maintain compatibility
+  app.use("/html-assets", express.static(path.join(htmlPagesDir, "assets")));
+  app.use("/static/assets", express.static(path.join(htmlPagesDir, "assets")));
+  
+  // Serve other static files from html-pages root (like notification-bell-standalone.js)
+  app.use("/static", express.static(htmlPagesDir, {
+    // Only serve non-HTML files from root
+    setHeaders: (res, filePath) => {
+      if (path.extname(filePath) === '.html') {
+        res.setHeader('Content-Type', 'text/html');
+      }
+    }
+  }));
+  
+  // Serve HTML files directly
+  app.get("/home", (req, res) => {
+    res.sendFile(path.join(htmlPagesDir, "home.html"));
+  });
+  
+  app.get("/login.html", (req, res) => {
+    res.sendFile(path.join(htmlPagesDir, "login.html"));
+  });
+  
+  // Serve any other HTML files from html-pages
+  app.get("/*.html", (req, res, next) => {
+    const htmlFile = path.join(htmlPagesDir, req.path);
+    if (fs.existsSync(htmlFile) && htmlFile.startsWith(htmlPagesDir)) {
+      res.sendFile(htmlFile);
+    } else {
+      next();
+    }
+  });
+}
 
 const PORT = process.env.PORT || 5004;
 

@@ -534,19 +534,21 @@ export async function check(req, res) {
     const headerTok = header.startsWith("Bearer ") ? header.slice(7) : null;
     const token = accessCookie || headerTok;
 
-    if (!token) return res.status(401).json({ ok: false });
+    // Return 200 for unauthenticated sessions to avoid noisy "Failed to load resource"
+    // logs on public pages that call this endpoint only to decide UI state.
+    if (!token) return res.json({ ok: false });
 
     try {
       const { sub: uid } = jwt.verify(token, JWT_ACCESS_SECRET);
       const user = await User.findById(uid);
-      if (!user) return res.status(401).json({ ok: false });
+      if (!user) return res.json({ ok: false });
       return res.json({ ok: true, user });
     } catch {
       // ✋ Do NOT rotate refresh here. Just say “not authorized”.
-      return res.status(401).json({ ok: false });
+      return res.json({ ok: false });
     }
   } catch {
-    return res.status(401).json({ ok: false });
+    return res.json({ ok: false });
   }
 }
 

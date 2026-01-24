@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Meta -->
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta content="Anil z" name="author">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Sign in to continue your learning journey.">
+<meta name="keywords" content="login, sign in, yoga, meditation, courses">
+
+<!-- SITE TITLE -->
+<title>Sign In - M.Y. Gangoor Global Foundation</title>
+<!-- Favicon Icon -->
+<link rel="shortcut icon" type="image/x-icon" href="/static/assets/images/favicon.png">
+<!-- Animation CSS -->
+<link rel="stylesheet" href="/static/assets/css/animate.css">	
+<!-- Latest Bootstrap min CSS -->
+<link rel="stylesheet" href="/static/assets/bootstrap/css/bootstrap.min.css">
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css?family=Oswald:200,300,400,500,600,700&display=swap" rel="stylesheet">   
+<link href="https://fonts.googleapis.com/css?family=Poppins:100,200,300,400,500,600,700,800,900&display=swap" rel="stylesheet">  
+<!-- Icon Font CSS -->
+<link rel="stylesheet" href="/static/assets/css/ionicons.min.css">
+<!-- FontAwesome CSS -->
+<link rel="stylesheet" href="/static/assets/css/all.min.css">
+<!-- Flaticon Font CSS -->
+<link rel="stylesheet" href="/static/assets/css/flaticon.css">
+<!-- Themify Font CSS -->
+<link rel="stylesheet" href="/static/assets/css/themify-icons.css">
+<!-- Style CSS -->
+<link rel="stylesheet" href="/static/assets/css/style.css">
+<link rel="stylesheet" href="/static/assets/css/responsive.css">
+<link rel="stylesheet" id="layoutstyle" href="/static/assets/color/theme-default.css">
+
+<!-- API Base URL Configuration -->
+<script>
+// Determine API base URL based on environment
+(function() {
+    // Try to get from meta tag (can be injected during build)
+    const apiMeta = document.querySelector('meta[name="api-base-url"]');
+    const apiBaseFromMeta = apiMeta ? apiMeta.getAttribute('content') : null;
+    
+    // If meta tag exists, use it
+    if (apiBaseFromMeta) {
+        window.API_BASE_URL = apiBaseFromMeta;
+    } else {
+        // Auto-detect: if not localhost, assume production and use full API URL
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                           window.location.hostname === '127.0.0.1' ||
+                           window.location.hostname.includes('localhost');
+        
+        if (isLocalhost) {
+            // Development: use relative path (Vite proxy handles it)
+            window.API_BASE_URL = '/api';
+        } else {
+            // Production: use Render backend URL
+            // This can be overridden by setting meta tag during build
+            window.API_BASE_URL = 'https://eca-uvco.onrender.com/api';
+        }
+    }
+    
+    console.log('[Login Page] API Base URL:', window.API_BASE_URL);
+})();
+</script>
+
+<style>
+.login-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 20px 50px;
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+}
+
+.login-container {
+    max-width: 450px;
+    width: 100%;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+}
+
+.login-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.login-subtitle {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+.login-btn {
+    width: 100%;
+    padding: 12px;
+    background: linear-gradient(to right, #6366f1, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.login-btn:hover:not(:disabled) {
+    background: linear-gradient(to right, #4f46e5, #2563eb);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.forgot-password-link {
+    text-align: right;
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
+.forgot-password-link a {
+    color: #6366f1;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.forgot-password-link a:hover {
+    text-decoration: underline;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    color: #999;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ddd;
+}
+
+.divider span {
+    padding: 0 15px;
+    font-size: 12px;
+}
+
+.signup-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.signup-link a {
+    color: #6366f1;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}
+
+.back-to-home {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.back-to-home a {
+    color: #666;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.back-to-home a:hover {
+    color: #6366f1;
+    text-decoration: underline;
+}
+</style>
+</head>
+<body>
+
+<!-- START HEADER -->
+<header class="header_wrap fixed-top dark_skin main_menu_uppercase main_menu_weight_600 transparent_header">
+    <div class="container">
+        <nav class="navbar navbar-expand-lg"> 
+            <a class="navbar-brand" href="/home">
+                <img class="logo_light" src="/static/assets/images/logo_white.png" alt="logo" />
+                <img class="logo_dark" src="/static/assets/images/logo_dark.png" alt="logo" />
+                <img class="logo_default" src="/static/assets/images/logo_dark.png" alt="logo" />
+            </a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"> <span class="ion-android-menu"></span> </button>
+            <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
+                <ul class="navbar-nav">
+                    <li>
+                        <a class="nav-link" href="/home">Home</a>
+                    </li>
+                    <li>
+                        <a class="nav-link active" href="/login.html">Login</a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+</header>
+<!-- END HEADER -->
+
+<!-- START LOGIN SECTION -->
+<section class="login-section">
+    <div class="login-container">
+        <h1 class="login-title">Welcome back</h1>
+        <p class="login-subtitle">Sign in to continue your learning journey.</p>
+        
+        <form id="loginForm" onsubmit="handleLogin(event); return false;">
+            <div class="form-group">
+                <label class="form-label" for="email">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    class="form-input" 
+                    placeholder="you@example.com"
+                    required
+                    autocomplete="email"
+                />
+                <div class="error-message" id="emailError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    class="form-input" 
+                    placeholder="••••••••"
+                    required
+                    autocomplete="current-password"
+                />
+                <div class="error-message" id="passwordError"></div>
+            </div>
+            
+            <div class="forgot-password-link">
+                <a href="/forgot-password">Forgot password?</a>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                Sign In
+            </button>
+        </form>
+        
+        <div class="divider">
+            <span>or</span>
+        </div>
+        
+        <div class="signup-link">
+            Don't have an account? <a href="/signup">Create one</a>
+        </div>
+        
+        <div class="back-to-home">
+            <a href="/home">← Back to Home</a>
+        </div>
+    </div>
+</section>
+<!-- END LOGIN SECTION -->
+
+<!-- Latest jQuery -->
+<script src="/static/assets/js/jquery-1.12.4.min.js"></script>
+<!-- popper min js -->
+<script src="/static/assets/js/popper.min.js"></script>
+<!-- Latest Bootstrap min js -->
+<script src="/static/assets/bootstrap/js/bootstrap.min.js"></script>
+<!-- owl-carousel min js  -->
+<script src="/static/assets/owlcarousel/js/owl.carousel.min.js"></script>
+<!-- magnific-popup min js  -->
+<script src="/static/assets/js/magnific-popup.min.js"></script>
+<!-- waypoints min js  -->
+<script src="/static/assets/js/waypoints.min.js"></script>
+<!-- parallax js  -->
+<script src="/static/assets/js/parallax.js"></script>
+<!-- countdown js  -->
+<script src="/static/assets/js/jquery.countdown.min.js"></script>
+<!-- imagesloaded js  -->
+<script src="/static/assets/js/imagesloaded.pkgd.min.js"></script>
+<!-- isotope min js  -->
+<script src="/static/assets/js/isotope.min.js"></script>
+<!-- jquery-ui js  -->
+<script src="/static/assets/js/jquery-ui.js"></script>
+<!-- jquery.counterup js  -->
+<script src="/static/assets/js/jquery.counterup.min.js"></script>
+<!-- scripts js  -->
+<script src="/static/assets/js/scripts.js"></script>
+
+<script>
+// CSRF Token handling
+let csrfToken = null;
+
+async function getCsrfToken() {
+    if (csrfToken) return csrfToken;
+    
+    try {
+        const apiBase = window.API_BASE_URL || '/api';
+        const response = await fetch(`${apiBase.replace('/api', '')}/csrf`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+        const data = await response.json();
+        csrfToken = data.token;
+        return csrfToken;
+    } catch (error) {
+        console.error('Error getting CSRF token:', error);
+        return null;
+    }
+}
+
+// Route for role
+function routeForRole(role) {
+    if (role === "superadmin") return "/superadmin";
+    if (role === "admin") return "/admin";
+    if (role && role.startsWith("org")) return "/dashboard";
+    if (role === "vendor") return "/vendor";
+    if (role === "student") return "/dashboard";
+    return "/home";
+}
+
+// Form validation
+function validateForm() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    let valid = true;
+    
+    // Clear previous errors
+    document.getElementById('emailError').classList.remove('show');
+    document.getElementById('passwordError').classList.remove('show');
+    document.getElementById('emailError').textContent = '';
+    document.getElementById('passwordError').textContent = '';
+    
+    // Validate email
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email)) {
+        document.getElementById('emailError').textContent = 'Please enter a valid email address.';
+        document.getElementById('emailError').classList.add('show');
+        valid = false;
+    }
+    
+    // Validate password
+    if (password.length < 6) {
+        document.getElementById('passwordError').textContent = 'Password must be at least 6 characters.';
+        document.getElementById('passwordError').classList.add('show');
+        valid = false;
+    }
+    
+    return valid;
+}
+
+// Handle login form submission
+async function handleLogin(event) {
+    event.preventDefault();
+    
+    if (!validateForm()) {
+        return;
+    }
+    
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const loginBtn = document.getElementById('loginBtn');
+    const apiBase = window.API_BASE_URL || '/api';
+    
+    // Disable button and show loading state
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Signing in…';
+    
+    try {
+        // Get CSRF token
+        const csrf = await getCsrfToken();
+        if (!csrf) {
+            throw new Error('Failed to get CSRF token');
+        }
+        
+        // Make login request
+        const response = await fetch(`${apiBase}/auth/login`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrf
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data?.mfa?.required && data?.mfaTempToken) {
+            // Redirect to MFA page
+            const base = routeForRole(data.user?.role);
+            window.location.href = `/mfa?from=${encodeURIComponent(base)}&mfaTempToken=${data.mfaTempToken}`;
+            return;
+        }
+        
+        if (data?.ok && data?.user) {
+            // Login successful - redirect based on role
+            const base = routeForRole(data.user?.role);
+            
+            // Check if there's a pending join modal flag
+            const pendingJoinModal = sessionStorage.getItem('pendingJoinModal');
+            if (pendingJoinModal === 'true') {
+                sessionStorage.removeItem('pendingJoinModal');
+                window.location.href = '/tracks?openJoinModal=true';
+            } else {
+                window.location.href = base;
+            }
+        } else {
+            // Login failed
+            alert(data?.message || 'Sign-in failed. Please check your credentials.');
+            loginBtn.disabled = false;
+            loginBtn.textContent = 'Sign In';
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        alert(error?.response?.data?.message || 'Sign-in failed. Please try again.');
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign In';
+    }
+}
+
+// Check if user is already logged in
+async function checkAuthStatus() {
+    try {
+        const apiBase = window.API_BASE_URL || '/api';
+        const response = await fetch(`${apiBase}/auth/check`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        if (data?.ok && data?.user) {
+            // User is already logged in - redirect to appropriate dashboard
+            const base = routeForRole(data.user?.role);
+            window.location.href = base;
+        }
+    } catch (error) {
+        console.error('Error checking auth status:', error);
+        // Continue to show login page
+    }
+}
+
+// Check auth status on page load
+window.addEventListener('DOMContentLoaded', checkAuthStatus);
+</script>
+
+</body>
+</html>
+
