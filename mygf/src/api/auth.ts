@@ -2,12 +2,13 @@
 // ✅ use the unified axios client
 import { api } from './client';
 import type { Role } from '../auth/store';
+import { refreshOnce } from './refreshGate';
 
 export type MfaMethod = 'otp' | 'totp';
 
 export type LoginResponse = {
   ok: boolean;
-  user?: any;
+  user?: unknown;
   tokens?: { accessToken: string; refreshToken: string };
   mfa?: { required: boolean; method?: MfaMethod };
   mfaTempToken?: string;   // present when MFA is required instead of tokens
@@ -39,9 +40,18 @@ export async function totpVerify(params: { code: string; mfaTempToken: string })
   return data;
 }
 
-export async function checkSession(): Promise<{ ok: boolean; user?: any }> {
+export async function checkSession(): Promise<{ ok: boolean; user?: unknown }> {
+  // Note: backend /auth/check never performs refresh by design.
+  // We implement enterprise-grade stability by attempting ONE silent refresh
+  // when check says unauthenticated, then retrying check once.
   const { data } = await api.get('auth/check'); // withCredentials already true
-  return data;
+  if (data?.ok) return data;
+
+  const refreshed = await refreshOnce().catch(() => false);
+  if (!refreshed) return data;
+
+  const again = await api.get('auth/check');
+  return again.data;
 }
 
 export async function refresh(): Promise<{ ok: boolean; accessToken?: string }> {

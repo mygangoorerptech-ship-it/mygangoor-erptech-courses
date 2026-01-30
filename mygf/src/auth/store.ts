@@ -72,7 +72,7 @@ export const useAuth = create<AuthState>()((set, get) => ({
     try { await apiLogout(); } catch {}
     set({ user: null, tokens: {}, mfaVerified: false, status: "ready", hadRefreshHint: false });
     // Keep redirect behavior identical to previous code
-    window.location.assign("/login");
+    window.location.assign("/login.html");
   },
 
   setTokens: (t) => set({ tokens: t ?? {} }),

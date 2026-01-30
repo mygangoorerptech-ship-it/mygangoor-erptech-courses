@@ -15,9 +15,11 @@ PAGE JS
 	01. LOADING JS
 	/*===================================*/
 	$(window).on('load', function() {
-		var preLoder = $("#preloader");
-		preLoder.delay(700).fadeOut(500).addClass('loaded');
-	});
+		const preloader = $("#preloader");
+		setTimeout(() => {
+		preloader.fadeOut(300).addClass('loaded');
+		}, 200);
+		});
 
 	/*===================================*
 	02. SMOOTH SCROLLING JS
@@ -394,9 +396,9 @@ PAGE JS
     16. FIT VIDEO JS
     ==============================================================*/
 	if ($(".fit-videos").length > 0){
-		$(".fit-videos").fitVids({ 
-			customSelector: "iframe[src^='https://w.soundcloud.com']"
-		});
+		if (!$('.blog_container').length) {
+			$(".fit-videos").fitVids();
+		  }
 	}
 	
 	/*===================================*

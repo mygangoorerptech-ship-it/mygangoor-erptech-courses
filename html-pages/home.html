@@ -29,7 +29,7 @@
 <link rel="stylesheet" href="/static/assets/css/flaticon.css">
 <!-- Themify Font CSS -->
 <link rel="stylesheet" href="/static/assets/css/themify-icons.css">
- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@6.15.0/css/flag-icons.min.css">
+<!-- Flag icons: self-contained to avoid tracking-prevention/CDN delays -->
 
 <!--- owl carousel CSS-->
 <link rel="stylesheet" href="/static/assets/owlcarousel/css/owl.carousel.min.css">
@@ -52,23 +52,11 @@
     const apiMeta = document.querySelector('meta[name="api-base-url"]');
     const apiBaseFromMeta = apiMeta ? apiMeta.getAttribute('content') : null;
     
-    // If meta tag exists, use it
+    // If meta tag exists, use it; otherwise default to same-origin
     if (apiBaseFromMeta) {
         window.API_BASE_URL = apiBaseFromMeta;
     } else {
-        // Auto-detect: if not localhost, assume production and use full API URL
-        const isLocalhost = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1' ||
-                           window.location.hostname.includes('localhost');
-        
-        if (isLocalhost) {
-            // Development: use relative path (Vite proxy handles it)
-            window.API_BASE_URL = '/api';
-        } else {
-            // Production: use Render backend URL
-            // This can be overridden by setting meta tag during build
-            window.API_BASE_URL = 'https://eca-uvco.onrender.com/api';
-        }
+        window.API_BASE_URL = '/api';
     }
     
     console.log('[Home Page] API Base URL:', window.API_BASE_URL);
@@ -76,8 +64,404 @@
 </script>
 
 <style>
+    /* =========================
+       Flag icons (local / no CDN)
+       Keeps existing markup: <span class="fi fi-us"></span>
+       ========================= */
+    .fi {
+        display: inline-block;
+        width: 1.6em;
+        height: 1.2em;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        border-radius: 2px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        vertical-align: -0.15em;
+    }
+    .fi.fi-us { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2040%22%3E%3Crect%20width%3D%2260%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22/%3E%3Crect%20y%3D%220%22%20width%3D%2260%22%20height%3D%225%22%20fill%3D%22%23b22234%22/%3E%3Crect%20y%3D%2210%22%20width%3D%2260%22%20height%3D%225%22%20fill%3D%22%23b22234%22/%3E%3Crect%20y%3D%2220%22%20width%3D%2260%22%20height%3D%225%22%20fill%3D%22%23b22234%22/%3E%3Crect%20y%3D%2230%22%20width%3D%2260%22%20height%3D%225%22%20fill%3D%22%23b22234%22/%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2226%22%20height%3D%2220%22%20fill%3D%22%233c3b6e%22/%3E%3C/svg%3E"); }
+    .fi.fi-gb { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2040%22%3E%3Crect%20width%3D%2260%22%20height%3D%2240%22%20fill%3D%22%23012169%22/%3E%3Crect%20x%3D%2224%22%20width%3D%2212%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22/%3E%3Crect%20y%3D%2214%22%20width%3D%2260%22%20height%3D%2212%22%20fill%3D%22%23ffffff%22/%3E%3Crect%20x%3D%2226%22%20width%3D%228%22%20height%3D%2240%22%20fill%3D%22%23c8102e%22/%3E%3Crect%20y%3D%2216%22%20width%3D%2260%22%20height%3D%228%22%20fill%3D%22%23c8102e%22/%3E%3C/svg%3E"); }
+    .fi.fi-ae { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2040%22%3E%3Crect%20width%3D%2260%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22/%3E%3Crect%20width%3D%2215%22%20height%3D%2240%22%20fill%3D%22%23ce1126%22/%3E%3Crect%20x%3D%2215%22%20y%3D%220%22%20width%3D%2245%22%20height%3D%2213%22%20fill%3D%22%2300732f%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2213%22%20width%3D%2245%22%20height%3D%2214%22%20fill%3D%22%23ffffff%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2227%22%20width%3D%2245%22%20height%3D%2213%22%20fill%3D%22%23000000%22/%3E%3C/svg%3E"); }
+    .fi.fi-jp { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2060%2040%22%3E%3Crect%20width%3D%2260%22%20height%3D%2240%22%20fill%3D%22%23ffffff%22/%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2220%22%20r%3D%2212%22%20fill%3D%22%23bc002d%22/%3E%3C/svg%3E"); }
+
     /* ===== MYGF HERO FOUNDATION ===== */
+.mygf-hero {
+    background-color: #ffdbdc;
+    margin-top: 90px;
+    position: relative;
+    overflow: hidden;
+}
+
+.mygf-hero .mygf-hero-carousel {
+    width: 100%;
+    height: 75vh;
+    max-height: 75vh;
+    min-height: 520px;
+    aspect-ratio: 16 / 9;
+    background-color: inherit;
+}
+/* ===== FIX FOR TESTIMONIAL IMAGE SIZE AND ALIGNMENT ===== */
+
+/* First, let's fix the image container to be larger and properly centered */
+.testimonial_img {
+    width: 100% !important; /* Increased from 120px */
+    height: 100% !important; /* Increased from 120px */
+    overflow: hidden !important;
+    border-radius: 50% !important; /* Make it circular */
+    
+    display: flex !important; /* Use flex for centering */
+    align-items: center !important; /* Center vertically */
+    justify-content: center !important; /* Center horizontally */
+    position: relative !important;
+    background: #f8f9fa !important;
+    border: 4px solid white !important; /* Thicker border */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12) !important;
+}
+
+
+/* Add slight zoom on hover */
+.testimonial_box:hover .testimonial_img img {
+    transform: scale(1.05) !important;
+}
+
+/* Center align everything in testimonial box */
+.testimonial_box {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important; /* Center all children horizontally */
+    justify-content: flex-start !important;
+    padding: 25px 20px !important;
+    margin: 5px !important;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    text-align: center !important; /* Center all text */
+}
+
+/* Center user info */
+.testi_user {
+    width: 100% !important;
+    text-align: center !important;
+    margin-bottom: 15px !important;
+}
+
+.testi_user h5 {
+    font-size: 20px !important;
+    font-weight: 600 !important;
+    margin-bottom: 5px !important;
+    color: #333 !important;
+    text-align: center !important;
+}
+
+.testi_user span {
+    font-size: 15px !important;
+    color: #f32b56 !important;
+    font-weight: 500 !important;
+    display: block !important;
+    text-align: center !important;
+}
+
+/* Center testimonial description */
+.testi_desc {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important; /* Center content */
+    justify-content: space-between !important;
+    width: 100% !important;
+    text-align: center !important;
+}
+
+.testimonial_box p {
+    margin-bottom: 20px !important;
+    flex: 1 !important;
+    text-align: center !important;
+    line-height: 1.6 !important;
+    color: #555 !important;
+    font-size: 16px !important;
+    padding: 0 5px !important;
+}
+
+/* Center the read more button */
+.read-more-btn {
+    align-self: center !important;
+    margin-top: auto !important;
+    padding: 10px 25px !important;
+    background: linear-gradient(135deg, #f32b56 0%, #d12b4e 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    box-shadow: 0 4px 12px rgba(243, 43, 86, 0.3) !important;
+}
+
+.read-more-btn:hover {
+    background: linear-gradient(135deg, #e62950 0%, #c12747 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 15px rgba(243, 43, 86, 0.4) !important;
+}
+
+/* Mobile-specific fixes for larger images and better centering */
+@media (max-width: 767px) {
+    .testimonial_slider {
+        padding: 0 5px !important;
+    }
+    
+    .testimonial_slider .owl-stage-outer {
+        padding: 20px 0 30px 0 !important;
+    }
+    
+    .testimonial_box {
+        margin: 10px !important;
+        padding: 30px 20px !important;
+        min-height: 420px !important; /* Increased height */
+        overflow: hidden;
+padding: 0 !important;
+border-radius: 18px;
+background: #fff;
+    }
+    
+    /* Larger images on mobile */
+    .testimonial_img {
+        width: 180px !important; /* Even larger on mobile */
+        height: 180px !important;
+        margin-bottom: 25px !important;
+        border: 5px solid white !important;
+        display: block !important;
+overflow: hidden;
+    }
+    
+    .testi_user h5 {
+        font-size: 22px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .testi_user span {
+        font-size: 16px !important;
+    }
+    
+    .testimonial_box p {
+        font-size: 17px !important;
+        line-height: 1.7 !important;
+        padding: 0 !important;
+    }
+    
+    .read-more-btn {
+        padding: 12px 28px !important;
+        font-size: 15px !important;
+    }
+    
+    /* Center the carousel items */
+    .testimonial_slider .owl-stage {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+    
+    .testimonial_slider .owl-item {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: stretch !important;
+    }
+}
+
+/* Tablet specific fixes */
+@media (min-width: 768px) and (max-width: 991px) {
+    .testimonial_box {
+        min-height: 450px !important;
+        padding: 30px 25px !important;
+    }
+    
+    .testimonial_img {
+        width: 170px !important;
+        height: 170px !important;
+        margin-bottom: 25px !important;
+    }
+    
+    .testimonial_box p {
+        font-size: 16px !important;
+        line-height: 1.7 !important;
+    }
+}
+
+/* Desktop adjustments for even larger images */
+@media (min-width: 992px) {
+    .testimonial_box {
+        min-height: 450px !important;
+        padding: 35px 30px !important;
+    }
+    
+    .testimonial_img {
+        width: 180px !important; /* Large on desktop too */
+        height: 180px !important;
+        margin-bottom: 25px !important;
+    }
+    
+    .testimonial_box p {
+        font-size: 17px !important;
+        padding: 0 10px !important;
+    }
+}
+
+/* Fix for specific images to show faces better */
+.testimonial_img img[src*="Jayant Chavan"],
+.testimonial_img img[src*="Sagar-Shinde"],
+.testimonial_img img[src*="Basavaraj-Patil"],
+.testimonial_img img[src*="Kirti-Dalvi"],
+.testimonial_img img[src*="Mr.Birje"],
+.testimonial_img img[src*="Pooja-Talwar"] {
+    object-position: center 100% !important; /* Adjust to show faces */
+}
+
+/* Ensure owl carousel centers items properly */
+.testimonial_slider .owl-carousel .owl-stage-outer {
+    overflow: visible !important;
+}
+
+.testimonial_slider .owl-carousel .owl-stage {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+}
+
+.testimonial_slider .owl-carousel .owl-item {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Fix the testimonial modal image too */
+.testimonial-modal-image {
+    width: 180px !important;
+    height: 180px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    border: 5px solid white !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+    margin: 0 auto !important; /* Center the modal image */
+}
+
+.testimonial-modal-image img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center 25% !important;
+    border-radius: 50% !important;
+}
+
+/* ... keep existing desktop styles ... */
+
+@media (max-width: 991.98px) {
     .mygf-hero {
+        margin-top: 90px; /* Keep header clearance */
+        margin-bottom: 0 !important; /* CRITICAL: Remove bottom margin */
+        padding-bottom: 0 !important; /* CRITICAL: Remove bottom padding */
+        height: auto !important;
+        min-height: auto !important;
+    }
+    
+    .mygf-hero .mygf-hero-carousel {
+        height: auto !important;
+        max-height: none !important;
+        min-height: auto !important;
+        padding-bottom: 20px !important; /* Minimal padding only */
+    }
+    
+    .mygf-hero .carousel-inner {
+        height: auto !important;
+    }
+    
+    .mygf-hero .carousel-item {
+        height: auto !important;
+        min-height: auto !important;
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .mygf-hero .mygf-hero-slide {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Center content properly */
+    .mygf-hero .mygf-hero-container {
+        padding-top: 0 !important;
+        padding-bottom: 20px !important; /* Reduced from 32px */
+        height: auto !important;
+    }
+    
+    .mygf-hero .mygf-hero-row {
+        padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Ensure buttons have minimal bottom margin */
+    .mygf-hero .mygf-hero-buttons {
+        margin-bottom: 10px !important; /* Reduced from 24px */
+    }
+}
+
+@media (max-width: 575.98px) {
+    .mygf-hero {
+        margin-top: 90px;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        height: auto !important;
+    }
+    
+    .mygf-hero .mygf-hero-carousel {
+        height: auto !important;
+        max-height: none !important;
+        min-height: auto !important;
+        padding-bottom: 15px !important; /* Even smaller on mobile */
+    }
+    
+    .mygf-hero .mygf-hero-container {
+        padding-bottom: 15px !important; /* Reduced */
+    }
+    
+    /* Make sure content is tight */
+    .mygf-hero .mygf-hero-content {
+        padding-bottom: 10px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    /* Reduce all spacing in mobile */
+    .mygf-hero .mygf-hero-title {
+        margin-bottom: 8px !important;
+    }
+    
+    .mygf-hero .mygf-hero-subtitle {
+        margin-bottom: 12px !important;
+    }
+    
+    .mygf-hero .mygf-hero-desc {
+        margin-bottom: 12px !important;
+    }
+    
+    .mygf-hero .mygf-hero-flags {
+        margin-bottom: 12px !important;
+    }
+    
+    .mygf-hero .mygf-hero-buttons {
+        margin-bottom: 5px !important; /* Minimal margin */
+        gap: 8px !important; /* Smaller gap between buttons */
+    }
+}
+
+.mygf-hero-single-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 18px;
+}
+.mygf-hero {
         background-color: #ffdbdc;
         margin-top: 90px;
         margin-bottom: -90px;
@@ -389,7 +773,7 @@
             padding-top: 24px;
             padding-bottom: 32px;
             height: 100%;
-            display: flex;
+            /* display: flex; */
             align-items: center;
         }
 
@@ -495,10 +879,11 @@
 }
 
 .testimonial_img img {
-    width: 100%;
-    height: 100%;
+    width: 200px;
+    height: 90px;
     object-fit: cover;
-    border-radius: 0 !important;
+    /* border-radius: 0 !important; */
+    object-position: center top !important;
 }
 /* ===== REMOVE TESTIMONIAL HOVER CIRCLE ===== */
 .testimonial_img::before,
@@ -523,6 +908,12 @@
     transform: none !important;
 }
 
+@media only screen and (max-width: 991px) {
+  .testimonial_img img {
+    max-width: 97px;
+  }
+}
+
 /* Marquee Banner Styles */
 .marquee-banner {
     background: linear-gradient(135deg, #f8b8d3 0%, #f5a8cc 100%);
@@ -542,6 +933,16 @@
     align-items: center;
     justify-content: flex-start;
     width: auto;
+}
+
+@media (max-width: 767px) {
+    .testimonial_img img{
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        object-position: center top !important;
+        object-fit: cover;
+    }
 }
 
 .hero-buttons-wrapper .btn {
@@ -4564,11 +4965,498 @@ body, html {
         padding: 0 !important;
     }
 }
+/* Testimonial Modal Styles */
+.testimonial-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.testimonial-modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.testimonial-modal-content {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 900px;
+    overflow: hidden;
+    position: relative;
+    animation: slideIn 0.4s ease-out;
+}
+
+.testimonial-modal-close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 24px;
+    color: #333;
+    transition: all 0.3s ease;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.testimonial-modal-close-btn:hover {
+    background: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.testimonial-modal-body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.testimonial-modal-header {
+    background: linear-gradient(135deg, #f8b8d3 0%, #f5a8cc 100%);
+    padding: 40px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+}
+
+.testimonial-modal-image {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 5px solid white;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
+}
+
+.testimonial-modal-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.testimonial-modal-header-content {
+    flex: 1;
+}
+
+.testimonial-modal-header-content h3 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 10px 0;
+    line-height: 1.2;
+}
+
+.testimonial-modal-header-content .designation {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 15px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #d32f2f;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.testimonial-modal-header-content .quote-icon {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 24px;
+    margin-right: 10px;
+}
+
+.testimonial-modal-header-content .quote-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: #444;
+    font-style: italic;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.testimonial-modal-details {
+    padding: 40px;
+    overflow-y: auto;
+    max-height: 60vh;
+    flex: 1;
+}
+
+.testimonial-modal-details h4 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #d32f2f;
+    margin: 0 0 25px 0;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+    position: relative;
+}
+
+.testimonial-modal-details h4:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background: #d32f2f;
+}
+
+.testimonial-content {
+    font-size: 18px;
+    line-height: 1.8;
+    color: #444;
+    margin-bottom: 30px;
+    text-align: justify;
+}
+
+.testimonial-content p {
+    margin-bottom: 20px;
+}
+
+.testimonial-highlight {
+    background: #fff9e6;
+    border-left: 4px solid #ffcc00;
+    padding: 20px;
+    margin: 25px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.testimonial-highlight p {
+    margin: 0;
+    font-style: italic;
+    color: #666;
+}
+
+.testimonial-transformation {
+    background: #f0f8ff;
+    border-radius: 10px;
+    padding: 25px;
+    margin-top: 30px;
+    border: 1px solid #e3f2fd;
+}
+
+.testimonial-transformation h5 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1976d2;
+    margin: 0 0 15px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.testimonial-transformation h5 i {
+    font-size: 24px;
+}
+
+.testimonial-transformation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.testimonial-transformation ul li {
+    padding: 8px 0;
+    padding-left: 30px;
+    position: relative;
+    color: #555;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.testimonial-transformation ul li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #1976d2;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Responsive Design */
+@media (max-width: 991px) {
+    .testimonial-modal-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .testimonial-modal-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 30px;
+        gap: 20px;
+    }
+    
+    .testimonial-modal-image {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .testimonial-modal-header-content h3 {
+        font-size: 28px;
+    }
+    
+    .testimonial-modal-details {
+        padding: 30px;
+    }
+    
+    .testimonial-content {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 576px) {
+    .testimonial-modal-content {
+        max-height: 85vh;
+    }
+    
+    .testimonial-modal-header {
+        padding: 25px 20px;
+    }
+    
+    .testimonial-modal-image {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .testimonial-modal-header-content h3 {
+        font-size: 24px;
+    }
+    
+    .testimonial-modal-header-content .designation {
+        font-size: 14px;
+        padding: 5px 12px;
+    }
+    
+    .testimonial-modal-details {
+        padding: 25px 20px;
+    }
+    
+    .testimonial-modal-details h4 {
+        font-size: 20px;
+    }
+    
+    .testimonial-content {
+        font-size: 15px;
+        line-height: 1.7;
+    }
+}
+
+/* Testimonial box "Read More" button */
+.testimonial_box .read-more-btn {
+    display: inline-block;
+    margin-top: 15px;
+    padding: 8px 20px;
+    background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(211, 47, 47, 0.3);
+}
+
+.testimonial_box .read-more-btn:hover {
+    background: linear-gradient(135deg, #e53935 0%, #d32f2f 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4);
+}
+
+.testimonial_box .read-more-btn i {
+    margin-left: 5px;
+    font-size: 12px;
+}
+
+  /* ===== MOBILE HERO SLIDER ARROW FIX ===== */
+  @media (max-width: 575.98px) {
+      .mygf-hero .carousel-control-prev,
+      .mygf-hero .carousel-control-next {
+          top: 40%;
+          transform: translateY(-50%);
+          width: 44px;
+      }
+
+      .mygf-hero .carousel-control-prev-icon,
+      .mygf-hero .carousel-control-next-icon {
+          background-color: transparent !important;
+          box-shadow: none !important;
+          width: 10px;
+          height: 10px;
+          filter: invert(1);
+      }
+  }
+
+   /* =========================================
+   MOBILE HERO SLIDER ARROWS – FINAL OVERRIDE
+   ========================================= */
+/* =========================================
+   MOBILE HERO SLIDER ARROWS – FINAL FIX
+   ========================================= */
+   @media (max-width: 575.98px) {
+
+/* Button container */
+.mygf-hero .carousel-control-prev,
+.mygf-hero .carousel-control-next {
+    top: 44% !important;
+    transform: translateY(-50%) !important;
+    width: 40px !important;
+    height: 40px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+}
+
+/* Remove any overlay / pseudo background */
+.mygf-hero .carousel-control-prev::before,
+.mygf-hero .carousel-control-next::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* Force visible WHITE arrows */
+.mygf-hero .carousel-control-prev-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E") !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-size: 100% 100% !important;
+    filter: none !important;
+}
+
+.mygf-hero .carousel-control-next-icon {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23ffffff' viewBox='0 0 16 16'%3E%3Cpath d='M4.646 14.354a.5.5 0 0 1 0-.708L10.293 8 4.646 2.354a.5.5 0 1 1 .708-.708l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708 0z'/%3E%3C/svg%3E") !important;
+    width: 18px !important;
+    height: 18px !important;
+    background-size: 100% 100% !important;
+    filter: none !important;
+}
+}
+
+
+/* =====================================================
+   TESTIMONIALS – MOBILE & TABLET ALIGNMENT FIX ONLY
+   (Desktop remains untouched)
+===================================================== */
+
+/* Ensure owl items center content properly */
+@media (max-width: 991.98px) {
+  .testimonial_slider .owl-item {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .testimonial_box {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+  }
+}
+
+/* Fix testimonial image container alignment */
+@media (max-width: 991.98px) {
+  .testimonial_img {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+
+    width: 120px !important;
+    height: 120px !important;
+    overflow: hidden !important;
+  }
+
+  .testimonial_img img {
+    width: 260px !important;
+    height: 80% !important;
+    object-fit: cover !important;
+    object-position: center center !important;
+    display: block !important;
+  }
+}
+
+/* Tablet fine-tuning */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .testimonial_img {
+    width: 160px !important;
+    height: 160px !important;
+  }
+}
+
+/* Mobile fine-tuning */
+@media (max-width: 767.98px) {
+  .testimonial_img {
+    width: 150px !important;
+    height: 150px !important;
+  }
+}
+
 
 </style>
 
-</head>
 
+</head>
+<!-- Testimonial Modal -->
+<div id="testimonialModal" class="testimonial-modal">
+    <div class="testimonial-modal-content">
+        <button class="testimonial-modal-close-btn" onclick="closeTestimonialModal()">&times;</button>
+        
+        <div class="testimonial-modal-body">
+            <div class="testimonial-modal-header">
+                <div class="testimonial-modal-image">
+                    <img id="testimonialModalImage" src="" alt="">
+                </div>
+                <div class="testimonial-modal-header-content">
+                    <h3 id="testimonialModalName"></h3>
+                    <span id="testimonialModalDesignation" class="designation"></span>
+                    <p class="quote-text">
+                        <i class="fas fa-quote-left quote-icon"></i>
+                        <span id="testimonialModalQuote"></span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="testimonial-modal-details">
+                <h4><i class="fas fa-heart text-danger me-2"></i>Full Testimonial</h4>
+                <div id="testimonialModalContent" class="testimonial-content">
+                    <!-- Content will be loaded here -->
+                </div>
+                
+                <div id="testimonialModalTransformation" class="testimonial-transformation" style="display: none;">
+                    <h5><i class="fas fa-star text-warning"></i>Key Transformations</h5>
+                    <ul id="testimonialModalList">
+                        <!-- List items will be loaded here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 <body>
 
 <!-- LOADER -->
@@ -4578,6 +5466,32 @@ body, html {
     </div>
 </div>
 <!-- END LOADER -->
+
+<!-- Preloader safety: never allow "stuck on first load" if window.load is delayed -->
+<script>
+(function() {
+    var done = false;
+    function hidePreloader() {
+        if (done) return;
+        done = true;
+        var pre = document.getElementById('preloader');
+        if (!pre) return;
+        pre.classList.add('loaded');
+        pre.style.opacity = '0';
+        pre.style.pointerEvents = 'none';
+        setTimeout(function() { pre.style.display = 'none'; }, 350);
+        try {
+            document.documentElement.classList.add('loaded');
+            if (document.body) document.body.classList.add('loaded');
+        } catch (e) {}
+    }
+
+    // Prefer template behavior (scripts.js hides on window.load), but guarantee a fallback.
+    window.addEventListener('load', function() { setTimeout(hidePreloader, 1400); });
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(hidePreloader, 4000); });
+    setTimeout(hidePreloader, 8000);
+})();
+</script>
 
 <!-- CRITICAL MOBILE FIX: Ensure modal is closed on mobile page load -->
 <script>
@@ -4652,7 +5566,7 @@ body, html {
                         <a class="nav-link active" href="/home">Home</a>
                     </li>
                     <li>
-                        <a class="nav-link" href="/static/schedule.html">Schedule</a>
+                        <!-- <a class="nav-link" href="/static/schedule.html">Schedule</a> -->
                     </li>
                     <li class="dropdown">
                         <a class="dropdown-toggle nav-link" href="#" data-toggle="dropdown">About Us</a>
@@ -4660,15 +5574,15 @@ body, html {
                         
                         <div class="dropdown-menu">
                             <ul> 
-                            	<li><a class="dropdown-item nav-link nav_item" href="/static/about.html">About Us</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
+                            	<li><a class="dropdown-item nav-link nav_item" href="/about.html">About Us</a></li>
+                                <!-- <li><a class="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
                                 <li><a class="dropdown-item nav-link nav_item" href="/static/events.html">Events</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/our-sister-concern.html">Our Sister Concerns</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/our-global-ambassadors.html">Our Global Ambassadors</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Photo/Video Gallery</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Press/Media</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="#">Reviews</a></li>
+                                <!-- <li><a class="dropdown-item nav-link nav_item" href="/static/our-sister-concern.html">Our Sister Concerns</a></li>-->
+                                <li><a class="dropdown-item nav-link nav_item" href="/our-global-ambassadors.html">Our Global Ambassadors</a></li>
+                                <!-- <li><a class="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li>--> 
+                                <li><a class="dropdown-item nav-link nav_item" href="/gallery-three-columns.html">Photo/Video Gallery</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/gallery-four-columns.html">Press/Media</a></li>
+                                <!-- <li><a class="dropdown-item nav-link nav_item" href="#">Reviews</a></li>--> 
                             </ul>
                         </div>
                     </li>
@@ -4728,28 +5642,14 @@ body, html {
                                 </div>
                             </div>
                             <div class="col-lg-6 order-1 order-lg-2">
-                                <div class="mygf-hero-media">
-                                    <div class="mygf-hero-image-frame">
-                                        <div class="mygf-hero-child-carousel" aria-label="Hero image carousel">
-                                            <div class="mygf-hero-child-track">
-                                                <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Guruji.jpg" alt="Guruji meditation" />
-                                                </div>
-                                                <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Natropathy1.png" alt="Natropathy" />
-                                                </div>
-                                                <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Reiki1.png" alt="Reiki" />
-                                                </div>
-                                            </div>
-                                            <div class="mygf-hero-child-dots" aria-hidden="true">
-                                                <span class="mygf-hero-child-dot"></span>
-                                                <span class="mygf-hero-child-dot"></span>
-                                                <span class="mygf-hero-child-dot"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                              <div class="mygf-hero-media">
+                              <div class="mygf-hero-image-frame">
+                              <!-- Remove carousel wrapper and show single image directly -->
+                              <div class="mygf-hero-single-image">
+                                <img class="mygf-hero-child-image" src="/static/assets/images/Guruji.jpg" alt="Guruji meditation" />
+                              </div>
+                               </div>
+                              </div>
                             </div>
                         </div>
                     </div>
@@ -4770,19 +5670,19 @@ body, html {
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-6 order-1 order-lg-2">
+                           <div class="col-lg-6 order-1 order-lg-2">
                                 <div class="mygf-hero-media">
                                     <div class="mygf-hero-image-frame">
                                         <div class="mygf-hero-child-carousel" aria-label="Reiki images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Reiki.png" alt="Reiki" />
-                                                </div>
-                                                <div class="mygf-hero-child-slide">
                                                     <img class="mygf-hero-child-image" src="/static/assets/images/Reiki1.png" alt="Reiki" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Reiki2.png" alt="Reiki" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Reiki2.jpg" alt="Reiki" />
+                                                </div>
+                                                <div class="mygf-hero-child-slide">
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Reiki3.png" alt="Reiki" />
                                                 </div>
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
@@ -4794,6 +5694,7 @@ body, html {
                                     </div>
                                 </div>
                             </div>
+                          
                         </div>
                     </div>
                 </div>
@@ -4819,14 +5720,15 @@ body, html {
                                         <div class="mygf-hero-child-carousel" aria-label="Third Eye images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Third Eye Activation.png" alt="Third Eye" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/3rdeye1.png" alt="Third Eye" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Third Eye Activation1.png" alt="Third Eye" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/3rdeye2.png" alt="Third Eye" />
                                                 </div>
-                                                <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Yoga1.png" alt="Yoga" />
+                                                 <div class="mygf-hero-child-slide">
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/3rdeye3.png" alt="Third Eye" />
                                                 </div>
+                                               
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
                                                 <span class="mygf-hero-child-dot"></span>
@@ -4862,13 +5764,13 @@ body, html {
                                         <div class="mygf-hero-child-carousel" aria-label="Hypnosis images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Hypnosis.jpg" alt="Hypnosis" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Hypnosis1.jpg" alt="Hypnosis" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Hypnosis1.png" alt="Hypnosis" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Hypnosis2.jpg" alt="Hypnosis" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/hynosis22.png" alt="Hypnosis" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Hypnosis3.jpg" alt="Hypnosis" />
                                                 </div>
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
@@ -4905,13 +5807,13 @@ body, html {
                                         <div class="mygf-hero-child-carousel" aria-label="Vastushastra images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastushastra.png" alt="Vastushastra" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastu1.jpg" alt="Vastushastra" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastushastra1.png" alt="Vastushastra" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastu2.jpg" alt="Vastushastra" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastushastra.png" alt="Vastushastra" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastu3.jpg" alt="Vastushastra" />
                                                 </div>
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
@@ -4948,13 +5850,13 @@ body, html {
                                         <div class="mygf-hero-child-carousel" aria-label="Yogashastra images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Yogshatra.jpg" alt="Yogashastra" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Yog1.png" alt="Yogashastra" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Yoga1.png" alt="Yogashastra" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Yog2.png" alt="Yogashastra" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Guruji.jpg" alt="Meditation" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Yog3.png" alt="Yogashastra" />
                                                 </div>
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
@@ -4991,13 +5893,13 @@ body, html {
                                         <div class="mygf-hero-child-carousel" aria-label="Dowsing images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Dowsing.png" alt="Dowsing" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Dowsing1.jpg" alt="Dowsing" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Dowsing1.png" alt="Dowsing" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Dowsing2.jpg" alt="Dowsing" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastushastra1.png" alt="Vastushastra" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Dowsing3.jpg" alt="Dowsing" />
                                                 </div>
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
@@ -5034,13 +5936,13 @@ body, html {
                                         <div class="mygf-hero-child-carousel" aria-label="Ancient Sciences images carousel">
                                             <div class="mygf-hero-child-track">
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Third Eye Activation1.png" alt="Ancient Sciences" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/astro1.jpg" alt="Astrology, Palmestry, Numberology" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Vastushastra1.png" alt="Ancient Sciences" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/astro2.jpg" alt="Astrology, Palmestry, Numberology" />
                                                 </div>
                                                 <div class="mygf-hero-child-slide">
-                                                    <img class="mygf-hero-child-image" src="/static/assets/images/Dowsing1.png" alt="Ancient Sciences" />
+                                                    <img class="mygf-hero-child-image" src="/static/assets/images/astro3.jpg" alt="Astrology, Palmestry, Numberology" />
                                                 </div>
                                             </div>
                                             <div class="mygf-hero-child-dots" aria-hidden="true">
@@ -5186,15 +6088,16 @@ body, html {
 <!-- END MARQUEE BANNER -->
 
 <!-- START SECTION BENIFIT -->
+<!-- START SECTION BENIFIT -->
 <section class="pb_70">
 	<div class="container">
         <div class="row justify-content-center">
             <div class="col-xl-6 col-lg-8 col-md-10 text-center animation" data-animation="fadeInUp" data-animation-delay="0.2s">
                 <div class="heading_s1">	
-                    <span class="sub_heading">What we do</span>
-                    <h2>Our Programs</h2>
+                    <span class="sub_heading"><br>What do we do</span>
+                    <h2>Our courses</h2>
                 </div>
-                <p>Contrary to popular belief Lorem is not simply random text. It has roots in adipiscing ncididunt piece of classical literature</p>
+                <!-- <p>Contrary to popular belief Lorem is not simply random text. It has roots in adipiscing ncididunt piece of classical literature</p>-->
                 <div class="small_divider clearfix"></div>
             </div>
         </div>
@@ -5204,7 +6107,10 @@ body, html {
                 	<div class="box_icon">
                     	<span class="mygf-program-icon" aria-hidden="true">
                             <img class="mygf-program-icon-img" src="/static/assets/programs/reiki.jpeg" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentElement.classList.add('mygf-program-icon--fallback');" />
-                            <span class="mygf-program-icon-fallback">R</span>
+                            <!-- REPLACED: Letter R with PNG image -->
+                            <span class="mygf-program-icon-fallback">
+                                <img src="/static/assets/images/Rekhiicon.png" alt="Reiki" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.textContent='R';" />
+                            </span>
                         </span>
                     </div>
                     <div class="intro_desc">
@@ -5219,7 +6125,10 @@ body, html {
                 	<div class="box_icon">
                     	<span class="mygf-program-icon" aria-hidden="true">
                             <img class="mygf-program-icon-img" src="/static/assets/programs/dowsing.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentElement.classList.add('mygf-program-icon--fallback');" />
-                            <span class="mygf-program-icon-fallback">D</span>
+                            <!-- REPLACED: Letter D with PNG image -->
+                            <span class="mygf-program-icon-fallback">
+                                <img src="/static/assets/images/dowsing-letter.png" alt="Dowsing" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.textContent='D';" />
+                            </span>
                         </span>
                     </div>
                     <div class="intro_desc">
@@ -5234,7 +6143,10 @@ body, html {
                 	<div class="box_icon">
                     	<span class="mygf-program-icon" aria-hidden="true">
                             <img class="mygf-program-icon-img" src="/static/assets/programs/ancient-sciences.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentElement.classList.add('mygf-program-icon--fallback');" />
-                            <span class="mygf-program-icon-fallback">A</span>
+                            <!-- REPLACED: Letter A with PNG image -->
+                            <span class="mygf-program-icon-fallback">
+                                <img src="/static/assets/images/ancient-letter.png" alt="Ancient Sciences" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.textContent='A';" />
+                            </span>
                         </span>
                     </div>
                     <div class="intro_desc">
@@ -5249,7 +6161,10 @@ body, html {
                 	<div class="box_icon">
                     	<span class="mygf-program-icon" aria-hidden="true">
                             <img class="mygf-program-icon-img" src="/static/assets/programs/yogshastra.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentElement.classList.add('mygf-program-icon--fallback');" />
-                            <span class="mygf-program-icon-fallback">Y</span>
+                            <!-- REPLACED: Letter Y with PNG image -->
+                            <span class="mygf-program-icon-fallback">
+                                <img src="/static/assets/images/yogshastra-letter.png" alt="Yogshastra" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.textContent='Y';" />
+                            </span>
                         </span>
                     </div>
                     <div class="intro_desc">
@@ -5264,7 +6179,10 @@ body, html {
                 	<div class="box_icon">
                     	<span class="mygf-program-icon" aria-hidden="true">
                             <img class="mygf-program-icon-img" src="/static/assets/programs/vastu.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentElement.classList.add('mygf-program-icon--fallback');" />
-                            <span class="mygf-program-icon-fallback">V</span>
+                            <!-- REPLACED: Letter V with PNG image -->
+                            <span class="mygf-program-icon-fallback">
+                                <img src="/static/assets/images/vastu-letter.png" alt="Vastu" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.textContent='V';" />
+                            </span>
                         </span>
                     </div>
                     <div class="intro_desc">
@@ -5279,7 +6197,10 @@ body, html {
                 	<div class="box_icon">
                     	<span class="mygf-program-icon" aria-hidden="true">
                             <img class="mygf-program-icon-img" src="/static/assets/programs/naturopathy.png" alt="" loading="lazy" decoding="async" onerror="this.style.display='none'; this.parentElement.classList.add('mygf-program-icon--fallback');" />
-                            <span class="mygf-program-icon-fallback">N</span>
+                            <!-- REPLACED: Letter N with PNG image -->
+                            <span class="mygf-program-icon-fallback">
+                                <img src="/static/assets/images/naturopathy-letter.png" alt="Naturopathy" style="width: 100%; height: 100%; object-fit: contain;" onerror="this.parentElement.textContent='N';" />
+                            </span>
                         </span>
                     </div>
                     <div class="intro_desc">
@@ -5307,11 +6228,11 @@ body, html {
             </div>
             <div class="col-md-6 order-md-1 animation" data-animation="fadeInUp" data-animation-delay="0.2s">
             	<div class="heading_s1">
-                	<span class="sub_heading">Welcome to M Y Gangoor Global Foundation's</span>
-                	<h2>Dr. Ramesh Gangoor</h2>
+                	<span class="sub_heading">Welcome to M Y Gangoor Global Foundation's®</span>
+                	<h2>Dr. Ramesh M. Gangoor</h2>
                 	<p style="font-weight: bold; margin-top: 10px; margin-bottom: 20px;">Ph.D. (Gold Medalist)</p>
                 </div>
-                <p id="profile-summary-text">Founder/Chairman/Chief Mentor of M.Y. Gangoor Global Foundation's Multi-Sciences Education and Research Centre, committed to 30 Years of Excellence since 1995. Master Practitioner in Reiki, Third Eye Activation, Vastushastra, Naturopathy, Hypnosis, Pranic Healing, Yogashastra, and Dowsing. Ph.D. in Holistic Healing, trained thousands worldwide.</p>
+                <p id="profile-summary-text">Founder/Chairman/Chief Mentor of M.Y. Gangoor Global Foundation's® Multi-Sciences Education and Research Centre, committed to 30 Years of Excellence since 1995. Master Practitioner in Reiki, Third Eye Activation, Vastushastra, Naturopathy, Hypnosis, Pranic Healing, Yogashastra, and Dowsing. Ph.D. in Holistic Healing, trained thousands worldwide.</p>
                 <script>
                 (function() {
                     function truncateTo200Chars() {
@@ -5335,7 +6256,7 @@ body, html {
                     }
                 })();
                 </script>
-                <a href="/static/about.html" class="btn btn-default rounded-0">Read More</a>
+                <a href="/about.html" class="btn btn-default rounded-0">Read More</a>
             </div>
         </div>
     </div>
@@ -5366,169 +6287,126 @@ body, html {
 
 <!-- START SECTION TESTIMONIAL -->
 <section>
-	<div class="container">
-    	<div class="row justify-content-center">
-        	<div class="col-xl-6 col-lg-8 col-md-10 text-center animation" data-animation="fadeInUp" data-animation-delay="0.2s">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-xl-6 col-lg-8 col-md-10 text-center animation" data-animation="fadeInUp" data-animation-delay="0.2s">
                 <div class="heading_s1">
-                	<span class="sub_heading">Testimonial</span>
-                    <h2>Our Client Say!</h2>
+                    <span class="sub_heading">Our Sadhakas</span>
+                    <h3>Real Stories, Real Transformations</h3>
                 </div>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus blandit massa enim. Nullam id varius nunc id varius nunc.</p>
+                <p>These testimonials showcase the best experiences of our sadhakas after completing our courses.</p>
                 <div class="xs_divider clearfix d-none d-md-block"></div>
             </div>
         </div>
         <div class="row">
-        	<div class="col-12 animation" data-animation="fadeInUp" data-animation-delay="0.2s">
-            	<div class="testimonial_slider testimonial_style1 carousel_slider owl-carousel owl-theme" data-margin="15" data-loop="true" data-autoplay="true" data-autoplay-timeout="6000" data-responsive='{"0":{"items": "1"}, "768":{"items": "2"}, "1199":{"items": "3"}}'>
-                    <!-- <div class="testimonial_box">
+            <div class="col-12 animation" data-animation="fadeInUp" data-animation-delay="0.2s">
+                <div class="testimonial_slider testimonial_style1 carousel_slider owl-carousel owl-theme" data-margin="15" data-loop="true" data-autoplay="true" data-autoplay-timeout="6000" data-responsive='{"0":{"items": "1"}, "768":{"items": "2"}, "1199":{"items": "3"}}'>
+                    
+             
+<div class="testimonial_box">
                         <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/client_img1.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Merry Walter</h5>
-                                <span>Web Designer</span>
-                            </div>
-                        </div>
-                        <div class="testi_desc">
-                            <p>Lorem ipsum dolor sit amet consectetur adipiscing elit. Phasellus blandit massa enim Nullam varius nunc.Lorem ipsum doloramet consectetur adipiscing</p>
-                        </div>
-                    </div> -->
-                    <!-- <div class="testimonial_box">
-                        <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/client_img2.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Elena Mark</h5>
-                                <span>Web Designer</span>
-                            </div>
-                        </div>
-                        <div class="testi_desc">
-                            	<p>Lorem ipsum dolor sit amet consectetur adipiscing elit. Phasellus blandit massa enim Nullam varius nunc.Lorem ipsum doloramet consectetur adipiscing</p>
-                            </div>
-                    </div> -->
-                    <div class="testimonial_box">
-                        <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/Sagar-Shinde.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Sagar Shinde</h5>
-                                <span>Business</span>
-                            </div>
-                        </div>
+        <div class="testimonial_img">
+            <img src="/static/assets/images/Sagar-Shinde.jpg" alt="Sagar Shinde">
+        </div>
+        <div class="testi_user">
+            <h5>Sagar Shinde</h5>
+            <span>Business</span>
+        </div>
+    </div>
                         <div class="testi_desc">
                             <p>I am forever grateful. The entire Shinde family thanks Dr. Ramesh Gangoor Guruji and the Foundation from the bottom of our hearts. They didn't just heal my shoulder; they gave me and my family a new, peaceful, and joyful life.</p>
+                            <button class="read-more-btn" onclick="openTestimonialModal('sagar-shinde')">Read More</button>
                         </div>
                     </div>
+                    
                     <div class="testimonial_box">
                         <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/Basavaraj-Patil.jpg" alt="client">
+                            <div class="testimonial_img">
+                                <img src="/static/assets/images/Basavaraj-Patil.jpg" alt="Basavaraj Patil">
                             </div>
-                        	<div class="testi_user">
-                            	<h5>Basavaraj Patil</h5>
+                            <div class="testi_user">
+                                <h5>Basavaraj Patil</h5>
                                 <span>Business Owner (Automobile & Transport)</span>
                             </div>
                         </div>
                         <div class="testi_desc">
-                            <p>As I joined the classes, I also became a recipient of the incredible healing energy from Guruji and the Foundation's dedicated healing team. Simultaneously, Guruji's wisdom guided me back to my roots: he asked me to pray to Lord Shiva, commit to mantra chanting, and perform Agnihotra at home and work.</p>
+                            <p>As I joined the classes, I also became a recipient of the incredible healing energy from Guruji and the Foundation's dedicated healing team. Simultaneously, Guruji's wisdom guided me back to my roots...</p>
+                            <button class="read-more-btn" onclick="openTestimonialModal('basavaraj-patil')">Read More</button>
                         </div>
                     </div>
+                    
+                  <div class="testimonial_box">
+    <div class="testi_meta">
+        <div class="testimonial_img">
+            <img src="/static/assets/images/Jayant Chavan.jpg" alt="Jayant Chavan">
+        </div>
+        <div class="testi_user">
+            <h5>Jayant Chavan</h5>
+            <span>Business Owner</span>
+        </div>
+    </div>
+    <div class="testi_desc">
+        <p>A devout Nationalist and true worshipper of Lord Shiva, Guruji embodies immense dedication, an extreme work ethic, and a down-to-earth nature...</p>
+        <button class="read-more-btn" onclick="openTestimonialModal('Jayant-Chavan')">Read More</button>
+    </div>
+</div>
+
+					<div class="testimonial_box">
+                        <!-- <div class="testi_meta"> -->
+                            <div class="testimonial_img">
+                                <img src="/static/assets/images/Kirti-Dalvi.jpg" alt="Kirti Dalvi">
+                            </div>
+                            <div class="testi_user">
+                                <h5>Kirti Dalvi</h5>
+                                <span>Housewife</span>
+                            </div>
+                        <!-- </div> -->
+                        <div class="testi_desc">
+                            <p>During the course, Dr. Ramesh Gangoor Guruji taught the children things like Meditation, Tratak techniques for concentration, Mantra Chanting, and spiritual processes...</p>
+                            <button class="read-more-btn" onclick="openTestimonialModal('kirti-dalvi')">Read More</button>
+                        </div>
+                    </div>
+                    
                     <div class="testimonial_box">
                         <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/Kirti-Dalvi.jpg" alt="client">
+                            <div class="testimonial_img">
+                                <img src="/static/assets/images/Mr.Birje.jpg" alt="Mr. Birje">
                             </div>
-                        	<div class="testi_user">
-                            	<h5>Kirti Dalvi</h5>
+                            <div class="testi_user">
+                                <h5>Mr. Birje</h5>
+                                <span>Retired Assistant Sales Tax Commissioner</span>
+                            </div>
+                        </div>
+                        <div class="testi_desc">
+                            <p>I am now completely happy and pain-free, living my life fully again. I am so incredibly thankful to Dr. Ramesh Gangoor Guruji, the M. Y. Gangoor Global Foundation's®, and the entire team...</p>
+                            <button class="read-more-btn" onclick="openTestimonialModal('mr-birje')">Read More</button>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial_box">
+                        <div class="testi_meta">
+                            <div class="testimonial_img">
+                                <img src="/static/assets/images/Pooja-Talwar.jpg" alt="Pooja Talwar">
+                            </div>
+                            <div class="testi_user">
+                                <h5>Pooja Talwar</h5>
                                 <span>Housewife</span>
                             </div>
                         </div>
-                        <div class="testi_desc">
-                            <p>During the course, Dr. Ramesh Gangoor Guruji taught the children things like Meditation, Tratak techniques for concentration, Mantra Chanting, and spiritual processes like Agnihotra and Vyaharti Hom. He also taught them about the importance of our Indian culture, good food habits, and the bad effects of mobile phones and junk food.</p>
+                        <div class="testimonial_desc">
+                            <p>I am forever grateful. My family and I thank Dr. Ramesh Gangoor Guruji, the M. Y. Gangoor Global Foundation's®, and their entire team for blessing us with our little Sihi...</p>
+                            <button class="read-more-btn" onclick="openTestimonialModal('pooja-talwar')">Read More</button>
                         </div>
                     </div>
-                    <div class="testimonial_box">
-                        <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/Mr.Birje.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Mr.Birje</h5>
-                                <span>Retired Assistant Sales Tax Commissioner </span>
-                            </div>
-                        </div>
-                        <div class="testi_desc">
-                            <p>I am now completely happy and pain-free, living my life fully again. I am so incredibly thankful to Dr. Ramesh Gangoor Guruji, the M. Y. Gangoor Foundations, and the entire team of selfless Reiki healers who joined together to help me. This experience has proven to me that Reiki spiritual science is not just a course; it is a life-saving power. Thank you, Guruji, for giving me my life back.</p>
-                        </div>
-                    </div>
-                    <div class="testimonial_box">
-                        <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/Pooja-Talwar.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Pooja Talwar</h5>
-                                <span>Housewife</span>
-                            </div>
-                        </div>
-                        <div class="testi_desc">
-                            <p>I am forever grateful. My family and I thank Dr. Ramesh Gangoor Guruji, the M. Y. Gangoor Foundations, and their entire team for blessing us with our little Sihi. They solved the biggest problem of my life.</p>
-                        </div>
-                    </div>
-                    <!-- <div class="testimonial_box">
-                        <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/client_img4.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Emma Johnson</h5>
-                                <span>Fitness Trainer</span>
-                            </div>
-                        </div>
-                        <div class="testi_desc">
-                            <p>Lorem ipsum dolor sit amet consectetur adipiscing elit. Phasellus blandit massa enim Nullam varius nunc.Lorem ipsum doloramet consectetur adipiscing</p>
-                        </div>
-                    </div> -->
-                    <!-- <div class="testimonial_box">
-                        <div class="testi_meta"> -->
-                        	<!-- <div class="testimonial_img">
-                                <img src="/static/assets/images/client_img1.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Michael Thompson</h5>
-                                <span>Life Coach</span>
-                            </div>
-                        </div>
-                        <div class="testi_desc">
-                            <p>Lorem ipsum dolor sit amet consectetur adipiscing elit. Phasellus blandit massa enim Nullam varius nunc.Lorem ipsum doloramet consectetur adipiscing</p>
-                        </div>
-                    </div>
-                    <div class="testimonial_box"> -->
-                        <!-- <div class="testi_meta">
-                        	<div class="testimonial_img">
-                                <img src="/static/assets/images/client_img2.jpg" alt="client">
-                            </div>
-                        	<div class="testi_user">
-                            	<h5>Rachel Green</h5>
-                                <span>Healing Practitioner</span>
-                            </div>
-                        </div> -->
-                        <!-- <div class="testi_desc">
-                            <p>Lorem ipsum dolor sit amet consectetur adipiscing elit. Phasellus blandit massa enim Nullam varius nunc.Lorem ipsum doloramet consectetur adipiscing</p>
-                        </div> -->
-                    <!-- </div>
-                </div> -->
+                    
+                </div>
             </div>
         </div>
     </div>
 </section>
-
 <!-- END SECTION TESTIMONIAL -->
 <!-- START SECTION CLASSES -->
-<section class="pb_70">
+<!--<section class="pb_70">
 	<div class="container">
     	<div class="row justify-content-center">
         	<div class="col-xl-6 col-lg-8 col-md-10 text-center animation" data-animation="fadeInUp" data-animation-delay="0.2s">
@@ -5542,9 +6420,9 @@ body, html {
         </div>
         <div class="row" id="courses-container">
             <!-- Courses will be dynamically loaded here -->
-        </div>
-    </div>
-</section>
+        <!-- </div> -->
+    <!-- </div> -->
+<!-- </section> -->
 <!-- END SECTION CLASSES -->
 
 <!-- START SECTION CALL TO ACTION -->
@@ -5581,358 +6459,358 @@ body, html {
 <!-- END SECTION CALL TO ACTION -->
 
 <!-- START SECTION CLASSES TIMETABLE -->
-<section>
-	<div class="container">
-    	<div class="row justify-content-center">
-        	<div class="col-xl-6 col-lg-8 col-md-10 text-center animation" data-animation="fadeInUp" data-animation-delay="0.2s">
-            	<div class="heading_s1">
-                	<span class="sub_heading">Choose Your timing Schedule</span>
-                	<h2>Our Classes Timetable</h2>
-                </div>
-                <p>Lorem ipsum dolor sit amet, consectetur blandit magna adipiscing elit ncididunt labore et dolore magna aliqua enim. </p>
-                <div class="xs_divider clearfix"></div>
-            </div>
-        </div>
-        <div class="row">
-        	<div class="col-12 text-center">
-            	<ul class="classes_filter animation" data-animation="fadeInUp" data-animation-delay="0.2s">
-                	<li><a href="#" class="current" data-filter="all">All Classes</a></li>
-                    <li><a href="#" data-filter="hatha">Hatha</a></li>
-                    <li><a href="#" data-filter="kundalini">Kundalini</a></li>
-                    <li><a href="#" data-filter="pilates">Pilates</a></li>
-                    <li><a href="#" data-filter="alignment">Alignment</a></li>
-                    <li><a href="#" data-filter="yoga-dance">Yoga Dance</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="row">	
-        	<div class="col-12">	
-            	<div class="schedule_table box_shadow1 table-responsive animation" data-animation="fadeInUp" data-animation-delay="0.3s">
-                	<table class="table table-bordered text-center">
-                    	<thead>
-                        	<tr>
-                            	<td>Time</td>
-                            	<td>Monday</td>
-                                <td>Tuesday</td>
-                                <td>Wednesday</td>
-                                <td>Thursday</td>
-                                <td>Friday</td>
-                                <td>Saturday</td>
-                                <td>Sunday</td>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        	<tr>
-                            	<td>9:00AM</td>
-                                <td>
-                                	<div data-classes-schedule="hatha">
-                                    	<div class="classes_title">
-                                            <h6>Hatha Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>9:00 - 10:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>&nbsp;</td>
-                                <td>
-                                	<div data-classes-schedule="kundalini">
-                                    	<div class="classes_title">
-                                            <h6>Kundalini Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>9:00 - 10:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="pilates">
-                                    	<div class="classes_title">
-                                            <h6>Pilates Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>9:00 - 10:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Regina</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="alignment">
-                                    	<div class="classes_title">
-                                            <h6>Alignment Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>9:00 - 10:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="pilates">
-                                    	<div class="classes_title">
-                                            <h6>Pilates Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>9:00 - 10:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Regina</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>&nbsp;</td>
-                            </tr>
-                            <tr>
-                            	<td>10:00AM</td>
-                                <td>
-                                	<div data-classes-schedule="pilates">
-                                    	<div class="classes_title">
-                                            <h6>Pilates Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>10:00 - 11:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Regina</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="alignment">
-                                    	<div class="classes_title">
-                                            <h6>Alignment Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>10:00 - 11:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                               	<td>
-                                	<div data-classes-schedule="yoga-dance">
-                                    	<div class="classes_title">
-                                            <h6>Yoga Dance</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>10:00 - 11:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>&nbsp;</td>
-                                <td>
-                                	<div data-classes-schedule="kundalini">
-                                    	<div class="classes_title">
-                                            <h6>Kundalini Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>10:00 - 11:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="hatha">
-                                    	<div class="classes_title">
-                                            <h6>Hatha Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>10:00 - 11:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="yoga-dance">
-                                    	<div class="classes_title">
-                                            <h6>Yoga Dance</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>10:00 - 11:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr>
-                            	<td>11:00AM</td>
-                                <td>
-                                	<div data-classes-schedule="hatha">
-                                    	<div class="classes_title">
-                                            <h6>Hatha Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>11:00 - 12:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>&nbsp;</td>
-                               	<td>
-                                	<div data-classes-schedule="pilates">
-                                    	<div class="classes_title">
-                                            <h6>Pilates Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>11:00 - 12:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Regina</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="alignment">
-                                    	<div class="classes_title">
-                                            <h6>Alignment Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>11:00 - 12:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="yoga-dance">
-                                    	<div class="classes_title">
-                                            <h6>Yoga Dance</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>11:00 - 12:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="kundalini">
-                                    	<div class="classes_title">
-                                            <h6>Kundalini Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>11:00 - 12:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>&nbsp; </td>
-                            </tr>
-                            <tr>
-                            	<td>12:00AM</td>
-                                <td>
-                                	<div data-classes-schedule="pilates">
-                                    	<div class="classes_title">
-                                            <h6>Pilates Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>12:00 - 01:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Regina</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="kundalini">
-                                    	<div class="classes_title">
-                                            <h6>Kundalini Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>12:00 - 01:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                               	<td>
-                                	<div data-classes-schedule="hatha">
-                                    	<div class="classes_title">
-                                            <h6>Hatha Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>12:00 - 01:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>&nbsp;</td>
-                                <td>
-                                	<div data-classes-schedule="pilates">
-                                    	<div class="classes_title">
-                                            <h6>Pilates Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>12:00 - 01:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Regina</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="alignment">
-                                    	<div class="classes_title">
-                                            <h6>Alignment Yoga</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>12:00 - 01:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Maria</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                	<div data-classes-schedule="yoga-dance">
-                                    	<div class="classes_title">
-                                            <h6>Yoga Dance</h6>
-                                        </div>
-                                        <div class="classes_timing">	
-                                        	<span>12:00 - 01:00</span>
-                                        </div>
-                                        <div class="cl_trainer">
-                                        	<span>Elena</span>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+<!-- <section> -->
+	<!-- <div class="container"> -->
+    	<!-- <div class="row justify-content-center"> -->
+        	<!-- <div class="col-xl-6 col-lg-8 col-md-10 text-center animation" data-animation="fadeInUp" data-animation-delay="0.2s"> -->
+            	<!-- <div class="heading_s1"> -->
+                	<!-- <span class="sub_heading">Choose Your timing Schedule</span> -->
+                	<!-- <h2>Our Classes Timetable</h2> -->
+                <!-- </div> -->
+                <!-- <p>Lorem ipsum dolor sit amet, consectetur blandit magna adipiscing elit ncididunt labore et dolore magna aliqua enim. </p> -->
+                <!-- <div class="xs_divider clearfix"></div> -->
+            <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="row"> -->
+        	<!-- <div class="col-12 text-center"> -->
+            	<!-- <ul class="classes_filter animation" data-animation="fadeInUp" data-animation-delay="0.2s"> -->
+                	<!-- <li><a href="#" class="current" data-filter="all">All Classes</a></li> -->
+                    <!-- <li><a href="#" data-filter="hatha">Hatha</a></li> -->
+                    <!-- <li><a href="#" data-filter="kundalini">Kundalini</a></li> -->
+                    <!-- <li><a href="#" data-filter="pilates">Pilates</a></li> -->
+                    <!-- <li><a href="#" data-filter="alignment">Alignment</a></li> -->
+                    <!-- <li><a href="#" data-filter="yoga-dance">Yoga Dance</a></li> -->
+                <!-- </ul> -->
+            <!-- </div> -->
+        <!-- </div> -->
+        <!-- <div class="row">	 -->
+        	<!-- <div class="col-12">	 -->
+            	<!-- <div class="schedule_table box_shadow1 table-responsive animation" data-animation="fadeInUp" data-animation-delay="0.3s"> -->
+                	<!-- <table class="table table-bordered text-center"> -->
+                    	<!-- <thead> -->
+                        	<!-- <tr> -->
+                            	<!-- <td>Time</td> -->
+                            	<!-- <td>Monday</td> -->
+                                <!-- <td>Tuesday</td> -->
+                                <!-- <td>Wednesday</td> -->
+                                <!-- <td>Thursday</td> -->
+                                <!-- <td>Friday</td> -->
+                                <!-- <td>Saturday</td> -->
+                                <!-- <td>Sunday</td> -->
+                            <!-- </tr> -->
+                        <!-- </thead> -->
+                        <!-- <tbody> -->
+                        	<!-- <tr> -->
+                            	<!-- <td>9:00AM</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="hatha"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Hatha Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>9:00 - 10:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td>&nbsp;</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="kundalini"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Kundalini Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>9:00 - 10:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="pilates"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Pilates Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>9:00 - 10:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Regina</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="alignment"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Alignment Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>9:00 - 10:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="pilates"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Pilates Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>9:00 - 10:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Regina</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td>&nbsp;</td> -->
+                            <!-- </tr> -->
+                            <!-- <tr> -->
+                            	<!-- <td>10:00AM</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="pilates"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Pilates Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>10:00 - 11:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Regina</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="alignment"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Alignment Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>10:00 - 11:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                               	<!-- <td> -->
+                                	<!-- <div data-classes-schedule="yoga-dance"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Yoga Dance</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>10:00 - 11:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td>&nbsp;</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="kundalini"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Kundalini Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>10:00 - 11:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="hatha"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Hatha Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>10:00 - 11:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="yoga-dance"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Yoga Dance</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>10:00 - 11:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                            <!-- </tr> -->
+                            <!-- <tr> -->
+                            	<!-- <td>11:00AM</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="hatha"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Hatha Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>11:00 - 12:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td>&nbsp;</td> -->
+                               	<!-- <td> -->
+                                	<!-- <div data-classes-schedule="pilates"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Pilates Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>11:00 - 12:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Regina</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="alignment"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Alignment Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>11:00 - 12:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="yoga-dance"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Yoga Dance</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>11:00 - 12:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="kundalini"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Kundalini Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>11:00 - 12:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td>&nbsp; </td> -->
+                            <!-- </tr> -->
+                            <!-- <tr> -->
+                            	<!-- <td>12:00AM</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="pilates"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Pilates Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>12:00 - 01:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Regina</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="kundalini"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Kundalini Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>12:00 - 01:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                               	<!-- <td> -->
+                                	<!-- <div data-classes-schedule="hatha"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Hatha Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>12:00 - 01:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td>&nbsp;</td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="pilates"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Pilates Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>12:00 - 01:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Regina</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="alignment"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Alignment Yoga</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>12:00 - 01:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Maria</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                                <!-- <td> -->
+                                	<!-- <div data-classes-schedule="yoga-dance"> -->
+                                    	<!-- <div class="classes_title"> -->
+                                            <!-- <h6>Yoga Dance</h6> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="classes_timing">	 -->
+                                        	<!-- <span>12:00 - 01:00</span> -->
+                                        <!-- </div> -->
+                                        <!-- <div class="cl_trainer"> -->
+                                        	<!-- <span>Elena</span> -->
+                                        <!-- </div> -->
+                                    <!-- </div> -->
+                                <!-- </td> -->
+                            <!-- </tr> -->
+                        <!-- </tbody> -->
+                    <!-- </table> -->
+                <!-- </div> -->
+            <!-- </div> -->
+        <!-- </div> -->
+    <!-- </div> -->
+<!-- </section> -->
 <!-- END SECTION CLASSES TIMETABLE -->
 
 <!-- START SECTION PRICING TABLE -->
@@ -6142,7 +7020,7 @@ body, html {
                 	<span class="sub_heading">Our Letest Articles</span>
                 	<h2>From Our Blog & News</h2>
                 </div>
-                <p>Lorem ipsum dolor sit amet, consectetur blandit magna adipiscing elit ncididunt labore et dolore magna aliqua enim. </p>
+                <!-- <p>Lorem ipsum dolor sit amet, consectetur blandit magna adipiscing elit ncididunt labore et dolore magna aliqua enim. </p> -->
                 <div class="small_divider clearfix"></div>
             </div>
         </div>
@@ -6151,17 +7029,17 @@ body, html {
             	<div class="blog_post box_shadow4 animation" data-animation="fadeInUp" data-animation-delay="0.3s">
                 	<div class="blog_img">
                         <a href="#">
-                            <img src="/static/assets/images/blog_small_img1.jpg" alt="blog_small_img1">
+                            <img src="/static/assets/images/Agnihotra.jpg" alt="blog_small_img1">
                         </a>
                     </div>
                     <div class="blog_content">
-                    	<h5 class="blog_title"><a href="#">Varius Phasellus blandit massa enim</a></h5>
+                    	<h5 class="blog_title"><a href="#">Agnihotra Hom (Yagna)</a></h5>
                         <ul class="list_none blog_meta">
-                        	<li><a href="#"><img src="/static/assets/images/cl_teacher_img1.jpg" alt="image"><span>Dayna</span></a></li>
-                            <li><a href="#"><i class="far fa-calendar"></i>Mar 23, 2018</a></li>
-                            <li><a href="#"><i class="far fa-comments"></i>4</a></li>
+                        	<li><a href="#"><img src="/static/assets/images/cl_teacher_img1.jpg" alt="image"><span>Guruji</span></a></li>
+                            <!-- <li><a href="#"><i class="far fa-calendar"></i>Mar 23, 2018</a></li> -->
+                            <!-- <li><a href="#"><i class="far fa-comments"></i>4</a></li> -->
                         </ul>
-                        <p>Phasellus blandit massa enim elit variununc Lorems ipsum consectetur industry. If you are use dolor sit enim passage of Lorem Ipsum.</p>
+                        <p>Agnihotra Hom (Yagna): Spiritual Importance, Vedic Roots, and Its Relevance in the Modern Era.</p>
                         <a href="#" class="blog_link">Read More</a>
                     </div>
                 </div>
@@ -6170,17 +7048,17 @@ body, html {
             	<div class="blog_post box_shadow4 animation" data-animation="fadeInUp" data-animation-delay="0.4s">
                 	<div class="blog_img">
                         <a href="#">
-                            <img src="/static/assets/images/blog_small_img2.jpg" alt="blog_small_img2">
+                            <img src="/static/assets/images/mantrachanting.jpg" alt="blog_small_img2">
                         </a>
                     </div>
                     <div class="blog_content">
-                    	<h5 class="blog_title"><a href="#">Varius Phasellus blandit massa enim</a></h5>
+                    	<h5 class="blog_title"><a href="#">The Power of Mantra Chanting: Benefits, Techniques, and Its Relevance in Modern Life</a></h5>
                         <ul class="list_none blog_meta">
-                        	<li><a href="#"><img src="/static/assets/images/cl_teacher_img3.jpg" alt="image"><span>Dayna</span></a></li>
-                            <li><a href="#"><i class="far fa-calendar"></i>Mar 23, 2018</a></li>
-                            <li><a href="#"><i class="far fa-comments"></i>4</a></li>
+                        	<li><a href="#"><img src="/static/assets/images/cl_teacher_img3.jpg" alt="image"><span>Guruji</span></a></li>
+                            <!-- <li><a href="#"><i class="far fa-calendar"></i>Mar 23, 2018</a></li> -->
+                            <!-- <li><a href="#"><i class="far fa-comments"></i>4</a></li> -->
                         </ul>
-                        <p>Phasellus blandit massa enim elit variununc Lorems ipsum consectetur industry. If you are use dolor sit enim passage of Lorem Ipsum.</p>
+                        <p>Introduction: What Is Mantra Chanting? In the journey of spiritual growth, few tools are as powerful and </p>
                         <a href="#" class="blog_link">Read More</a>
                     </div>
                 </div>
@@ -6189,17 +7067,17 @@ body, html {
             	<div class="blog_post box_shadow4 animation" data-animation="fadeInUp" data-animation-delay="0.5s">
                 	<div class="blog_img">
                         <a href="#">
-                            <img src="/static/assets/images/blog_small_img3.jpg" alt="blog_small_img3">
+                            <img src="/static/assets/images/sopreiki.jpg" alt="blog_small_img3">
                         </a>
                     </div>
                     <div class="blog_content">
-                    	<h5 class="blog_title"><a href="#">Varius Phasellus blandit massa enim</a></h5>
+                    	<h5 class="blog_title"><a href="#">Standard Operating Procedure (SOP) for Reiki Healing: Ethical, Spiritual, and Practical Guidelines</a></h5>
                         <ul class="list_none blog_meta">
-                        	<li><a href="#"><img src="/static/assets/images/cl_teacher_img4.jpg" alt="image"><span>Dayna</span></a></li>
-                            <li><a href="#"><i class="far fa-calendar"></i>Mar 23, 2018</a></li>
-                            <li><a href="#"><i class="far fa-comments"></i>4</a></li>
+                        	<li><a href="#"><img src="/static/assets/images/cl_teacher_img4.jpg" alt="image"><span>Guruji</span></a></li>
+                            <!-- <li><a href="#"><i class="far fa-calendar"></i>Mar 23, 2018</a></li> -->
+                            <!-- <li><a href="#"><i class="far fa-comments"></i>4</a></li> -->
                         </ul>
-                        <p>Phasellus blandit massa enim elit variununc Lorems ipsum consectetur industry. If you are use dolor sit enim passage of Lorem Ipsum.</p>
+                        <p>A Standard Operating Procedure (SOP) ensures that Reiki is practiced with the highest level of integrity, safety, and consistency.</p>
                         <a href="#" class="blog_link">Read More</a>
                     </div>
                 </div>
@@ -6223,12 +7101,12 @@ body, html {
                     <ul class="contact_info list_none">
                         <li>
                             <span class="fa fa-map-marker-alt "></span>
-                            <address>M.Y.Gangoor Global Foundation</address>
+                            <address>M.Y.Gangoor Global Foundation's®, Angol Road, Belagavi</address>
                             
                         </li>
                         <li>
                             <span class="fa fa-mobile-alt"></span>
-                            <p>+91 8496976263 / +91 9845290825</p>
+                            <p>+91 8496976263 <br> +91 9845290825</p>
                         </li>
                         <li>
                             <span class="fa fa-envelope"></span>
@@ -6239,12 +7117,12 @@ body, html {
                 <div class="col-lg-2 col-sm-5 mb-4 mb-lg-0">
                 	<h5 class="widget_title">Quick Links</h5>
                 	<ul class="list_none widget_links links_style2">
-                    	<li><a href="#">Join Us</a></li>
-                        <li><a href="/static/about.html">About Us</a></li>
-                        <li><a href="#">Courses</a></li>
-                        <li><a href="#">Events</a></li>
-                        <li><a href="#">Support center</a></li>
-                        <li><a href="/contact.html">Contact Us</a></li>
+                    	<li><a href="https://mygangoor.com/login.html">Join Us</a></li>
+                        <li><a href="/about.html">About Us</a></li>
+                        <li><a href="https://mygangoor.com/tracks">Courses</a></li>
+                        <li><a href="https://mygangoor.com/events.html">Events</a></li>
+                        <li><a href="https://mygangoor.com/blogs.html">Blogs</a></li>
+                        <li><a href="/static/contact.html">Contact Us</a></li>
                     </ul>
                 </div>
                 <div class="col-lg-3 col-md-7 mb-4 mb-md-0">
@@ -6282,13 +7160,13 @@ body, html {
 
                 </div>
                 <div class="col-lg-4 col-md-5">
-                	<h5 class="widget_title">Subscribe Newsletter</h5>
-                    <div class="newsletter_form mb-4 mb-lg-5">
-                        <form> 
-                            <input type="text" class="form-control rounded-0" required="" placeholder="Enter Email Address">
-                            <button type="submit" title="Subscribe" class="btn btn-default rounded-0" name="submit" value="Submit"><i class="ion-paper-airplane"></i></button>
-                        </form>
-                    </div>
+                	<!-- <h5 class="widget_title">Subscribe Newsletter</h5> -->
+                    <!-- <div class="newsletter_form mb-4 mb-lg-5"> -->
+                        <!-- <form>  -->
+                            <!-- <input type="text" class="form-control rounded-0" required="" placeholder="Enter Email Address"> -->
+                            <!-- <button type="submit" title="Subscribe" class="btn btn-default rounded-0" name="submit" value="Submit"><i class="ion-paper-airplane"></i></button> -->
+                        <!-- </form> -->
+                    <!-- </div> -->
                     <h5 class="widget_title">Stay Connected</h5>
                     <ul class="list_none social_icons radius_social">
                      <li><a href="https://www.facebook.com/ramesh.gangoor" class="sc_facebook"><i class="fab fa-facebook-f"></i></a></li>
@@ -6306,7 +7184,7 @@ body, html {
                     <div class="row">
                         <div class="col-md-6">
                            <p class="copyright m-md-0 text-center text-md-left">
-    © 2025 M.Y. Gangoor Global Foundation. All Rights Reserved.
+    © 2026 M.Y. Gangoor Global Foundation's®. All Rights Reserved.
     <br class="d-md-none">
     Designed & Developed by 
     <a href="https://www.upriselearning.in" class="text_default" target="_blank">UpRise </a>
@@ -6331,6 +7209,7 @@ body, html {
     </div>
 </footer>
 <!-- END FOOTER -->
+
 
 <!-- Notification Bell Mount Point -->
 <div id="notification-bell-mount"></div>
@@ -6439,6 +7318,8 @@ body, html {
 <script src="/static/assets/js/js.cookie.js"></script>
 <!-- scripts js --> 
 <script src="/static/assets/js/scripts.js"></script>
+<!-- shared public auth UI -->
+<script src="/static/public-auth-ui.js"></script>
 
 <!-- Hero Carousel Navigation Script -->
 <script>
@@ -7453,7 +8334,232 @@ body, html {
         </div>
     </div>
 </div>
+<script>
+// Testimonial data
+const testimonials = {
+    'sagar-shinde': {
+        name: 'Sagar Shinde',
+        designation: 'Business',
+        image: '/static/assets/images/Sagar-Shinde.jpg',
+        quote: 'They didn\'t just heal my shoulder; they gave me and my family a new, peaceful, and joyful life.',
+        content: `
+            <p>I am forever grateful. The entire Shinde family thanks Dr. Ramesh Gangoor Guruji and the M.Y. Gangoor Global Foundation from the bottom of our hearts. What started as a shoulder injury that refused to heal despite multiple medical treatments, turned into a life-changing spiritual journey.</p>
+            
+            <div class="testimonial-highlight">
+                <p>"After 6 months of suffering and expensive treatments, I found relief in just 3 Reiki sessions with Guruji. The pain that haunted me day and night simply vanished."</p>
+            </div>
+            
+            <p>My journey began when a colleague suggested I visit Guruji. Skeptical but desperate, I attended a healing session. The warmth and energy I felt during that first session was something I had never experienced before. Guruji didn't just focus on my shoulder; he understood the stress and anxiety that had built up due to my prolonged illness.</p>
+            
+            <p>He taught me simple Reiki techniques to practice at home and guided my family members too. Now, we have Reiki healing sessions together every evening. The positive energy in our home has transformed our relationships and brought us closer as a family.</p>
+        `,
+        transformations: [
+            'Complete healing of chronic shoulder pain in 3 sessions',
+            'Family transformed through collective Reiki practice',
+            'Improved relationships and home environment',
+            'Reduced stress and anxiety levels',
+            'Newfound spiritual connection and inner peace'
+        ]
+    },
+    'basavaraj-patil': {
+        name: 'Basavaraj Patil',
+        designation: 'Business Owner (Automobile & Transport)',
+        image: '/static/assets/images/Basavaraj-Patil.jpg',
+        quote: 'Guruji\'s wisdom guided me back to my roots',
+        content: `
+            <p>As I joined the classes, I also became a recipient of the incredible healing energy from Guruji and the Foundation's dedicated healing team. Simultaneously, Guruji's wisdom guided me back to my roots: he asked me to pray to Lord Shiva, commit to mantra chanting, and perform Agnihotra at home and work.</p>
+            
+            <p>My business was going through a challenging phase when I met Guruji. The stress was affecting my health, relationships, and decision-making abilities. During my first consultation, Guruji didn't just offer healing; he provided a complete lifestyle transformation plan.</p>
+            
+            <div class="testimonial-highlight">
+                <p>"Implementing Guruji's suggestions - daily Shiva puja, mantra chanting, and Agnihotra - brought miraculous changes within 40 days. My business stabilized, and peace returned to my life."</p>
+            </div>
+            
+            <p>Guruji explained how these ancient practices create positive energy fields that protect and nourish both personal and professional spaces. I started performing Agnihotra at my automobile showroom, and within weeks, I noticed improved customer relationships and better team coordination.</p>
+            
+            <p>The Reiki healing sessions helped me release years of accumulated stress. I learned to channel healing energy to myself, my family, and even my business premises. Today, I maintain a small Agnihotra setup in my office, and my entire team has noticed the positive shift in our work environment.</p>
+        `,
+        transformations: [
+            'Business stabilization and growth after implementation of spiritual practices',
+            'Complete stress management through Reiki and meditation',
+            'Improved family and professional relationships',
+            'Creation of positive energy field in home and workplace',
+            'Rediscovery of cultural roots and spiritual connection'
+        ]
+    },
+    'kirti-dalvi': {
+        name: 'Kirti Dalvi',
+        designation: 'Housewife',
+        image: '/static/assets/images/Kirti-Dalvi.jpg',
+        quote: 'Guruji taught our children the importance of our Indian culture and good habits',
+        content: `
+            <p>During the course, Dr. Ramesh Gangoor Guruji taught the children things like Meditation, Tratak techniques for concentration, Mantra Chanting, and spiritual processes like Agnihotra and Vyaharti Hom. He also taught them about the importance of our Indian culture, good food habits, and the bad effects of mobile phones and junk food.</p>
+            
+            <p>As a mother of two teenagers, I was deeply concerned about their increasing screen time, junk food consumption, and lack of interest in our cultural values. When I heard about the children's spiritual development program at the Foundation, I immediately enrolled my kids.</p>
+            
+            <div class="testimonial-highlight">
+                <p>"Within a month, my children voluntarily reduced their screen time by 70% and started practicing meditation every morning. Their concentration in studies improved remarkably."</p>
+            </div>
+            
+            <p>Guruji has a magical way of connecting with children. He made spiritual practices fun and engaging for them. The Tratak (candle gazing) exercises improved their focus, and the mantra chanting brought a sense of calm to their otherwise restless minds.</p>
+            
+            <p>We now perform Agnihotra as a family every evening. This simple fire ritual has become our bonding time. My children understand the science behind these practices and appreciate our cultural heritage. They've even started teaching their friends some simple meditation techniques!</p>
+        `,
+        transformations: [
+            '70% reduction in children\'s screen time',
+            'Significant improvement in concentration and academic performance',
+            'Adoption of healthy eating habits',
+            'Family bonding through collective spiritual practices',
+            'Cultural awareness and appreciation in younger generation'
+        ]
+    },
+	'Jayant-Chavan': {
+        name: 'Jayant Chavan',
+        designation: 'Business Owner',
+        image: '/static/assets/images/Jayant Chavan.jpg',
+        quote: 'Guruji taught our children the importance of our Indian culture and good habits',
+        content: `
+            <p>My Spiritual  Guruji</p>
+			<p>Dr. Ramesh Gangoor Guruji is a radiant torchbearer of Indian spiritual sciences, with profound expertise in Reiki, Vastushastra, Yoga, and many other disciplines cultivated over 30 years of excellence.</p>
+            <p>A devout Nationalist and true worshipper of Lord Shiva, Guruji embodies immense dedication, an extreme work ethic, and a down-to-earth nature. He is a truly lovable Master, whose great voice and presentation skills effortlessly convey the ancient wisdom he is devoted to sharing globally. His helping nature and relentless commitment to the Prachar, Prasar, and Training of spiritual sciences are a blessing to all.</p>
+            
+            
+            <div class="testimonial-highlight">
+                <p>"The M.Y. Gangoor Global Foundation is more than an institution; it is a sanctuary for holistic evolution. Under the expert mentorship of Dr. Ramesh Gangoor Guruji, I transitioned from a period of deep uncertainty to becoming a Reiki Grandmaster."</p>
+            </div>
+            
+            <p>The depth of spiritual science taught here—from Hypnosis to rich Vedic guidance—is unparalleled. Guruji’s ability to instill confidence and motivation has not only changed my professional path but has uplifted my entire family. It is an honor to now work alongside the Foundation to spread this light globally. A heartfelt thank you to Guruji for 30 years of excellence and for touching our lives so deeply."</p>
+            
+            <p>A Quote for Guruji
+"True spirituality is not a retreat from life, but an infusion of life with light. Dr. Ramesh Gangoor Guruji guides us not just to knowledge, but to the positive transformation of our very existence."
+Thank you Guruji
+</p>
+        `,
+        transformations: [
+            'Restored ability to perform daily activities independently',
+           'Finding new purpose in life through healing others',
+            'Improved sleep quality and overall wellbeing'
+        ]
+    },
+    'mr-birje': {
+        name: 'Mr. Birje',
+        designation: 'Retired Assistant Sales Tax Commissioner',
+        image: '/static/assets/images/Mr.Birje.jpg',
+        quote: 'Reiki spiritual science is not just a course; it is a life-saving power',
+        content: `
+            <p>I am now completely happy and pain-free, living my life fully again. I am so incredibly thankful to Dr. Ramesh Gangoor Guruji, the M. Y. Gangoor Global Foundation's®, and the entire team of selfless Reiki healers who joined together to help me. This experience has proven to me that Reiki spiritual science is not just a course; it is a life-saving power. Thank you, Guruji, for giving me my life back.</p>
+            
+            <p>After retirement, I developed severe arthritis and chronic back pain that made even simple movements painful. I tried allopathic treatments, physiotherapy, and ayurvedic treatments with limited success. The constant pain made me depressed and isolated.</p>
+            
+            <div class="testimonial-highlight">
+                <p>"After just 2 weeks of Reiki healing combined with Guruji's guided meditation, I experienced 80% pain reduction. I could sleep through the night for the first time in 3 years."</p>
+            </div>
+            
+            <p>Guruji taught me how to practice self-Reiki daily. He explained that at my age, the body's natural healing energy diminishes, and Reiki helps replenish it. The group healing sessions were particularly powerful - feeling the collective healing energy of multiple practitioners was an unforgettable experience.</p>
+            
+            <p>Now, I not only practice self-healing but also help other senior citizens in my community. Guruji encouraged me to complete the Reiki Level 1 course, and at 68, I've found a new purpose in life - to bring comfort and healing to others suffering from age-related ailments.</p>
+        `,
+        transformations: [
+            '80% reduction in chronic arthritis and back pain',
+            'Restored ability to perform daily activities independently',
+            'Overcoming depression and social isolation',
+            'Finding new purpose in life through healing others',
+            'Improved sleep quality and overall wellbeing'
+        ]
+    },
+    'pooja-talwar': {
+        name: 'Pooja Talwar',
+        designation: 'Housewife',
+        image: '/static/assets/images/Pooja-Talwar.jpg',
+        quote: 'They solved the biggest problem of my life',
+        content: `
+            <p>I am forever grateful. My family and I thank Dr. Ramesh Gangoor Guruji, the M. Y. Gangoor Global Foundation's®, and their entire team for blessing us with our little Sihi. They solved the biggest problem of my life.</p>
+            
+            <p>After 8 years of marriage and multiple fertility treatments, my husband and I had almost given up hope of having our own child. The emotional toll was immense, and it was affecting every aspect of our lives. A friend suggested we meet Guruji, though I was skeptical about spiritual healing for such a medical issue.</p>
+            
+            <div class="testimonial-highlight">
+                <p>"Guruji didn't promise miracles but asked us to trust the process. Within 6 months of following his guidance - specific mantras, dietary changes, and regular healing sessions - we conceived naturally."</p>
+            </div>
+            
+            <p>Guruji worked on multiple levels - physical healing through Reiki, emotional healing through counseling, and spiritual preparation through specific mantras and rituals. He explained how blocked energy channels can affect reproductive health and how Reiki helps clear these blockages.</p>
+            
+            <p>Throughout my pregnancy, I received regular distance healing from the Foundation's team. The pregnancy was smooth, and little Sihi was born healthy and peaceful. Today, we continue our spiritual practices as a family, and I've become a Reiki practitioner myself to help other women facing similar challenges.</p>
+        `,
+        transformations: [
+            'Successful conception after 8 years of infertility',
+            'Healthy pregnancy and childbirth through spiritual support',
+            'Emotional healing and strengthened marital bond',
+            'Transformation into a Reiki practitioner to help others',
+            'Complete family fulfillment and happiness'
+        ]
+    }
+};
 
+// Function to open testimonial modal
+function openTestimonialModal(testimonialKey) {
+    const modal = document.getElementById('testimonialModal');
+    const testimonial = testimonials[testimonialKey];
+    
+    if (!testimonial) {
+        console.error('Testimonial not found:', testimonialKey);
+        return;
+    }
+    
+    // Update modal content
+    document.getElementById('testimonialModalImage').src = testimonial.image;
+    document.getElementById('testimonialModalImage').alt = testimonial.name;
+    document.getElementById('testimonialModalName').textContent = testimonial.name;
+    document.getElementById('testimonialModalDesignation').textContent = testimonial.designation;
+    document.getElementById('testimonialModalQuote').textContent = testimonial.quote;
+    document.getElementById('testimonialModalContent').innerHTML = testimonial.content;
+    
+    // Update transformations if available
+    const transformationDiv = document.getElementById('testimonialModalTransformation');
+    const transformationList = document.getElementById('testimonialModalList');
+    
+    if (testimonial.transformations && testimonial.transformations.length > 0) {
+        transformationList.innerHTML = '';
+        testimonial.transformations.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            transformationList.appendChild(li);
+        });
+        transformationDiv.style.display = 'block';
+    } else {
+        transformationDiv.style.display = 'none';
+    }
+    
+    // Show modal
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+}
+
+// Function to close testimonial modal
+function closeTestimonialModal() {
+    const modal = document.getElementById('testimonialModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal when clicking outside
+document.getElementById('testimonialModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTestimonialModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeTestimonialModal();
+    }
+});
+
+// Initialize testimonial carousel
+document.addEventListener('DOMContentLoaded', function() {
+    // The owl carousel is already initialized by your scripts.js
+    // We just need to ensure our buttons work within the carousel
+});</script>
 <script>
 // Program data
 const programs = {
@@ -7464,7 +8570,7 @@ const programs = {
         headerTitle: 'Awaken The Power Within',
         headerDescription: 'Experience the original Reiki lineage with guided attunements, daily rituals, and mentoring that open your energy channels. Learn to sense, balance, and share universal life force so you can support healing for yourself, family, and clients with confidence.',
         image: '/static/assets/images/Reiki1.png',
-        images: ['/static/assets/images/Reiki2.png', '/static/assets/images/Reiki2.png', '/static/assets/images/Reiki1.png'],
+        images: ['/static/assets/images/Reiki3.png', '/static/assets/images/Reiki2.jpg', '/static/assets/images/Reiki1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Short Introduction</h4>
@@ -7585,12 +8691,12 @@ const programs = {
             
             <div class="program-section">
                 <h4><i class="fas fa-phone-alt"></i>How to Join</h4>
-                <p>Enroll with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a>, Belgaum, Karnataka to begin learning Reiki in English, Marathi, Hindi, or Kannada. Join live online batches or attend in-person workshops. Learn practical self-healing, help your loved ones, and develop a certified practice.</p>
+                <p>Enroll with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation</a>, Belgaum, Karnataka to begin learning Reiki in English, Marathi, Hindi, or Kannada. Join live online batches or attend in-person workshops. Learn practical self-healing, help your loved ones, and develop a certified practice.</p>
             </div>
             
             <div class="program-highlight">
                 <h5><i class="fas fa-exclamation-circle"></i>Quick Contact Note</h5>
-                <p>Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> — Belgaum, Karnataka. Limited seats per batch to ensure quality practice and supervision.</p>
+                <p>Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation</a> — Belgaum, Karnataka. Limited seats per batch to ensure quality practice and supervision.</p>
             </div>
         `
     },
@@ -7600,8 +8706,8 @@ const programs = {
         subtitle: 'Dowsing',
         headerTitle: 'Master The Art of Energy Detection',
         headerDescription: 'Train with pendulums, rods, and bio-sensory techniques to interpret subtle fields in land, water, and the human aura. Translate intuitive findings into practical guidance for healing, geopathic stress correction, and conscious decision-making.',
-        image: '/static/assets/images/Dowsing1.png',
-        images: ['/static/assets/images/Dowsing1.png', '/static/assets/images/Dowsing1.png'],
+        image: '/static/assets/images/Dowsing1.jpg',
+       	images: ['/static/assets/images/Dowsing3.jpg', '/static/assets/images/Dowsing2.jpg', '/static/assets/images/Dowsing1.jpg'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Short Introduction</h4>
@@ -7694,7 +8800,7 @@ const programs = {
             
             <div class="program-highlight">
                 <h5><i class="fas fa-exclamation-circle"></i>Join the Dowsing Course Today</h5>
-                <p>Awaken your inner compass. Learn to sense, heal, and guide with the power of energy. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> and begin your journey into subtle wisdom.</p>
+                <p>Awaken your inner compass. Learn to sense, heal, and guide with the power of energy. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a> and begin your journey into subtle wisdom.</p>
             </div>
         `
     },
@@ -7704,8 +8810,8 @@ const programs = {
         subtitle: 'Ancient Sciences',
         headerTitle: 'Integrative Wisdom of Ages',
         headerDescription: 'Decode planetary cycles, palm mounts, and numerical vibrations through an integrated, practice-rich curriculum. Offer precise life readings, career guidance, and remedial solutions that empower seekers to align with their cosmic blueprint.',
-        image: '/static/assets/images/Third Eye Activation1.png',
-        images: ['/static/assets/images/Third Eye Activation1.png', '/static/assets/images/Vastushastra1.png', '/static/assets/images/Dowsing1.png'],
+        image: '/static/assets/images/astro1.jpg',
+        images: ['/static/assets/images/astro3.jpg', '/static/assets/images/astro2.jpg', '/static/assets/images/astro1.jpg'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Brief Overview</h4>
@@ -7833,7 +8939,7 @@ const programs = {
             
             <div class="program-highlight">
                 <h5><i class="fas fa-exclamation-circle"></i>Join the Ancient Sciences Program</h5>
-                <p>Develop an integrated, ethical practice in astrology, palmistry, and numerology. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> to gain practical skills, supervised experience, and certification that empowers you to read lives with clarity, compassion, and professional integrity.</p>
+                <p>Develop an integrated, ethical practice in astrology, palmistry, and numerology. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a> to gain practical skills, supervised experience, and certification that empowers you to read lives with clarity, compassion, and professional integrity.</p>
             </div>
         `
     },
@@ -7843,8 +8949,8 @@ const programs = {
         subtitle: 'Yogshastra',
         headerTitle: 'Transform Mind, Body & Spirit',
         headerDescription: 'Explore progressive sequences of asana, pranayama, mudra, and meditation tailored to every body and life stage. Establish a disciplined daily sadhana that builds resilience, emotional balance, and a joyful spiritual outlook.',
-        image: '/static/assets/images/Yoga1.png',
-        images: ['/static/assets/images/Yoga1.png'],
+        image: '/static/assets/images/Yog1.png',
+        images: ['/static/assets/images/Yog3.jpg', '/static/assets/images/Yog2.jpg', '/static/assets/images/Yog1.png'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>What Is Yogshastra and Life Coaching</h4>
@@ -7887,7 +8993,7 @@ const programs = {
             
             <div class="program-section">
                 <h4><i class="fas fa-certificate"></i>Certification</h4>
-                <p>Certified Yogshastra & Life Coach certificate from <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> upon attendance, practical demonstration, and submission of case work.</p>
+                <p>Certified Yogshastra & Life Coach certificate from <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a> upon attendance, practical demonstration, and submission of case work.</p>
             </div>
             
             <div class="program-section">
@@ -7913,13 +9019,13 @@ const programs = {
                 <ul>
                     <li>Transparent tiered fees (Foundation, Practitioner, Advanced); early-bird and bundle discounts available</li>
                     <li>Payment by UPI, bank transfer, or online gateway</li>
-                    <li>How to enroll: Register with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> to reserve your seat and receive pre-course materials</li>
+                    <li>How to enroll: Register with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a> to reserve your seat and receive pre-course materials</li>
                 </ul>
             </div>
             
             <div class="program-highlight">
                 <h5><i class="fas fa-exclamation-circle"></i>Join the Course</h5>
-                <p>Become an empowered guide for wellbeing and life purpose. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> to train in Yogshastra and Life Coaching and begin transforming lives with skill, compassion, and integrity.</p>
+                <p>Become an empowered guide for wellbeing and life purpose. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a> to train in Yogshastra and Life Coaching and begin transforming lives with skill, compassion, and integrity.</p>
             </div>
         `
     },
@@ -7929,8 +9035,8 @@ const programs = {
         subtitle: 'Vastu Shastra',
         headerTitle: 'Create Harmony in Your Space',
         headerDescription: 'Master site analysis, energy mapping, and elemental balancing for homes, workplaces, and sacred venues. Blend classical Vastu sutras with contemporary design so every project nurtures prosperity, health, and enduring harmony.',
-        image: '/static/assets/images/Vastushastra1.png',
-        images: ['/static/assets/images/Vastushastra1.png', '/static/assets/images/Yoga1.png'],
+        image: '/static/assets/images/Vastu1.jpg',
+        images: ['/static/assets/images/Vastu3.jpg', '/static/assets/images/Vastu2.jpg', '/static/assets/images/Vastu1.jpg'],
         content: `
             <div class="program-section">
                 <h4><i class="fas fa-book-open"></i>Brief Introduction</h4>
@@ -8001,7 +9107,7 @@ const programs = {
             
             <div class="program-section">
                 <h4><i class="fas fa-certificate"></i>Certification</h4>
-                <p>On completion, participants receive a Certified Vastu Consultant certificate issued by <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a>. Certification requires attendance, practical assignment, and a case-study submission.</p>
+                <p>On completion, participants receive a Certified Vastu Consultant certificate issued by <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a>. Certification requires attendance, practical assignment, and a case-study submission.</p>
             </div>
             
             <div class="program-section">
@@ -8031,7 +9137,7 @@ const programs = {
             
             <div class="program-highlight">
                 <h5><i class="fas fa-exclamation-circle"></i>Join the Vastu Shastra Course</h5>
-                <p>Align your space with natural intelligence. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">@2025 M Y Gangoor Global (R) Foundation</a> to become a confident, ethical Vastu practitioner and transform spaces for wellbeing and prosperity.</p>
+                <p>Align your space with natural intelligence. Enroll now with <a href="https://www.mygangoor.com" style="color: #e91e63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #e91e63;">M Y Gangoor Global (R) Foundation®</a> to become a confident, ethical Vastu practitioner and transform spaces for wellbeing and prosperity.</p>
             </div>
         `
     },
@@ -8579,94 +9685,6 @@ async function handleJoinNow(event) {
     }
 }
 
-// Check authentication status and show/hide dashboard icon
-async function checkAuthAndShowDashboard() {
-    try {
-        const apiBase = window.API_BASE_URL || '/api';
-        const response = await fetch(`${apiBase}/auth/check`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const data = await response.json();
-        const dashboardNavItem = document.getElementById('dashboardNavItem');
-        
-        if (data.ok && data.user) {
-            // User is authenticated - show dashboard icon
-            if (dashboardNavItem) {
-                dashboardNavItem.style.display = 'list-item';
-            }
-        } else {
-            // User is not authenticated - hide dashboard icon
-            if (dashboardNavItem) {
-                dashboardNavItem.style.display = 'none';
-            }
-        }
-    } catch (error) {
-        console.error('Error checking authentication for dashboard icon:', error);
-        // On error, hide the icon to be safe
-        const dashboardNavItem = document.getElementById('dashboardNavItem');
-        if (dashboardNavItem) {
-            dashboardNavItem.style.display = 'none';
-        }
-    }
-}
-
-// Handle dashboard icon click - navigate to appropriate dashboard based on role
-async function handleDashboardClick(event) {
-    event.preventDefault();
-    
-    try {
-        const response = await fetch('/api/auth/check', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.ok && data.user) {
-            const role = data.user.role;
-            const userRole = String(role || '').toLowerCase();
-            
-            // Navigate based on role (same logic as NavBar.tsx)
-            if (userRole.startsWith('org')) {
-                // Org roles go to dashboard
-                window.location.href = '/dashboard';
-            } else {
-                switch (userRole) {
-                    case 'superadmin':
-                        window.location.href = '/superadmin';
-                        break;
-                    case 'admin':
-                        window.location.href = '/admin';
-                        break;
-                    case 'vendor':
-                        window.location.href = '/vendor';
-                        break;
-                    case 'student':
-                        window.location.href = '/dashboard';
-                        break;
-                    default:
-                        window.location.href = '/dashboard';
-                }
-            }
-        } else {
-            // User is not authenticated, redirect to login
-            window.location.href = '/login.html?returnUrl=/home';
-        }
-    } catch (error) {
-        console.error('Error navigating to dashboard:', error);
-        // On error, redirect to login
-        window.location.href = '/login?returnUrl=/home';
-    }
-}
-
 // Function to get badge color based on program type
 function getBadgeColor(programType) {
     const colorMap = {
@@ -8776,18 +9794,339 @@ window.addEventListener('DOMContentLoaded', function() {
     fetchCourses();
 });
 
-// Call checkAuthAndShowDashboard when page loads
-window.addEventListener('DOMContentLoaded', checkAuthAndShowDashboard);
-
 // Load notification bell
 window.addEventListener('DOMContentLoaded', function() {
     const script = document.createElement('script');
     script.src = '/static/notification-bell-standalone.js';
     document.body.appendChild(script);
 });
+// Add this to your existing JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    // Fix testimonial images to fit properly in circular container
+    const testimonialImages = document.querySelectorAll('.testimonial_img img');
+    
+    testimonialImages.forEach(img => {
+        // Force image to load and then adjust
+        if (img.complete) {
+            adjustImageFit(img);
+        } else {
+            img.addEventListener('load', function() {
+                adjustImageFit(this);
+            });
+        }
+        
+        // Add error handling
+        img.addEventListener('error', function() {
+            console.log('Image failed to load:', this.src);
+            this.style.display = 'none';
+            // You could add a placeholder image here
+        });
+    });
+    
+    function adjustImageFit(img) {
+        const container = img.parentElement;
+        const containerWidth = container.offsetWidth;
+        const containerHeight = container.offsetHeight;
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        
+        console.log('Image:', img.src, 'Size:', imgWidth, 'x', imgHeight);
+        
+        // For portrait images (like Jayant Chavan 493x624)
+        if (imgHeight > imgWidth) {
+            // Portrait image - show more of the face
+            img.style.objectPosition = 'center 30% !important';
+            img.style.objectFit = 'cover !important';
+        } else {
+            // Landscape or square image
+            img.style.objectPosition = 'center center !important';
+            img.style.objectFit = 'cover !important';
+        }
+    }
+});
+// Function to optimize testimonial images
+function optimizeTestimonialImages() {
+    const testimonialImages = document.querySelectorAll('.testimonial_img img');
+    
+    testimonialImages.forEach(img => {
+        // Add error handling
+        img.onerror = function() {
+            console.warn('Testimonial image failed to load:', this.src);
+            // Optionally set a fallback image
+            // this.src = '/static/assets/images/default-avatar.png';
+        };
+        
+        // If image is already loaded, optimize it
+        if (img.complete) {
+            optimizeImageFit(img);
+        } else {
+            // Wait for image to load
+            img.addEventListener('load', function() {
+                optimizeImageFit(this);
+            });
+        }
+    });
+}
+
+function optimizeImageFit(img) {
+    const container = img.parentElement;
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+    
+    // Determine if image is portrait or landscape
+    const isPortrait = imgHeight > imgWidth;
+    
+    if (isPortrait) {
+        // Portrait images (like faces) - focus on upper center
+        img.style.objectPosition = 'center 25%';
+    } else {
+        // Landscape/square images
+        img.style.objectPosition = 'center center';
+    }
+    
+    // Always use cover to fill the circle
+    img.style.objectFit = 'cover';
+    
+    // Ensure it's visible
+    img.style.opacity = '1';
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    optimizeTestimonialImages();
+    
+    // Also run after any dynamic content loads
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                setTimeout(optimizeTestimonialImages, 100);
+            }
+        });
+    });
+    
+    // Observe the testimonial slider container
+    const testimonialContainer = document.querySelector('.testimonial_slider');
+    if (testimonialContainer) {
+        observer.observe(testimonialContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+});
+// Function to optimize and center testimonial images
+function optimizeTestimonialImages() {
+    const testimonialImages = document.querySelectorAll('.testimonial_img img');
+    
+    testimonialImages.forEach(img => {
+        // Add error handling
+        img.onerror = function() {
+            console.warn('Testimonial image failed to load:', this.src);
+            // You can add a fallback image if needed
+            // this.src = '/static/assets/images/default-avatar.jpg';
+        };
+        
+        // Force image to be visible and properly sized
+        img.style.display = 'block';
+        img.style.visibility = 'visible';
+        img.style.opacity = '1';
+        
+        // If image is already loaded, optimize it
+        if (img.complete) {
+            centerAndOptimizeImage(img);
+        } else {
+            // Wait for image to load
+            img.addEventListener('load', function() {
+                centerAndOptimizeImage(this);
+            });
+        }
+    });
+    
+    // Also fix modal images
+    const modalImages = document.querySelectorAll('.testimonial-modal-image img');
+    modalImages.forEach(img => {
+        img.style.objectFit = 'cover';
+        img.style.objectPosition = 'center center';
+    });
+}
+
+function centerAndOptimizeImage(img) {
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+    
+    // For portrait images (height > width), adjust to show faces better
+    if (imgHeight > imgWidth) {
+        img.style.objectPosition = 'center 25%';
+    } else {
+        img.style.objectPosition = 'center center';
+    }
+    
+    img.style.objectFit = 'cover';
+    
+    // Force repaint to ensure proper display
+    img.style.display = 'none';
+    img.offsetHeight; // Trigger reflow
+    img.style.display = 'block';
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    optimizeTestimonialImages();
+    
+    // Run after a short delay to ensure all content is loaded
+    setTimeout(optimizeTestimonialImages, 500);
+    
+    // Run again after carousel initializes
+    setTimeout(optimizeTestimonialImages, 1000);
+    
+    // Observe for any DOM changes (like carousel slides changing)
+    const observer = new MutationObserver(function() {
+        setTimeout(optimizeTestimonialImages, 100);
+    });
+    
+    // Observe the testimonial section
+    const testimonialSection = document.querySelector('.testimonial_slider');
+    if (testimonialSection) {
+        observer.observe(testimonialSection, {
+            childList: true,
+            subtree: true
+        });
+    }
+});
+
+// Also run on window resize
+window.addEventListener('resize', function() {
+    setTimeout(optimizeTestimonialImages, 200);
+});
+// Add this to your existing JavaScript to ensure proper mobile carousel behavior
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize testimonial carousel properly
+    setTimeout(function() {
+        const testimonialSlider = $('.testimonial_slider');
+        if (testimonialSlider.length && typeof testimonialSlider.owlCarousel === 'function') {
+            testimonialSlider.owlCarousel({
+                items: 1,
+                margin: 20,
+                loop: true,
+                autoplay: true,
+                autoplayTimeout: 6000,
+                autoplayHoverPause: true,
+                dots: true,
+                nav: false,
+                responsive: {
+                    0: {
+                        items: 1,
+                        margin: 10
+                    },
+                    768: {
+                        items: 2,
+                        margin: 15
+                    },
+                    1200: {
+                        items: 3,
+                        margin: 20
+                    }
+                }
+            });
+        }
+        
+        // Force testimonial images to reload and display properly
+        const testimonialImages = document.querySelectorAll('.testimonial_img img');
+        testimonialImages.forEach(img => {
+            if (img.complete) {
+                img.style.display = 'block';
+                img.style.opacity = '1';
+            }
+        });
+    }, 500);
+});
+// Add this function to optimize and center testimonial images
+function optimizeAndCenterTestimonialImages() {
+    const testimonialImages = document.querySelectorAll('.testimonial_img img');
+    
+    testimonialImages.forEach(img => {
+        // Force image to load
+        if (img.complete) {
+            optimizeImage(img);
+        } else {
+            img.addEventListener('load', function() {
+                optimizeImage(this);
+            });
+        }
+        
+        // Handle image errors
+        img.onerror = function() {
+            console.warn('Image failed to load:', this.src);
+            // You could set a placeholder image
+            // this.src = '/static/assets/images/default-testimonial.jpg';
+            this.style.display = 'none';
+            // Show fallback text
+            const container = this.parentElement;
+            const fallback = document.createElement('div');
+            fallback.className = 'image-fallback';
+            fallback.innerHTML = '<span>👤</span>';
+            fallback.style.cssText = `
+                width: 100%;
+                height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #f0f0f0;
+                border-radius: 50%;
+                font-size: 60px;
+            `;
+            container.appendChild(fallback);
+        };
+    });
+    
+    function optimizeImage(img) {
+        const container = img.parentElement;
+        const imgWidth = img.naturalWidth;
+        const imgHeight = img.naturalHeight;
+        
+        console.log('Optimizing image:', img.src, 'Size:', imgWidth, 'x', imgHeight);
+        
+        // For portrait images, adjust to show faces better
+        if (imgHeight > imgWidth) {
+            img.style.objectPosition = 'center 25%';
+        } else {
+            img.style.objectPosition = 'center center';
+        }
+        
+        img.style.objectFit = 'cover';
+        img.style.opacity = '1';
+        
+        // Ensure container is properly sized
+        container.style.width = '180px';
+        container.style.height = '180px';
+    }
+}
+
+// Call when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize carousel if not already done
+    setTimeout(function() {
+        optimizeAndCenterTestimonialImages();
+        
+        // Also fix after carousel slides change
+        const testimonialSlider = document.querySelector('.testimonial_slider');
+        if (testimonialSlider) {
+            testimonialSlider.addEventListener('changed.owl.carousel', function() {
+                setTimeout(optimizeAndCenterTestimonialImages, 100);
+            });
+        }
+    }, 1000);
+    
+    // Run again after a delay to ensure everything is loaded
+    setTimeout(optimizeAndCenterTestimonialImages, 2000);
+});
+
+// Also run on window resize
+window.addEventListener('resize', function() {
+    setTimeout(optimizeAndCenterTestimonialImages, 200);
+});
 </script>
+
+
 
 </body>
 </html>
-
-

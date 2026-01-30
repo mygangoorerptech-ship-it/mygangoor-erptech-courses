@@ -67,14 +67,39 @@
 
     // Fetch notifications
     function fetchNotifications() {
-        return fetch('/api/notifications/list?unreadOnly=true&limit=20', {
-            credentials: 'include'
+        const tryFetch = () => fetch('/api/notifications/list?unreadOnly=true&limit=20', { credentials: 'include' });
+
+        return tryFetch()
+        .then(async (res) => {
+            if (res.ok) return res.json().catch(() => []);
+
+            // If unauthorized, attempt one silent refresh and retry once.
+            if (res.status === 401 || res.status === 403) {
+                try {
+                    const helper = window.__ecaAuth;
+                    const ok = helper && typeof helper.refreshOnce === 'function'
+                      ? await helper.refreshOnce()
+                      : false;
+                    if (ok) {
+                        const res2 = await tryFetch();
+                        if (res2.ok) return res2.json().catch(() => []);
+                    }
+                } catch {}
+                return [];
+            }
+
+            // Non-auth failures: treat as empty to avoid JSON parse noise.
+            return [];
         })
-        .then(res => res.json())
         .then(data => {
             if (Array.isArray(data)) {
                 notificationItems = data;
                 unreadCount = data.filter(it => !it.readAt).length;
+                updateBell();
+                renderNotifications();
+            } else {
+                notificationItems = [];
+                unreadCount = 0;
                 updateBell();
                 renderNotifications();
             }
@@ -185,10 +210,7 @@
 
     // Global handlers
     window.handleNotificationClick = function(id, item) {
-        fetch(`/api/notifications/${id}/read`, {
-            method: 'POST',
-            credentials: 'include'
-        })
+        fetch(`/api/notifications/${id}/read`, { method: 'POST', credentials: 'include' })
         .then(() => {
             if (item.data && item.data.courseId) {
                 window.location.href = `/courses/${item.data.courseId}`;
@@ -201,10 +223,7 @@
     };
 
     window.handleNotificationDismiss = function(id) {
-        fetch(`/api/notifications/${id}/dismiss`, {
-            method: 'POST',
-            credentials: 'include'
-        })
+        fetch(`/api/notifications/${id}/dismiss`, { method: 'POST', credentials: 'include' })
         .then(() => fetchNotifications())
         .catch(err => console.error('Failed to dismiss:', err));
     };

@@ -41,23 +41,11 @@
     const apiMeta = document.querySelector('meta[name="api-base-url"]');
     const apiBaseFromMeta = apiMeta ? apiMeta.getAttribute('content') : null;
     
-    // If meta tag exists, use it
+    // If meta tag exists, use it; otherwise default to same-origin
     if (apiBaseFromMeta) {
         window.API_BASE_URL = apiBaseFromMeta;
     } else {
-        // Auto-detect: if not localhost, assume production and use full API URL
-        const isLocalhost = window.location.hostname === 'localhost' || 
-                           window.location.hostname === '127.0.0.1' ||
-                           window.location.hostname.includes('localhost');
-        
-        if (isLocalhost) {
-            // Development: use relative path (Vite proxy handles it)
-            window.API_BASE_URL = '/api';
-        } else {
-            // Production: use Render backend URL
-            // This can be overridden by setting meta tag during build
-            window.API_BASE_URL = 'https://eca-uvco.onrender.com/api';
-        }
+        window.API_BASE_URL = '/api';
     }
     
     console.log('[Login Page] API Base URL:', window.API_BASE_URL);

@@ -69,24 +69,14 @@
                     <li>
                         <a class="nav-link" href="/home">Home</a>
                     </li>
-                    <li>
-                        <a class="nav-link" href="/static/schedule.html">Schedule</a>
-                    </li>
                     <li class="dropdown">
                         <a class="dropdown-toggle nav-link" href="#" data-toggle="dropdown">About Us</a>
-                        
-                        
                         <div class="dropdown-menu">
                             <ul> 
-                            	<li><a class="dropdown-item nav-link nav_item" href="/static/about.html">About Us</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/events.html">Events</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/our-sister-concern.html">Our Sister Concerns</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/our-global-ambassadors.html">Our Global Ambassadors</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Photo/Video Gallery</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Press/Media</a></li>
-                                <li><a class="dropdown-item nav-link nav_item" href="#">Reviews</a></li>
+                            	<li><a class="dropdown-item nav-link nav_item" href="/about.html">About Us</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/our-global-ambassadors.html">Our Global Ambassadors</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/gallery-three-columns.html">Photo/Video Gallery</a></li>
+                                <li><a class="dropdown-item nav-link nav_item" href="/gallery-four-columns.html">Press/Media</a></li>
                             </ul>
                         </div>
                     </li>
@@ -473,88 +463,10 @@
 <script src="/static/assets/js/js.cookie.js"></script>
 <!-- scripts js --> 
 <script src="/static/assets/js/scripts.js"></script>
+<!-- shared public auth UI -->
+<script src="/static/public-auth-ui.js"></script>
 <script>
-async function checkAuthAndShowDashboard() {
-    try {
-        const apiBase = window.API_BASE_URL || '/api';
-        const response = await fetch(`${apiBase}/auth/check`, {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const data = await response.json();
-        const dashboardNavItem = document.getElementById('dashboardNavItem');
-        
-        if (data.ok && data.user) {
-            if (dashboardNavItem) {
-                dashboardNavItem.style.display = 'list-item';
-            }
-        } else {
-            if (dashboardNavItem) {
-                dashboardNavItem.style.display = 'none';
-            }
-        }
-    } catch (error) {
-        console.error('Error checking authentication for dashboard icon:', error);
-        const dashboardNavItem = document.getElementById('dashboardNavItem');
-        if (dashboardNavItem) {
-            dashboardNavItem.style.display = 'none';
-        }
-    }
-}
-
-async function handleDashboardClick(event) {
-    event.preventDefault();
-    
-    try {
-        const response = await fetch('/api/auth/check', {
-            method: 'GET',
-            credentials: 'include',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        });
-        
-        const data = await response.json();
-        
-        if (data.ok && data.user) {
-            const role = data.user.role;
-            const userRole = String(role || '').toLowerCase();
-            
-            if (userRole.startsWith('org')) {
-                window.location.href = '/dashboard';
-            } else {
-                switch (userRole) {
-                    case 'superadmin':
-                        window.location.href = '/superadmin';
-                        break;
-                    case 'admin':
-                        window.location.href = '/admin';
-                        break;
-                    case 'vendor':
-                        window.location.href = '/vendor';
-                        break;
-                    case 'student':
-                        window.location.href = '/dashboard';
-                        break;
-                    default:
-                        window.location.href = '/dashboard';
-                }
-            }
-        } else {
-            window.location.href = '/login.html?returnUrl=/home';
-        }
-    } catch (error) {
-        console.error('Error navigating to dashboard:', error);
-        window.location.href = '/login?returnUrl=/home';
-    }
-}
-
 window.addEventListener('DOMContentLoaded', function() {
-    checkAuthAndShowDashboard();
     const script = document.createElement('script');
     script.src = '/static/notification-bell-standalone.js';
     document.body.appendChild(script);

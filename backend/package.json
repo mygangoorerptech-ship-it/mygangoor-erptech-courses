@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nodemon ./src/server.js",
-    "start": "node ./src/server.js"
+    "dev": "nodemon ./server.js",
+    "start": "node ./server.js"
   },
   "dependencies": {
     "@sparticuz/chromium": "^138.0.2",

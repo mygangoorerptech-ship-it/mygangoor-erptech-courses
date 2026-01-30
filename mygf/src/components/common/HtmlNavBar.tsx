@@ -253,7 +253,7 @@ export default function HtmlNavBar() {
           default: navigate("/dashboard");
         }
       } else {
-        navigate("/login");
+        window.location.assign("/login.html");
       }
     };
 
@@ -263,7 +263,7 @@ export default function HtmlNavBar() {
     // Show/hide dashboard nav item based on authentication
     const dashboardNavItem = document.getElementById('dashboardNavItem');
     if (dashboardNavItem) {
-      dashboardNavItem.style.display = isAuthenticated ? 'block' : 'none';
+      dashboardNavItem.style.display = isAuthenticated ? 'list-item' : 'none';
     }
 
     return () => {
@@ -490,77 +490,29 @@ export default function HtmlNavBar() {
                 <a className="nav-link active" href="/home">Home</a>
               </li>
               <li>
-                <a className="nav-link" href="/static/schedule.html">Schedule</a>
+          
               </li>
               <li className="dropdown">
                 <a className="dropdown-toggle nav-link" href="#" data-toggle="dropdown">About Us</a>
                 <div className="dropdown-menu">
                   <ul> 
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/about.html">About Us</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
+                    <li><a className="dropdown-item nav-link nav_item" href="/about.html">About Us</a></li>
+                    {/* <li><a className="dropdown-item nav-link nav_item" href="/tracks">Courses</a></li>
                     <li><a className="dropdown-item nav-link nav_item" href="/static/events.html">Events</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/our-sister-concern.html">Our Sister Concerns</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/our-global-ambassadors.html">Our Global Ambassadors</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-three-columns.html">Photo/Video Gallery</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="/static/gallery-four-columns.html">Press/Media</a></li>
-                    <li><a className="dropdown-item nav-link nav_item" href="#">Reviews</a></li>
-                  </ul>
-                </div>
-              </li>
-              <li className="dropdown">
-                <a className="dropdown-toggle nav-link" href="#" data-toggle="dropdown">Blog</a>
-                <div className="dropdown-menu">
-                  <ul>
-                    <li>
-                      <a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Blog Layout</a>
-                      <div className="dropdown-menu dropdown-reverse">
-                        <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-standard-left-sidebar.html">Blog Standard Left Sidebar</a></li> 
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-standard-right-sidebar.html">Blog Standard Right Sidebar</a></li> 
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-three-columns.html">Blog 3 Columns </a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-four-columns.html">Blog 4 Columns</a></li>
-                        </ul>
-                      </div>
-                    </li>
-                    <li>
-                      <a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Blog Masonry</a>
-                      <div className="dropdown-menu dropdown-reverse">
-                        <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-masonry-three-columns.html">Masonry 3 Columns</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-masonry-four-columns.html">Masonry 4 Columns</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-masonry-left-sidebar.html">Masonry Left Sidebar</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-masonry-right-sidebar.html">Masonry Right Sidebar</a></li>
-                        </ul>
-                      </div>
-                    </li>
-                    <li>
-                      <a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Blog List</a>
-                      <div className="dropdown-menu dropdown-reverse">
-                        <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-list-left-sidebar.html">Left Sidebar</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-list-right-sidebar.html">Right Sidabar</a></li>
-                        </ul>
-                      </div>
-                    </li>
-                    <li>
-                      <a className="dropdown-item nav-link nav_item dropdown-toggler" href="#">Sinlge Post</a>
-                      <div className="dropdown-menu dropdown-reverse">
-                        <ul> 
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-single.html">Default</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-single-left-sidebar.html">Left Sidebar</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-single-right-sidebar.html">Right Sidebar</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-single-slider.html">Slider Post</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-single-video.html">Video post</a></li>
-                          <li><a className="dropdown-item nav-link nav_item" href="blog-single-audio.html">Audio Post</a></li>
-                        </ul>
-                      </div>
-                    </li>
+                    <li><a className="dropdown-item nav-link nav_item" href="/static/our-sister-concern.html">Our Sister Concerns</a></li> */}
+                    <li><a className="dropdown-item nav-link nav_item" href="/our-global-ambassadors.html">Our Global Ambassadors</a></li>
+                    {/* <li><a className="dropdown-item nav-link nav_item" href="#">Our Researchers</a></li> */}
+                    <li><a className="dropdown-item nav-link nav_item" href="/gallery-three-columns.html">Photo/Video Gallery</a></li>
+                    <li><a className="dropdown-item nav-link nav_item" href="/gallery-four-columns.html">Press/Media</a></li>
+                    {/* <li><a className="dropdown-item nav-link nav_item" href="#">Reviews</a></li> */}
                   </ul>
                 </div>
               </li>
               <li>
-                <a className="nav-link" href="/static/contact.html">Contact</a>
+                <a className="nav-link" href="/blog-masonry-three-columns.html">Blog</a>
+              </li>
+              <li>
+                <a className="nav-link" href="/contact.html">Contact</a>
               </li>
             </ul>
           </div>
@@ -585,7 +537,7 @@ export default function HtmlNavBar() {
                       default: navigate("/dashboard");
                     }
                   } else {
-                    navigate("/login");
+                    window.location.assign("/login.html");
                   }
                 }
               }} title="Dashboard">

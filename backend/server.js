@@ -346,6 +346,26 @@ if (fs.existsSync(htmlPagesDir)) {
   });
 }
 
+// Serve React SPA build (if present) and provide history fallback for SPA routes
+const spaDistDir = path.join(process.cwd(), "mygf", "dist");
+if (fs.existsSync(spaDistDir)) {
+  app.use(express.static(spaDistDir));
+
+  app.get("*", (req, res, next) => {
+    // Skip API and static asset paths
+    if (
+      req.path.startsWith("/api") ||
+      req.path.startsWith("/static") ||
+      req.path.startsWith("/html-assets") ||
+      req.path.endsWith(".html")
+    ) {
+      return next();
+    }
+
+    return res.sendFile(path.join(spaDistDir, "index.html"));
+  });
+}
+
 const PORT = process.env.PORT || 5004;
 
 connectMongo()
