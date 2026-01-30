@@ -1,5 +1,6 @@
 //`src/App.tsx`
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
 import RequireOrgUser from "./auth/RequireOrgUser";
 import { NotificationsProvider } from "./hooks/useNotifications";
 import ReminderPopup from "./components/notifications/ReminderPopup";
@@ -8,7 +9,6 @@ import ReminderPopup from "./components/notifications/ReminderPopup";
 // import HomeSection from "./components/home/HomeSection";
 // import HomeLanding from "./components/home/HomeLanding"; // DISCONNECTED: Now using static HTML
 import TracksAndCollectionsSection from "./components/pages/TracksAndCollectionsSection";
-import SignIn from "./components/screens/SignIn";
 import SignUp from "./components/screens/SignUp";
 import AcceptInvitation from "./components/screens/AcceptInvitation";
 import CourseDetail from "./components/course/CourseDetail";
@@ -100,7 +100,7 @@ export default function App() {
   }
 />
       <Route path="/about" element={<AboutSection />} />
-      <Route path="/login" element={<SignIn />} />
+      <Route path="/login" element={<LoginRedirect />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/accept-invitation" element={<AcceptInvitation />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -215,6 +215,14 @@ function TracksGateLoader() {
       Loading…
     </div>
   );
+}
+
+function LoginRedirect() {
+  useEffect(() => {
+    const qs = window.location.search || "";
+    window.location.assign(`/login.html${qs}`);
+  }, []);
+  return null;
 }
 
 // StaticHome component removed - HTML files are now served directly from html-pages folder

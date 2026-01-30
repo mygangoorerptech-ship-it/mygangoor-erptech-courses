@@ -334,6 +334,14 @@ if (fs.existsSync(htmlPagesDir)) {
   app.get("/login.html", (req, res) => {
     res.sendFile(path.join(htmlPagesDir, "login.html"));
   });
+
+  // Canonicalize login URL: /login → /login.html (preserve querystring)
+  app.get("/login", (req, res) => {
+    const qs = req.originalUrl && req.originalUrl.includes("?")
+      ? req.originalUrl.slice(req.originalUrl.indexOf("?"))
+      : "";
+    return res.redirect(302, `/login.html${qs}`);
+  });
   
   // Serve any other HTML files from html-pages
   app.get("/*.html", (req, res, next) => {

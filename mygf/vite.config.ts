@@ -93,6 +93,14 @@ export default defineConfig(({ command }) => {
                 return;
               }
             }
+
+            // Canonicalize login URL in dev: /login → /login.html (preserve querystring)
+            if (req.url && (req.url === '/login' || req.url.startsWith('/login?') || req.url === '/login/')) {
+              res.statusCode = 302;
+              res.setHeader('Location', req.url.replace(/^\/login\/?/, '/login.html'));
+              res.end();
+              return;
+            }
             
             // Serve other HTML files from html-pages
             if (req.url && req.url.endsWith('.html') && !req.url.startsWith('/static/')) {
