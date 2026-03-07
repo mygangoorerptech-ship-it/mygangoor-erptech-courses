@@ -416,7 +416,7 @@ export async function acceptInvite(req, res) {
   const roleFinal = (inv.role === "student" && inv.orgId) ? "orguser" : inv.role;
 
   // --- Create or update the user with ORG MEMBERSHIP from the invite ---
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password, 10);
 
   let user = await User.findOne({ email: inv.email });
   if (!user) {
@@ -687,7 +687,7 @@ export async function signupStudent(req, res) {
   const existing = await User.findOne({ email: String(email).toLowerCase() });
   if (existing) return res.status(409).json({ message: 'Email already in use' });
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(password, 10);
   await User.create({
     name: name || null,
     email: String(email).toLowerCase(),
@@ -746,7 +746,7 @@ export async function resetPassword(req, res) {
     }
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(resetPassword, 12);
+    const passwordHash = await bcrypt.hash(resetpassword, 10);
 
     // Update user with new password and clear reset token
     user.passwordHash = passwordHash;

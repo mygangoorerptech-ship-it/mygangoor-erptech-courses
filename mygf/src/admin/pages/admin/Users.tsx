@@ -77,6 +77,7 @@ export default function ADUsers(){
               <th className="p-3">Email</th>
               <th className="p-3">Role</th>
               <th className="p-3">Status</th>
+              <th className="p-3">Verification</th>
               <th className="p-3 w-1">Actions</th>
             </tr>
           </thead>
@@ -106,6 +107,13 @@ export default function ADUsers(){
                     ? <span className="rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700">Active</span>
                     : <span className="rounded px-1.5 py-0.5 bg-rose-50 text-rose-700">Disabled</span>}
                 </td>
+                <td className="p-3">
+  {u.isVerified === false
+    ? <span className="rounded px-1.5 py-0.5 bg-yellow-50 text-yellow-700">Unverified</span>
+    : <span className="rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700">Verified</span>
+  }
+</td>
+                
                 <td className="p-3 whitespace-nowrap space-x-2">
                   <Button variant="ghost" className="h-8 px-2 text-xs" onClick={()=> setOpen({mode:'edit', initial:u})}>
                     <Pencil size={14}/>

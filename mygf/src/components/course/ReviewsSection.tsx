@@ -1,6 +1,7 @@
 // mygf/src/components/course/ReviewsSection.tsx
 import { useMemo, useRef, useState } from "react";
 import type { Review } from "./types";
+import { Star } from "lucide-react";
 
 type Props = {
   reviews: Review[];
@@ -27,22 +28,37 @@ export default function ReviewsSection({ reviews, onSubmitReview }: Props) {
 
   const listRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSubmit = async () => {
-    if (!rating || !comment.trim()) return;
-    try {
-      setSubmitting(true);
-      // Pass to parent if provided; otherwise just no-op
-      await Promise.resolve(onSubmitReview?.({ name: name.trim() || "Anonymous", rating, comment: comment.trim() }));
-      // clear form (keep UI lightweight)
-      setName("");
-      setRating(0);
-      setHoverRating(0);
-      setComment("");
-      setShowForm(false);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const handleSubmit = async () => {
+  if (!rating) {
+    alert("Please select a rating.");
+    return;
+  }
+
+  if (!comment.trim()) {
+    alert("Please write a review.");
+    return;
+  }
+
+  try {
+    setSubmitting(true);
+
+    await Promise.resolve(
+      onSubmitReview?.({
+        name: name.trim() || "Anonymous",
+        rating,
+        comment: comment.trim(),
+      })
+    );
+
+    setName("");
+    setRating(0);
+    setHoverRating(0);
+    setComment("");
+    setShowForm(false);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="bg-white rounded-xl p-8 shadow-lg mb-8">
@@ -84,32 +100,30 @@ export default function ReviewsSection({ reviews, onSubmitReview }: Props) {
               <span className="block text-sm font-medium text-slate-700 mb-2">
                 Your rating
               </span>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: 5 }).map((_, i) => {
-                  const idx = i + 1;
-                  const active = (hoverRating || rating) >= idx;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onMouseEnter={() => setHoverRating(idx)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setRating(idx)}
-                      className="p-1"
-                      aria-label={`Rate ${idx} star${idx > 1 ? "s" : ""}`}
-                    >
-                      <i
-                        className={`fas fa-star text-xl transition ${
-                          active ? "text-yellow-400" : "text-gray-300"
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-                {rating > 0 && (
-                  <span className="ml-2 text-sm text-slate-600">{rating}.0</span>
-                )}
-              </div>
+<div className="flex items-center gap-1">
+  {Array.from({ length: 5 }).map((_, i) => {
+    const idx = i + 1;
+    const active = (hoverRating || rating) >= idx;
+
+    return (
+      <button
+        key={idx}
+        type="button"
+        onMouseEnter={() => setHoverRating(idx)}
+        onMouseLeave={() => setHoverRating(0)}
+        onClick={() => setRating(idx)}
+        className="p-1"
+      >
+        <Star
+          size={22}
+          className={`transition ${
+            active ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+          }`}
+        />
+      </button>
+    );
+  })}
+</div>
             </div>
 
             {/* Comment */}
@@ -138,7 +152,7 @@ export default function ReviewsSection({ reviews, onSubmitReview }: Props) {
             <div className="mt-4 flex items-center gap-3">
               <button
                 type="button"
-                disabled={submitting || !rating || !comment.trim()}
+                disabled={submitting}
                 onClick={handleSubmit}
                 className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition
                   ${
@@ -186,19 +200,19 @@ export default function ReviewsSection({ reviews, onSubmitReview }: Props) {
                 <div>
                   <h4 className="font-semibold text-gray-800">{review.name}</h4>
                   <div className="flex items-center">
-                    <div className="flex text-yellow-400 mr-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <i
-                          key={i}
-                          className={
-                            "fas fa-star text-sm " +
-                            (i < review.rating
-                              ? "text-yellow-400"
-                              : "text-gray-300")
-                          }
-                        />
-                      ))}
-                    </div>
+<div className="flex items-center gap-1 mr-2">
+  {Array.from({ length: 5 }).map((_, i) => (
+    <Star
+      key={i}
+      size={16}
+      className={
+        i < review.rating
+          ? "text-yellow-400 fill-yellow-400"
+          : "text-gray-300"
+      }
+    />
+  ))}
+</div>
                     <span className="text-sm text-gray-500">{review.date}</span>
                   </div>
                 </div>

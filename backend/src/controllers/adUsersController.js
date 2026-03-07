@@ -42,9 +42,9 @@ export async function list(req, res) {
     { email: { $regex: String(q), $options: 'i' } },
   ]});
   // Match SA behavior: by default hide unverified (but keep back-compat where field missing)
-  if (String(showUnverified) !== 'true') {
-    and.push({ $or: [ { isVerified: { $exists: false } }, { isVerified: true } ] });
-  }
+  // if (String(showUnverified) !== 'true') {
+  //   and.push({ $or: [ { isVerified: { $exists: false } }, { isVerified: true } ] });
+  // }
   const where = { $and: and };
   const users = await User.find(where).sort({ createdAt: -1 }).lean();
   return res.json(users.map(sanitize));
@@ -449,7 +449,7 @@ export async function create(req, res) {
     if (role === 'vendor') {
       console.log("[adUsers.create] Creating vendor user...");
       const password = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi,'').slice(0,12) + "9!";
-      const passwordHash = await bcrypt.hash(password, 12);
+      const passwordHash = await bcrypt.hash(password, 10);
       
       let doc;
       try {
@@ -594,7 +594,7 @@ export async function create(req, res) {
     // organisation member (learner)
     console.log("[adUsers.create] Creating student/orguser...");
     const password = crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi,'').slice(0,12) + "9!";
-    const passwordHash = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 10);
     
     let doc;
     try {
@@ -914,7 +914,9 @@ export async function bulkUpsert(req, res) {
       managerDoc = { _id: actor.sub || actor._id || actor.id, email: actor.email, orgId: scopeOrgId };
     }
     if (!managerDoc) managerDoc = fallbackAdmin;
-    if (!managerDoc) { skipped.push({ email, reason:'no_manager_in_org' }); continue; }
+    if (!managerDoc) {
+  managerDoc = actor;   // fallback to importer
+}
 
     const existing = await User.findOne({ email });
 

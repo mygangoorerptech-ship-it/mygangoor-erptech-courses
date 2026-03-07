@@ -63,9 +63,11 @@ if (role && role !== "all") {
   }
 
   // Hide unverified by default (keep docs where field is missing)
-  if (verified !== "all") {
-    and.push({ $or: [{ isVerified: { $exists: false } }, { isVerified: true }] });
-  }
+  // if (verified !== "all") {
+  //   and.push({ $or: [{ isVerified: { $exists: false } }, { isVerified: true }] });
+  // }
+
+  // show all users including unverified
 
   const where = and.length ? { $and: and } : {};
 
