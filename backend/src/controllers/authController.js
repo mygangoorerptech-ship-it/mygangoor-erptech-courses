@@ -12,8 +12,6 @@ import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
 import { sendOtpEmail, sendInvitationEmail, sendPasswordResetEmail } from "../utils/email.js";
 import {
-  signAccessToken,
-  signRefreshToken,
   signMfaTempToken,
   verifyMfaTempToken,
 } from "../utils/jwt.js";
@@ -110,54 +108,58 @@ function normalizeRoleWhenVerified(user) {
 
 // ===== Controllers =====
 export async function login(req, res) {
-  const { email, password, as } = req.body;
-  const user = await User.findOne({ email }).select("+passwordHash");
-  if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+  try {
+    const { email, password, as } = req.body;
+    const user = await User.findOne({ email }).select("+passwordHash");
+    if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" });
 
-  const ok = await bcrypt.compare(password, user.passwordHash || "");
-  if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+    const ok = await bcrypt.compare(password, user.passwordHash || "");
+    if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" });
 
-  if (as && user.role !== as) {
-    return res.status(403).json({ ok: false, message: "Role mismatch" });
-  }
-
-  if (user.status !== "active") {
-    return res.status(403).json({ ok: false, message: "Account disabled" });
-  }
-
-  if (user.mfa?.required) {
-    const method = user.mfa.method || "otp";
-    const mfaTempToken = signMfaTempToken({ uid: user.id, method, email: user.email });
-    if (method === "otp") {
-      const code = String(Math.floor(100000 + Math.random() * 900000));
-      user.mfa.emailOtp = {
-        codeHash: hash(code),
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        lastSentAt: new Date(),
-        attempts: 0,
-      };
-      await user.save();
-      await sendOtpEmail(user.email, code);
+    if (as && user.role !== as) {
+      return res.status(403).json({ ok: false, message: "Role mismatch" });
     }
-    return res.json({ ok: true, mfa: { required: true, method }, mfaTempToken });
+
+    if (user.status !== "active") {
+      return res.status(403).json({ ok: false, message: "Account disabled" });
+    }
+
+    if (user.mfa?.required) {
+      const method = user.mfa.method || "otp";
+      const mfaTempToken = signMfaTempToken({ uid: user.id, method, email: user.email });
+      if (method === "otp") {
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        user.mfa.emailOtp = {
+          codeHash: hash(code),
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+          lastSentAt: new Date(),
+          attempts: 0,
+        };
+        await user.save();
+        await sendOtpEmail(user.email, code);
+      }
+      return res.json({ ok: true, mfa: { required: true, method }, mfaTempToken });
+    }
+
+    // ✅ No-MFA path: first successful password login marks the account verified
+    let changed = false;
+    if (!user.isVerified) {
+      user.isVerified = true;
+      changed = true;
+    }
+    if (normalizeRoleWhenVerified(user)) changed = true;
+    if (changed) await user.save();
+
+    const device = req.get("User-Agent") || "unknown";
+    const { access, refresh, jti, refreshExp } = mintTokens(user, device);
+    await saveRefresh(user.id, jti, refreshExp, device);
+    setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+    // Keep JSON tokens for compatibility (consider removing later)
+    return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
+  } catch (err) {
+    console.error("[auth] login error:", err?.message);
+    return res.status(503).json({ ok: false, message: "Service temporarily unavailable" });
   }
-
-  // ✅ No-MFA path: first successful password login marks the account verified
-let changed = false;
-if (!user.isVerified) {
-  user.isVerified = true;
-  changed = true;
-}
-if (normalizeRoleWhenVerified(user)) changed = true;
-if (changed) await user.save();
-
-
-  const device = req.get("User-Agent") || "unknown";
-  const { access, refresh, jti, refreshExp } = mintTokens(user, device);
-  await saveRefresh(user.id, jti, refreshExp, device);
-  setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
-  // Keep JSON tokens for compatibility (consider removing later)
-  return res.json({ ok: true, user, tokens: { accessToken: access, refreshToken: refresh } });
 }
 
 export async function resendOtp(req, res) {
@@ -746,7 +748,7 @@ export async function resetPassword(req, res) {
     }
 
     // Hash new password
-    const passwordHash = await bcrypt.hash(resetpassword, 10);
+    const passwordHash = await bcrypt.hash(resetPassword, 10);
 
     // Update user with new password and clear reset token
     user.passwordHash = passwordHash;

@@ -1,4 +1,5 @@
 //`src/App.tsx`
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import RequireOrgUser from "./auth/RequireOrgUser";
 import { NotificationsProvider } from "./hooks/useNotifications";
@@ -78,6 +79,16 @@ import VENotes from "./admin/pages/vendor/Notes";
 import Shell from "./shell";
 
 export default function App() {
+  // Remove the static HTML splash screen after React's first paint.
+  // The CSS transition on #splash gives a smooth 350 ms fade-out.
+  useEffect(() => {
+    const splash = document.getElementById("splash");
+    if (!splash) return;
+    splash.classList.add("splash-hide");
+    const timer = setTimeout(() => splash.remove(), 380);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <NotificationsProvider>
     <Routes>

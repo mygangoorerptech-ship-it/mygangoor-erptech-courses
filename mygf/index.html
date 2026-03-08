@@ -22,15 +22,62 @@
     <link rel="icon" type="image/png" href="/static/assets/images/favicon.png" />
     <link rel="shortcut icon" type="image/png" href="/static/assets/images/favicon.png" />
     <link rel="apple-touch-icon" href="/static/assets/images/favicon.png" />
-    <link
- rel="stylesheet"
- href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-/>
+
+    <!-- Font Awesome — loaded asynchronously to avoid render-blocking -->
+    <link rel="preload" as="style"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      onload="this.onload=null;this.rel='stylesheet'"
+    />
+    <noscript>
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    </noscript>
+
+    <!-- Splash screen styles — inline so they apply before any JS loads -->
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        gap: 28px;
+        transition: opacity 0.35s ease;
+      }
+      #splash.splash-hide {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash img {
+        width: 120px;
+        height: auto;
+      }
+      #splash-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e5e7eb;
+        border-top-color: #1d4ed8;
+        border-radius: 50%;
+        animation: splash-spin 0.8s linear infinite;
+      }
+      @keyframes splash-spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
 
     <title>MYGangoor Foundation</title>
   </head>
 
   <body>
+    <!-- Splash screen — visible immediately when HTML loads, before any JS executes.
+         Removed by App.tsx after React's first paint via the 'splash-hide' class. -->
+    <div id="splash" aria-hidden="true">
+      <img src="/logo.png" alt="" draggable="false" />
+      <div id="splash-spinner"></div>
+    </div>
+
     <div id="root"></div>
 
     <!-- React entry ONLY -->

@@ -1,4 +1,15 @@
 // backend/src/utils/cookies.js
+
+// Parse a JWT-style TTL string ("15m", "1h", "30d") into milliseconds.
+// Falls back to 1 hour so behaviour is unchanged if ACCESS_TTL is not set.
+function parseTtlMs(ttl) {
+  const match = String(ttl || "").match(/^(\d+)(s|m|h|d)$/);
+  if (!match) return 60 * 60 * 1000; // default 1 h
+  const n = parseInt(match[1], 10);
+  const units = { s: 1_000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+  return n * units[match[2]];
+}
+
 export function setAuthCookies(req, res, { accessToken, refreshToken }) {
   // Are we effectively on HTTPS at the edge?
   // Works behind proxies (Cloudflare, dev reverse proxies) and locally.
@@ -47,9 +58,13 @@ export function setAuthCookies(req, res, { accessToken, refreshToken }) {
     });
   }
 
+  // Derive cookie maxAge from the same ACCESS_TTL env var used to sign the JWT,
+  // so the cookie and the token expire at the same time.
+  const accessMaxAge = parseTtlMs(process.env.ACCESS_TTL || "1h");
+
   res.cookie(sessionName, accessToken, {
     ...base,
-    maxAge: 60 * 60 * 1000, // 1 hour (access token TTL)
+    maxAge: accessMaxAge,
   });
 
   res.cookie(refreshName, refreshToken, {

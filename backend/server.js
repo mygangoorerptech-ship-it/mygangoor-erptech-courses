@@ -147,10 +147,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Needed when behind Vite proxy/CDN to set Secure cookies correctly
-if (process.env.TRUST_PROXY === "1" || process.env.NODE_ENV !== "production") {
-  app.set("trust proxy", 1);
-}
+// Always enable trust proxy so req.secure correctly reflects the true protocol
+// when the server sits behind Nginx, Cloudflare, or any reverse proxy.
+// Required in production for stable __Host-* cookie name detection; safe in development too.
+app.set("trust proxy", 1);
 
 // Allow these paths without CSRF (adjust to your routes)
 const CSRF_EXEMPT = [
@@ -380,6 +380,16 @@ if (fs.existsSync(spaDistDir)) {
     return res.sendFile(path.join(spaDistDir, "index.html"));
   });
 }
+
+// Global Express error handler — catches any unhandled errors thrown inside route handlers.
+// Prevents requests from hanging indefinitely and returning a 504 at the Nginx layer.
+// Must be registered AFTER all routes.
+// eslint-disable-next-line no-unused-vars
+app.use((err, _req, res, next) => {
+  console.error("[server] unhandled error:", err?.message || err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ ok: false, message: "Internal server error" });
+});
 
 const PORT = process.env.PORT || 5004;
 

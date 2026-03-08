@@ -21,7 +21,17 @@ export async function connectMongo() {
   if (connected) return mongoose.connection;
 
   mongoose.set("strictQuery", true);
-  await mongoose.connect(uri, { dbName: env("MONGO_DB") || undefined });
+  await mongoose.connect(uri, {
+    dbName: env("MONGO_DB") || undefined,
+    // Fail fast (5 s) instead of the 30 s driver default — prevents login hanging
+    serverSelectionTimeoutMS: 5_000,
+    // Abort stalled socket operations after 30 s to avoid indefinite hangs
+    socketTimeoutMS: 30_000,
+    // Allow up to 10 concurrent DB operations before queuing
+    maxPoolSize: 10,
+    // Detect primary election / failover within 10 s
+    heartbeatFrequencyMS: 10_000,
+  });
 
   connected = true;
   console.log("[mongo] connected ->", mongoose.connection.name, "(" + sanitize(uri) + ")");
