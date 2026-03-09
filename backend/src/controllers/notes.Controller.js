@@ -4,6 +4,8 @@ import sanitizeHtml from "sanitize-html";
 import Note from "../models/Note.js";
 import Course from "../models/Course.js";
 import crypto from "node:crypto";
+import https from "node:https";
+import http from "node:http";
 import { sendErr } from '../utils/http.js';
 import {   NOTES_ACCESS,
   buildAuthenticatedPdfUrl,
@@ -333,9 +335,18 @@ export async function listForStudent(req, res) {
     actor: { sub: actor?.sub, role: actor?.role, orgId: actor?.orgId }
   });
 
-  if (!actor?.orgId || !rawCourseId) {
-    dwarn(req, "listForStudent: missing orgId/courseId");
-    return res.status(400).json({ ok:false, message:"orgId and courseId required" });
+  if (!rawCourseId) {
+    dwarn(req, "listForStudent: missing courseId");
+    return res.status(400).json({ ok:false, message:"courseId required" });
+  }
+
+  // Phase 3 fix: students without an orgId are not in any organisation, so
+  // org-scoped notes cannot exist for them. Return an empty array (200) rather
+  // than a 400 error — the frontend simply hides the "View Notes" button when
+  // the array is empty.
+  if (!actor?.orgId) {
+    dlog(req, "listForStudent: actor has no orgId, returning empty");
+    return res.json([]);
   }
 
   try {
@@ -409,7 +420,11 @@ export async function presignStudentNote(req, res, next) {
     const note = await Note.findById(id).lean();
     if (!note) return sendErr(res, 404, "note-not-found");
     if (note.status !== "published") return sendErr(res, 403, "note-not-published");
-    if (req.orgId && String(note.orgId || "") !== String(req.orgId)) return sendErr(res, 403, "forbidden");
+    // Phase 2 fix: req.orgId is never populated by the auth middleware — the org
+    // id lives on req.user.orgId. Using req.orgId always evaluated to falsy,
+    // meaning the org ownership check was silently skipped on every request.
+    const actorOrgId = req.user?.orgId;
+    if (actorOrgId && String(note.orgId || "") !== String(actorOrgId)) return sendErr(res, 403, "forbidden");
     if (note.kind !== "pdf") return sendErr(res, 400, "note-not-a-pdf");
 
     const publicId = note.pdfPublicId || extractPublicIdFromUrl(note.pdfUrl);
@@ -433,6 +448,109 @@ export async function presignStudentNote(req, res, next) {
     }
 
     return res.json({ url, ttl });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+// ------------------ streamPdf ------------------
+// Phase 2/7 fix: proxy the Cloudinary PDF through the backend so the browser
+// never fetches directly from Cloudinary.
+//
+// Why this matters:
+//   - Direct browser-to-Cloudinary requests require Cloudinary CORS to allow
+//     the frontend domain. Configuring CORS per-bucket in Cloudinary is easy to
+//     miss and hard to diagnose. This proxy sidesteps the requirement entirely.
+//   - Auth credentials (cookies) are sent to our own backend domain, not
+//     forwarded to a third-party CDN.
+//   - No signed-URL TTL race conditions; the server fetches with a fresh short-
+//     lived URL that never leaves the server.
+//
+// Route: GET /api/student/notes/pdf/:id
+export async function streamPdf(req, res, next) {
+  try {
+    const { id } = req.params;
+    if (!id || !ObjectId.isValid(id)) return sendErr(res, 400, "invalid-note-id");
+
+    const note = await Note.findById(id).lean();
+    if (!note) return sendErr(res, 404, "note-not-found");
+    if (note.status !== "published") return sendErr(res, 403, "note-not-published");
+    if (note.kind !== "pdf") return sendErr(res, 400, "note-not-a-pdf");
+
+    // Org ownership check (same pattern as presignStudentNote fix above)
+    const actorOrgId = req.user?.orgId;
+    if (actorOrgId && String(note.orgId || "") !== String(actorOrgId)) {
+      return sendErr(res, 403, "forbidden");
+    }
+
+    if (!note.pdfUrl) return sendErr(res, 400, "note-has-no-pdf");
+
+    // Build the Cloudinary URL to fetch server-side
+    let pdfUrl = note.pdfUrl;
+    const storedType =
+      note.pdfUrl.includes("/raw/authenticated/") ? "authenticated" :
+      note.pdfUrl.includes("/raw/private/")       ? "private" :
+      note.pdfUrl.includes("/raw/upload/")        ? "upload" :
+      NOTES_ACCESS;
+
+    if (storedType === "authenticated") {
+      const publicId = note.pdfPublicId || extractPublicIdFromUrl(note.pdfUrl);
+      if (publicId) {
+        try {
+          // Short TTL — the URL is consumed immediately server-side
+          pdfUrl = buildAuthenticatedPdfUrl(publicId, { ttl: 120 });
+        } catch (e) {
+          // CLOUDINARY_AUTH_TOKEN_KEY missing — fall back to stored URL
+          console.warn("[notes][streamPdf] buildAuthenticatedPdfUrl failed, using stored URL:", e?.message);
+        }
+      }
+    }
+
+    // Fetch from Cloudinary server-side using Node built-in https/http
+    const proto = pdfUrl.startsWith("https") ? https : http;
+const options = new URL(pdfUrl);
+options.headers = {};
+
+if (req.headers.range) {
+  options.headers.Range = req.headers.range;
+}
+
+const upstream = proto.get(options, (upRes) => {
+      if (upRes.statusCode !== 200 && upRes.statusCode !== 206) {
+        upRes.resume(); // drain the socket so it can be reused
+        if (!res.headersSent) {
+          res.status(502).json({ ok: false, message: "pdf-upstream-error", status: upRes.statusCode });
+        }
+        return;
+      }
+
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", "inline");
+      // Cache privately for 5 minutes — avoids repeated hits for the same viewer session
+      res.setHeader("Cache-Control", "private, max-age=300");
+      res.statusCode = upRes.statusCode;
+
+if (upRes.headers["content-range"]) {
+  res.setHeader("Content-Range", upRes.headers["content-range"]);
+}
+
+if (upRes.headers["accept-ranges"]) {
+  res.setHeader("Accept-Ranges", upRes.headers["accept-ranges"]);
+}
+
+if (upRes.headers["content-length"]) {
+  res.setHeader("Content-Length", upRes.headers["content-length"]);
+}
+
+      upRes.pipe(res);
+    });
+
+    upstream.on("error", (fetchErr) => {
+      console.error("[notes][streamPdf] upstream fetch error:", fetchErr?.message);
+      if (!res.headersSent) {
+        res.status(502).json({ ok: false, message: "pdf-fetch-failed" });
+      }
+    });
   } catch (err) {
     return next(err);
   }

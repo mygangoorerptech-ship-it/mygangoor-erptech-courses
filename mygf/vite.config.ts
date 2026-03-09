@@ -30,7 +30,7 @@ export default defineConfig(({ command }) => {
   const forwardedProto = httpsCfg ? 'https' : 'http';
 
   const proxyCommon: ExtendedProxyOptions = {
-    target: 'http://localhost:5004',
+    target: 'https://eca-53sj.onrender.com',
     changeOrigin: true,
     secure: false,
     xfwd: true,

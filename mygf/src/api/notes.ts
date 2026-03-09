@@ -5,9 +5,8 @@ export type StudentNote = {
   id: string;                // server may send _id; we normalize below
   _id?: string;
   title: string;
-  kind: "rich" | "html" | "pdf";
+  kind: "rich" | "pdf";     // schema enforces only these two values; "html" alias removed
   html?: string;
-  pdfUrl?: string;           // may be public OR ignored if we use signed URL
   createdAt: string;
 };
 
