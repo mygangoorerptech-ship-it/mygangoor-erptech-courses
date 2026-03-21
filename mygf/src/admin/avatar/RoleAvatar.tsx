@@ -2,7 +2,7 @@
 // src/admin/avatar/RoleAvatar.tsx
 import { Shield, Crown, Briefcase, GraduationCap, Building2, User } from '../../icons';
 
-type Role = 'superadmin'|'admin'|'teacher'|'vendor'|'student'|'orgadmin'|'orguser';
+type Role = 'superadmin'|'admin'|'teacher'|'student'|'orgadmin'|'orguser';
 
 export default function RoleAvatar({ role, size = 36 }: { role: Role; size?: number }) {
   const base = 'inline-flex items-center justify-center rounded-full shadow-sm ring-1 ring-black/5';
@@ -10,7 +10,6 @@ export default function RoleAvatar({ role, size = 36 }: { role: Role; size?: num
     superadmin: { className: 'bg-gradient-to-br from-indigo-500 to-violet-500 text-white', Icon: Shield, label: 'SA' },
     admin:      { className: 'bg-gradient-to-br from-sky-500 to-cyan-500 text-white',    Icon: Crown,  label: 'AD' },
     teacher:    { className: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white', Icon: Briefcase, label: 'TE' },
-    vendor:     { className: 'bg-gradient-to-br from-amber-500 to-orange-500 text-white', Icon: Briefcase, label: 'TE' },
     student:    { className: 'bg-gradient-to-br from-emerald-500 to-teal-500 text-white',Icon: GraduationCap, label: 'ST' },
     orgadmin:   { className: 'bg-gradient-to-br from-fuchsia-500 to-pink-500 text-white',Icon: Building2, label: 'OA' },
     orguser:    { className: 'bg-gradient-to-br from-slate-500 to-stone-500 text-white', Icon: User, label: 'OU' },

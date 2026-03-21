@@ -6,9 +6,9 @@ const EnrollmentSchema = new mongoose.Schema({
   courseId:  { type: mongoose.Schema.Types.ObjectId, ref: "Course", index: true, required: true },
   orgId:     { type: mongoose.Schema.Types.ObjectId, ref: "Organization", index: true, required: true },
   status: { type: String, enum: ["free","premium","trial","revoked"], default: "premium" },
-  source: { type: String, enum: ["online","offline","admin","vendor","claim"], default: "offline" },
+  source: { type: String, enum: ["online","offline","admin","teacher","claim"], default: "offline" },
   paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", default: null },
-  managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // vendor’s admin
+  managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // teacher’s admin
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 }, { timestamps: true });

@@ -6,7 +6,7 @@ import { requireAuth, requireAnyRole } from "../middleware/authz.js";
 const r = Router();
 
 r.use(requireAuth);
-r.use(requireAnyRole("superadmin", "admin", "vendor"));
+r.use(requireAnyRole("superadmin", "admin", "teacher"));
 
 r.get("/", list);
 r.post("/assessments", create);

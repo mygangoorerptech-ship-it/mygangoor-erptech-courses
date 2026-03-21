@@ -33,8 +33,8 @@ const CourseSchema = new mongoose.Schema({
   // tenancy/ownership
   orgId:   { type: mongoose.Schema.Types.ObjectId, ref: "Organization", default: null }, // null => Global
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // "owner (Admin)" for attribution
-  createdById: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },   // who actually created (admin or vendor)
-  managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },      // admin for vendor
+  createdById: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },   // who actually created (admin or teacher)
+  managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },      // admin for teacher
 
 // bundle
 isBundled: { type: Boolean, default: false },

@@ -1,5 +1,5 @@
 //mygf/src/admin/types/user.ts
-export type UserRole = 'superadmin' | 'admin' | 'vendor' | 'student'
+export type UserRole = 'superadmin' | 'admin' | 'teacher' | 'student'
 export type UserStatus = 'active' | 'disabled'
 
 export type MfaMethod = 'otp' | 'totp' | null

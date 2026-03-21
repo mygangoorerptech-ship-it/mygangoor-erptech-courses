@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 const invitationSchema = new mongoose.Schema({
   email: { type: String, index: true },
-  role: { type: String, enum: ["admin","vendor","student","orgadmin","orguser"] },
+  role: { type: String, enum: ["admin","teacher","student","orgadmin","orguser"] },
   mfaRequired: { type: Boolean, default: false },
   mfaMethod: { type: String, enum: ["otp","totp", null], default: null },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

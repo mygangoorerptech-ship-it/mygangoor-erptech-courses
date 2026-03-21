@@ -208,7 +208,7 @@ export async function remove(req, res) {
     const { id } = req.params;
     const doc = await Progress.findById(id);
     if (!doc) return res.status(404).json({ ok: false, message: "not found" });
-    if (actor.role === "vendor") return res.status(403).json({ ok: false, message: "forbidden" });
+    if (actor.role === "teacher") return res.status(403).json({ ok: false, message: "forbidden" });
     if (actor.role !== "superadmin" && String(actor.orgId) !== String(doc.orgId)) {
       return res.status(403).json({ ok: false, message: "forbidden" });
     }

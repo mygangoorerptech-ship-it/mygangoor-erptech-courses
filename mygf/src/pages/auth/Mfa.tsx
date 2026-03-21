@@ -18,7 +18,7 @@ const STORAGE_KEY = "mfaSession";
    if (role === "superadmin") return "/superadmin/overview";
    if (role === "admin") return "/admin/overview";
    if (role && role.startsWith("org")) return "/dashboard";
-   if (role === "vendor") return "/vendor/overview";
+   if (role === "teacher") return "/teacher/overview";
    return "/dashboard";
  }
 

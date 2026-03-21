@@ -208,7 +208,7 @@ export default function Reports() {
   const { user } = useAuth() as any;
   const role: Role = (user?.role || '').toLowerCase() as Role;
   const isSA = role === 'superadmin';
-  const isVendor = role === 'vendor';
+  const isTeacher = role === 'teacher';
 
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
@@ -234,7 +234,7 @@ export default function Reports() {
   const facetsQ = useQuery<ReportsListResponse>({
     queryKey: ['reports:facets', { role, orgId: isSA ? (filters.orgId || '') : 'self' }],
     queryFn: async () => {
-      // Only scope by org for SA; admin/vendor are auto-scoped server-side
+      // Only scope by org for SA; admin/teacher are auto-scoped server-side
       const base: any = { page: 1, limit: 50 };
       if (isSA && filters.orgId) base.orgId = filters.orgId;
       return listReports(base);
@@ -514,7 +514,7 @@ export default function Reports() {
                     ) : null;
                   })()}
 
-                  {!isVendor && (
+                  {!isTeacher && (
                     <Button
                       variant="ghost"
                       className="h-8 px-2 text-xs"
@@ -722,7 +722,7 @@ function ProgressModal({
 
 /**
  * Modal for editing or publishing a certificate URL. Allows the
- * administrator/vendor to paste a URL or remove the existing one.
+ * administrator/teacher to paste a URL or remove the existing one.
  */
 function CertificateModal({
   item,

@@ -22,23 +22,48 @@ const mfaSchema = new mongoose.Schema({
   emailOtp: { type: emailOtpSchema, default: null }
 }, { _id: false });
 
+// C-1 fix: strip all MFA secrets from JSON serialization.
+// JS code (authController) can still access these fields normally —
+// toJSON only runs during JSON.stringify / res.json().
+mfaSchema.set("toJSON", {
+  transform(_doc, ret) {
+    delete ret.totpSecretHash;
+    delete ret.totpSecretEnc;
+    delete ret.emailOtp;
+    return ret;
+  },
+});
+
 const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true, index: true },
-  passwordHash: String,
-  role: { type: String, enum: ["superadmin","admin","teacher","vendor","student","orgadmin","orguser"], default: "student" },
+  // C-1 fix: select:false forces explicit opt-in via .select("+passwordHash")
+  passwordHash: { type: String, select: false },
+  role: { type: String, enum: ["superadmin","admin","teacher","student","orgadmin","orguser"], default: "student" },
   status: { type: String, enum: ["active","disabled"], default: "active" },
   orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", default: null },
   mfa: { type: mfaSchema, default: () => ({ required: false }) },
   invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   // Security completion (first MFA, etc). Default true for back-compat;
-  // we will explicitly set false for new admin/vendor and MFA-required students.
+  // we will explicitly set false for new admin/teacher and MFA-required students.
   isVerified: { type: Boolean, default: true },
-  // Password reset fields
-  passwordResetToken: { type: String, default: null },
-  passwordResetExpires: { type: Date, default: null },
+  // Password reset fields — C-1 fix: select:false prevents token from appearing in API responses
+  passwordResetToken: { type: String, default: null, select: false },
+  passwordResetExpires: { type: Date, default: null, select: false },
 }, { timestamps: true });
+
+// C-1 fix: schema-level toJSON transform as a final safety net.
+// Removes sensitive fields even if a query accidentally selects them.
+// Does NOT affect normal JS property access within server-side code.
+userSchema.set("toJSON", {
+  transform(_doc, ret) {
+    delete ret.passwordHash;
+    delete ret.passwordResetToken;
+    delete ret.passwordResetExpires;
+    return ret;
+  },
+});
 
 userSchema.index({ updatedAt: -1 });
 // PERF: resolveManagerId() query — User.findOne({orgId,role,status}) was a full collection scan

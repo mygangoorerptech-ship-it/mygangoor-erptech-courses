@@ -2,6 +2,7 @@
 import Course from "../models/Course.js";
 import User from "../models/User.js";
 import { getPlatformFeePaise } from "../config/platform.js";
+import { safeRegex } from "../utils/safeRegex.js";
 
 function clampDiscount(n) {
   const x = Number(n);
@@ -55,7 +56,7 @@ function sanitize(doc) {
   };
 }
 
-// GET /courses  (admin + vendor + student read within org)
+// GET /courses  (admin + teacher + student read within org)
 export async function list(req, res) {
   const actor = req.user;
   if (!actor?.orgId) return res.status(403).json({ ok: false, message: "No org" });
@@ -69,7 +70,8 @@ export async function list(req, res) {
 }];
 
   if (q) {
-    const rx = { $regex: String(q), $options: "i" };
+    // H-4 fix: escape metacharacters to prevent ReDoS
+    const rx = { $regex: safeRegex(q), $options: "i" };
     and.push({ $or: [{ title: rx }, { slug: rx }, { category: rx }, { programType: rx }, { description: rx }, { tags: rx }] });
   }
   if (status !== "all") and.push({ status });
@@ -110,7 +112,7 @@ export async function create(req, res) {
     let teacherObjectId = null; 
   if (teacherId) { 
     // Verify teacher belongs to same org and has teacher role (accepts both during migration)
-    const teacher = await User.findOne({ _id: teacherId, orgId: actor.orgId, role: { $in: ["teacher", "vendor"] } }).select("_id");
+    const teacher = await User.findOne({ _id: teacherId, orgId: actor.orgId, role: "teacher" }).select("_id");
     teacherObjectId = teacher ? teacher._id : null; 
   }
 
@@ -126,9 +128,9 @@ export async function create(req, res) {
     orgId: actor.orgId,
 
     // Ownership: ownerId = admin for attribution, createdById = who actually created (admin or teacher)
-    ownerId: (actor.role === "teacher" || actor.role === "vendor") ? (actor.managerId || null) : (actor._id || actor.sub || null),
+    ownerId: (actor.role === "teacher") ? (actor.managerId || null) : (actor._id || actor.sub || null),
     createdById: actor._id || actor.sub,
-    managerId: (actor.role === "teacher" || actor.role === "vendor") ? (actor.managerId || null) : null,
+    managerId: (actor.role === "teacher") ? (actor.managerId || null) : null,
 
     courseType: (courseType === "free" ? "free" : "paid"), 
     durationText: typeof durationText === "string" ? durationText : "", 
@@ -200,7 +202,7 @@ export async function patch(req, res) {
 
   // Validate teacherId if provided 
   if (patch.teacherId) {
-    const v = await User.findOne({ _id: patch.teacherId, orgId: actor.orgId, role: { $in: ["teacher", "vendor"] } }).select("_id");
+    const v = await User.findOne({ _id: patch.teacherId, orgId: actor.orgId, role: "teacher" }).select("_id");
     patch.teacherId = v ? v._id : null;
   }
   // allow NEW bundle-level fields with validation
@@ -326,7 +328,7 @@ export async function bulkUpsert(req, res) {
         const t = await User.findOne({
           email: String(r.teacherEmail).toLowerCase(),
           orgId: actor.orgId,
-          role: { $in: ["teacher", "vendor"] },
+          role: "teacher",
         }).select("_id");
         patch.teacherId = t ? t._id : null; 
       }
@@ -339,9 +341,9 @@ export async function bulkUpsert(req, res) {
         await Course.create({
           ...patch,
           orgId: actor.orgId,
-          ownerId: (actor.role === "teacher" || actor.role === "vendor") ? (actor.managerId || null) : (actor._id || actor.sub || null),
+          ownerId: (actor.role === "teacher") ? (actor.managerId || null) : (actor._id || actor.sub || null),
           createdById: actor._id || actor.sub,
-          managerId: (actor.role === "teacher" || actor.role === "vendor") ? (actor.managerId || null) : null,
+          managerId: (actor.role === "teacher") ? (actor.managerId || null) : null,
         });
         created++;
       }

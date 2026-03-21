@@ -19,7 +19,7 @@ export type AuditLog = {
 // ---- READ: recent audit logs (resilient, no console noise if route absent) ----
 export async function listAuditLogs(params?: {
   limit?: number;
-  roles?: string[];    // e.g. ["admin","vendor"]
+  roles?: string[];    // e.g. ["admin","teacher"]
   orgOnly?: boolean;   // non-SA is org-scoped server-side anyway
 }): Promise<AuditLog[]> {
   const query: any = {};

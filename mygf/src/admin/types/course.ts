@@ -37,7 +37,7 @@ export interface Course {
   status: CourseStatus
     courseType?: CourseType   // NEW
   durationText?: string     // NEW e.g., "6hr 30min"
-  teacherId?: string | null // NEW (vendor treated as teacher)
+  teacherId?: string | null
 
   // bundle info
   isBundled?: boolean

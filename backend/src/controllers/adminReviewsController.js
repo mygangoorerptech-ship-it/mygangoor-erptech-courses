@@ -18,9 +18,9 @@ function roleScopeMatch(req) {
     if (ownerId) m["course.ownerId"] = ownerId;
     return m;
   }
-  if (role === "admin" || role === "vendor" || role === "orgadmin") {
+  if (role === "admin" || role === "teacher" || role === "orgadmin") {
     if (req.user?.orgId) m["course.orgId"] = toId(req.user.orgId);
-    if (role === "vendor" && req.user?._id) m["course.ownerId"] = toId(req.user._id);
+    if (role === "teacher" && req.user?._id) m["course.ownerId"] = toId(req.user._id);
     return m;
   }
   // deny others

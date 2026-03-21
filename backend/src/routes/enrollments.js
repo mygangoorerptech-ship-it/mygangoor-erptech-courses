@@ -7,8 +7,8 @@ import Course from "../models/Course.js";
 
 const r = Router();
 
-// admin + vendor (org scoped)
-r.use("/org", requireAuth, requireRole(["admin","vendor"]));
+// admin + teacher (org scoped)
+r.use("/org", requireAuth, requireRole(["admin","teacher"]));
 r.get("/org", ctrl.list);
 
 // students (own)

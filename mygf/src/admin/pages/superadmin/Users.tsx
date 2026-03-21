@@ -55,7 +55,7 @@ export default function SAUsers(){
     [orgRows]
   )
 
-  // Admins by org (for vendor "Under Admin", and for student admin selection)
+  // Admins by org (for teacher "Under Admin", and for student admin selection)
   const adminsByOrg = useMemo(() => {
     const map = new Map<string, SAUser[]>()
     rows.filter(r => r.role === 'admin' && r.status === 'active').forEach(r => {
@@ -70,7 +70,7 @@ export default function SAUsers(){
     total: rows.length,
     supers: rows.filter(r=> r.role==='superadmin').length,
     admins: rows.filter(r=> r.role==='admin').length,
-    vendors: rows.filter(r=> r.role==='vendor').length,
+    teachers: rows.filter(r=> r.role==='teacher').length,
     students: rows.filter(r=> r.role==='student').length,
     active: rows.filter(r=> r.status==='active').length,
   }), [rows])
@@ -91,7 +91,7 @@ export default function SAUsers(){
             <option value="all">All</option>
             <option value="superadmin">Superadmin</option>
             <option value="admin">Admin</option>
-            <option value="vendor">Vendor</option>
+            <option value="teacher">Teacher</option>
             <option value="student">Student</option>
           </Select>
         </div>
@@ -123,7 +123,7 @@ export default function SAUsers(){
         <span className="font-medium">{stats.total}</span> users •{' '}
         <span className="font-medium">{stats.supers}</span> superadmins •{' '}
         <span className="font-medium">{stats.admins}</span> admins •{' '}
-        <span className="font-medium">{stats.vendors}</span> vendors •{' '}
+        <span className="font-medium">{stats.teachers}</span> teachers •{' '}
         <span className="font-medium">{stats.students}</span> students •{' '}
         <span className="font-medium">{stats.active}</span> active
       </div>
@@ -161,7 +161,7 @@ export default function SAUsers(){
                         ? 'inline-flex items-center gap-1 text-purple-700 bg-purple-50 rounded px-2 py-0.5'
                         : u.role==='admin'
                           ? 'inline-flex items-center gap-1 text-slate-700 bg-slate-100 rounded px-2 py-0.5'
-                          : u.role==='vendor'
+                          : u.role==='teacher'
                             ? 'inline-flex items-center gap-1 text-amber-700 bg-amber-50 rounded px-2 py-0.5'
                             : 'inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 rounded px-2 py-0.5'
                     }>
@@ -290,7 +290,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
 
   const [mfa, setMfa] = useState<{required:boolean; method:'otp'|'totp'|null}>(
     initial?.role
-      ? { required: initial.role!=='student' ? true : !!initial?.mfa?.required, method: (initial as any)?.mfa?.method || (initial.role==='vendor' ? 'totp' : 'otp') }
+      ? { required: initial.role!=='student' ? true : !!initial?.mfa?.required, method: (initial as any)?.mfa?.method || (initial.role==='teacher' ? 'totp' : 'otp') }
       : { required: true, method: 'otp' }
   )
 
@@ -305,7 +305,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
     setOrgId(initial?.orgId || '')
     setManagerId('')
     setMfa(initial?.role
-      ? { required: initial.role!=='student' ? true : !!(initial as any)?.mfa?.required, method: (initial as any)?.mfa?.method || (initial.role==='vendor' ? 'totp' : 'otp') }
+      ? { required: initial.role!=='student' ? true : !!(initial as any)?.mfa?.required, method: (initial as any)?.mfa?.method || (initial.role==='teacher' ? 'totp' : 'otp') }
       : { required: true, method: 'otp' })
     setPassword('')
     setConfirm('')
@@ -318,8 +318,8 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
   }, [mode, role, initial])
 
   const emailOk = /\S+@\S+\.\S+/.test(email)
-  const requireOrg = role==='admin' || role==='vendor' || role==='student'
-  const requireManager = role==='vendor' || role==='student'
+  const requireOrg = role==='admin' || role==='teacher' || role==='student'
+  const requireManager = role==='teacher' || role==='student'
 
   const orgAdmins = orgId ? (adminsByOrg.get(orgId) || []) : []
   const allAdmins: SAUser[] = React.useMemo(
@@ -327,11 +327,11 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
     [adminsByOrg]
   )
 
-  const needsPassword = mode==='create' && (role==='admin' || role==='vendor')
-  const allowPasswordEdit = mode==='edit' && (role==='admin' || role==='vendor')
+  const needsPassword = mode==='create' && (role==='admin' || role==='teacher')
+  const allowPasswordEdit = mode==='edit' && (role==='admin' || role==='teacher')
   const passwordOk = !needsPassword || (password.length >= 8 && password === confirm)
 
-  const mfaForcedRequired = role==='admin' || role==='vendor'
+  const mfaForcedRequired = role==='admin' || role==='teacher'
   const canSubmit =
     emailOk &&
     (!requireOrg || !!orgId) &&
@@ -354,8 +354,8 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
             email: email.trim(),
             role,
             status,
-            orgId: (role==='admin' || role==='vendor' || role==='student') ? (orgId || undefined) : undefined,
-            managerId: (role==='vendor' || role==='student') ? (managerId || undefined) : undefined,
+            orgId: (role==='admin' || role==='teacher' || role==='student') ? (orgId || undefined) : undefined,
+            managerId: (role==='teacher' || role==='student') ? (managerId || undefined) : undefined,
           }
 
           base.mfa = mfaForcedRequired ? { required:true, method: mfa.method || 'otp' } : {
@@ -363,7 +363,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
             method: mfa?.required ? (mfa.method || 'otp') : null
           }
 
-          if ((role==='admin' || role==='vendor') && password) {
+          if ((role==='admin' || role==='teacher') && password) {
             base.password = password
           }
 
@@ -382,7 +382,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
           <Label>Role</Label>
           <Select value={role} onChange={(e)=> setRole(e.target.value as UserRole)}>
             <option value="admin">Admin</option>
-            <option value="vendor">Vendor</option>
+            <option value="teacher">Teacher</option>
             <option value="student">Student</option>
             <option value="superadmin">Superadmin</option>
           </Select>
@@ -395,7 +395,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
           </Select>
         </div>
 
-        {(role==='admin' || role==='vendor' || role==='student') && (
+        {(role==='admin' || role==='teacher' || role==='student') && (
           <>
             <div>
               <Label>Organization</Label>
@@ -411,7 +411,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
 
             <div>
               <Label>Under Admin</Label>
-              {role==='vendor' ? (
+              {role==='teacher' ? (
                 <Select value={managerId} onChange={(e)=> setManagerId(e.target.value)} disabled={!orgId}>
                   <option value="">Select admin</option>
                   {orgAdmins.map(a => <option key={a.id} value={a.id}>{a.name || a.email}</option>)}
@@ -478,7 +478,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting=fa
               />
               <span>
                 {mfaForcedRequired
-                  ? 'MFA is required for Admin/Vendor'
+                  ? 'MFA is required for Admin/Teacher'
                   : 'Students: MFA is enabled by default (you can toggle if needed)'}
               </span>
             </label>
@@ -562,7 +562,7 @@ function CSVModal({ open, onClose, onImport }:{
   const normRole = (v:string) => {
     const r = (v||'').toLowerCase().trim()
     if (r === 'orguser') return 'student'
-    return (['superadmin','admin','vendor','student'] as const).includes(r as any) ? r as any : 'student'
+    return (['superadmin','admin','teacher','student'] as const).includes(r as any) ? r as any : 'student'
   }
   const normStatus = (v:string) => (['active','disabled'].includes((v||'').toLowerCase())) ? (v as any) : undefined
   const normMethod = (v:string) => {
@@ -631,7 +631,7 @@ function CSVModal({ open, onClose, onImport }:{
       if (!obj.role) obj.role = 'student'
       // normalize MFA root if present
       if (obj.mfa && typeof obj.mfa === 'object') {
-        if (obj.mfa.required === undefined) obj.mfa.required = (obj.role !== 'student') // default: admins/vendors require MFA
+        if (obj.mfa.required === undefined) obj.mfa.required = (obj.role !== 'student') // default: admins/teachers require MFA
         if (obj.mfa.method && !['otp','totp'].includes(obj.mfa.method)) delete obj.mfa.method
       }
 
@@ -646,10 +646,10 @@ function CSVModal({ open, onClose, onImport }:{
         <div className="text-sm text-slate-600 space-y-1">
           <p className="font-medium">Accepted headers (use any subset):</p>
           <div className="text-xs grid gap-1">
-            <div><code>email</code> (required), <code>name</code>, <code>role</code> (<code>superadmin|admin|vendor|student</code>), <code>status</code> (<code>active|disabled</code>), <code>password</code> (admin/vendor only)</div>
+            <div><code>email</code> (required), <code>name</code>, <code>role</code> (<code>superadmin|admin|teacher|student</code>), <code>status</code> (<code>active|disabled</code>), <code>password</code> (admin/teacher only)</div>
             <div><code>orgId</code> <em>or</em> <code>org</code>/<code>orgCode</code>/<code>orgName</code>/<code>orgDomain</code> (any one to identify org)</div>
-            <div><code>adminRef</code> (admin email or id; used to set manager and derive <code>orgId</code> for students; also allowed for vendors)</div>
-            <div><code>managerRef</code> (admin email or id; vendor’s supervising admin; if missing and org is present, the first active admin in that org is used)</div>
+            <div><code>adminRef</code> (admin email or id; used to set manager and derive <code>orgId</code> for students; also allowed for teachers)</div>
+            <div><code>managerRef</code> (admin email or id; teacher’s supervising admin; if missing and org is present, the first active admin in that org is used)</div>
             <div><code>mfaRequired</code> (<code>true|false</code>), <code>mfaMethod</code> (<code>otp|totp</code>)</div>
           </div>
           <p className="text-xs">
@@ -668,13 +668,13 @@ function CSVModal({ open, onClose, onImport }:{
 `email,name,role,status,orgCode,adminRef,managerRef,password,mfaRequired,mfaMethod
 super1@example.com,Global Super,superadmin,active,,,,StrongP@ssw0rd,true,otp
 alpha-admin@example.com,Alpha Admin,admin,active,ALPHA,,,StrongP@ss1!,true,totp
-alpha-vendor1@example.com,Alpha Vendor A,vendor,active,ALPHA,alpha-admin@example.com,,Vend0r#Pass,true,totp
+alpha-teacher1@example.com,Alpha Teacher A,teacher,active,ALPHA,alpha-admin@example.com,,Teach#Pass1,true,totp
 alpha-stu1@example.com,Alpha Student A,student,active,ALPHA,alpha-admin@example.com,,,
 beta-admin@example.com,Beta Admin,admin,active,BETA,,,StrongP@ss2!,true,otp
-beta-vendor1@example.com,Beta Vendor A,vendor,active,,beta-admin@example.com,,Vend0r#Two,true,totp
+beta-teacher1@example.com,Beta Teacher A,teacher,active,,beta-admin@example.com,,Teach#Two,true,totp
 beta-stu1@example.com,Beta Student A,student,active,,beta-admin@example.com,,,
 sales-stu@example.com,Sales Student,student,active,,sales-admin@example.com,,,otp
-d-portal-vendor@example.com,Domain Vendor,vendor,active,,domain-admin@example.com,,Vend0r#Z,true,otp
+d-portal-teacher@example.com,Domain Teacher,teacher,active,,domain-admin@example.com,,Teach#Z,true,otp
 `
             setText(sample)
           }}>Load sample</Button>

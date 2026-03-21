@@ -138,6 +138,27 @@ app.use("/api/auth/mfa", otpLimiter);
 app.use("/api/auth/resend-otp", otpLimiter);
 app.use("/api/auth/totp", otpLimiter);
 app.use("/api/auth/refresh", authLimiter);
+// M-1 fix: rate-limit endpoints that were missing protection.
+// forgot-password / precheck allow email enumeration at scale without limits.
+// signup endpoints enable account spam + email resource abuse.
+const forgotLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,                    // 5 attempts per IP per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, message: "Too many requests, please try again later." },
+});
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,                   // 10 signups per IP per hour
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, message: "Too many requests, please try again later." },
+});
+app.use("/api/auth/forgot-password", forgotLimiter);
+app.use("/api/auth/precheck",        forgotLimiter);
+app.use("/api/auth/signup",          signupLimiter);
+app.use("/api/auth/signup-student",  signupLimiter);
 // Add CSP with nonces when you’re ready
 
 // HSTS (HTTPS-only)
@@ -285,10 +306,13 @@ app.use("/api/students", studentsRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/sa/audit", saAuditRouter);
 app.use("/api/enrollments", enrollmentsRouter);
-app.use("/api/debug", debugRoutes);
-app.get("/api/debug/claims", requireAuthNoRole, (req, res) => {
-  res.json({ ok: true, claims: req.user, cookies: Object.keys(req.cookies || {}) });
-});
+// H-3 fix: debug routes are never accessible in production.
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api/debug", debugRoutes);
+  app.get("/api/debug/claims", requireAuthNoRole, (req, res) => {
+    res.json({ ok: true, claims: req.user, cookies: Object.keys(req.cookies || {}) });
+  });
+}
 app.use("/api/orders", ordersRouter);
 app.use("/api/subscriptions", subscriptionsRouter);
 app.use("/api/sa/payments", saPaymentsRouter);
@@ -311,7 +335,6 @@ app.use("/api/admin", contactMessagesRouter);
 app.use("/api/notes", notesRouter);
 app.use("/api/student/notes", studentNotesRouter);
 app.use("/api/teacher", teacherRouter);
-app.use("/api/vendor", teacherRouter); // backward compat: existing frontend calls still use /vendor
 
 // Serve HTML pages from html-pages folder (outside React)
 // const htmlPagesDir = path.join(process.cwd(), "html-pages");

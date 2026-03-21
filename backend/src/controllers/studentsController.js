@@ -1,5 +1,6 @@
 //backend/src/controllers/studentsController.js
 import User from "../models/User.js";
+import { safeRegex } from "../utils/safeRegex.js";
 
 export async function list(req, res) {
   const actor = req.user;
@@ -10,12 +11,13 @@ export async function list(req, res) {
   const { q, limit = 200, lite = 1 } = req.query || {};
   const and = [{ role: "student" }];
 
-  // scope: SA can query any org with ?orgId; admin/vendor are scoped to their own org
+  // scope: SA can query any org with ?orgId; admin/teacher are scoped to their own org
   if (actor.role !== "superadmin") and.push({ orgId: actor.orgId });
   if (actor.role === "superadmin" && req.query?.orgId) and.push({ orgId: req.query.orgId });
 
   if (q) {
-    const rx = { $regex: String(q), $options: "i" };
+    // H-4 fix: escape metacharacters to prevent ReDoS
+    const rx = { $regex: safeRegex(q), $options: "i" };
     and.push({ $or: [{ email: rx }, { name: rx }] });
   }
 

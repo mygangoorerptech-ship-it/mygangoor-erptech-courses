@@ -8,7 +8,7 @@ export default function Topbar({
   role,
   onMenuClick,
 }: {
-  role: "superadmin" | "admin" | "vendor" | "student" | "orgadmin" | "orguser";
+  role: "superadmin" | "admin" | "teacher" | "student" | "orgadmin" | "orguser";
   onMenuClick: () => void;
 }) {
   const { user, logout } = useAuth();

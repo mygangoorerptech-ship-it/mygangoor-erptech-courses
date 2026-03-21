@@ -124,11 +124,11 @@ export async function create(req, res) {
     name,
     email,
     role = "student",
-    status, // ignored for admin/vendor at creation
+    status, // ignored for admin/teacher at creation
     orgId,
     mfa = { required: false, method: null },
     managerId,
-    password, // for admin/vendor direct creation
+    password, // for admin/teacher direct creation
   } = req.body || {};
 
   if (!email) return res.status(400).json({ ok: false, message: "Email required" });
@@ -138,12 +138,12 @@ export async function create(req, res) {
   // Prefer JWT subject; fall back to any legacy fields if present
   const actorId = actor.sub || actor._id || actor.id || actor.uid || null;
 
-  // Helper for secure random password when none provided (admin/vendor)
+  // Helper for secure random password when none provided (admin/teacher)
   const genPassword = () =>
     crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi, '').slice(0, 12) + "9!";
 
   // Branch by role
-  if (role === "admin" || role === "vendor") {
+  if (role === "admin" || role === "teacher") {
     // Direct account (no signup); verification happens after first MFA success
     const plain = password && String(password).length >= 8 ? String(password) : genPassword();
     const passwordHash = await bcrypt.hash(plain, 12);
@@ -158,9 +158,9 @@ export async function create(req, res) {
       isVerified: false,                 // ⬅ new: hidden until first MFA completion
       orgId: orgId || null,
       invitedBy: actorId,
-      managerId: role === "vendor" ? (managerId || null) : null,
+      managerId: role === "teacher" ? (managerId || null) : null,
       mfa: {
-        required: true,                  // ⬅ enforced for admin/vendor
+        required: true,                  // ⬅ enforced for admin/teacher
         method: mfa?.method === "totp" ? "totp" : "otp",
         totpSecretHash: null,
         totpSecretEnc: { iv: null, ct: null, tag: null },
@@ -320,7 +320,7 @@ export async function setStatus(req, res) {
 export async function setRole(req, res) {
   const { id } = req.params;
   const { role } = req.body || {};
-  if (!["superadmin", "admin", "vendor", "student", "orgadmin", "orguser"].includes(role)) {
+  if (!["superadmin", "admin", "teacher", "student", "orgadmin", "orguser"].includes(role)) {
     return res.status(400).json({ ok: false });
   }
   const user = await User.findByIdAndUpdate(id, { $set: { role } }, { new: true });
@@ -360,7 +360,7 @@ export async function bulkUpsert(req, res) {
   const normRole = (v) => {
     const r = String(v||'').toLowerCase().trim();
     if (r === 'orguser') return 'student';
-    return ['superadmin','admin','vendor','student'].includes(r) ? r : 'student';
+    return ['superadmin','admin','teacher','student'].includes(r) ? r : 'student';
   };
   const normStatus = (v) => {
     const s = String(v||'').toLowerCase().trim();
@@ -488,8 +488,8 @@ export async function bulkUpsert(req, res) {
     const mfaObj = (raw.mfa && typeof raw.mfa === 'object') ? raw.mfa : {};
     const mfaRequired = ('mfaRequired' in raw) ? truthy(raw.mfaRequired) :
                         ('required' in mfaObj) ? !!mfaObj.required :
-                        (role !== 'student'); // default true for admin/vendor
-    const mfaMethod = normMethod(raw.mfaMethod || mfaObj.method) || (mfaRequired ? (role === 'vendor' ? 'totp' : 'otp') : null);
+                        (role !== 'student'); // default true for admin/teacher
+    const mfaMethod = normMethod(raw.mfaMethod || mfaObj.method) || (mfaRequired ? (role === 'teacher' ? 'totp' : 'otp') : null);
 
     // Resolve admin/manager refs
     const adminRef = raw.adminRef || raw.admin || raw.admin_email || raw.admin_id || raw.adminid || null;
@@ -507,15 +507,15 @@ export async function bulkUpsert(req, res) {
     // ------ CREATE ----------------------------------------------------------
     if (!existing) {
       // Role-specific requirements & fallbacks
-      if (role === 'admin' || role === 'vendor') {
-        // admin/vendor can specify org directly OR inherit from manager/adminRef if present
+      if (role === 'admin' || role === 'teacher') {
+        // admin/teacher can specify org directly OR inherit from manager/adminRef if present
         if (orgId === undefined && managerDoc?.orgId) orgId = String(managerDoc.orgId);
         const plain = (raw.password && String(raw.password).length >= 8) ? String(raw.password) : crypto.randomBytes(10).toString("base64").replace(/[^a-z0-9]/gi, '').slice(0, 12) + "9!";
         const passwordHash = await bcrypt.hash(plain, 12);
 
-        // If vendor and no explicit manager, try to find one from org
+        // If teacher and no explicit manager, try to find one from org
         let managerId = null;
-        if (role === 'vendor') {
+        if (role === 'teacher') {
           if (managerDoc) managerId = managerDoc._id;
           else if (orgId && firstActiveAdminByOrg.get(String(orgId))) managerId = firstActiveAdminByOrg.get(String(orgId))._id;
         }
@@ -523,7 +523,7 @@ export async function bulkUpsert(req, res) {
         const user = await User.create({
           email, name, role,
           status: status || 'disabled',      // superadmin will activate as needed
-          orgId: (orgId === undefined) ? null : orgId, // allow global admin/vendor if truly desired
+          orgId: (orgId === undefined) ? null : orgId, // allow global admin/teacher if truly desired
           invitedBy: actorId,
           managerId: managerId || null,
           passwordHash,
@@ -638,8 +638,8 @@ export async function bulkUpsert(req, res) {
     // orgId: only update when provided/derived (leave as-is if unresolved)
     if (orgId !== undefined && String(existing.orgId||'') !== String(orgId||'')) { existing.orgId = orgId || null; changed = true; }
 
-    // manager: apply if vendor/student + resolvable
-    if (role === 'vendor' || role === 'student') {
+    // manager: apply if teacher/student + resolvable
+    if (role === 'teacher' || role === 'student') {
       let newManager = managerDoc || adminDoc || null;
       if (!newManager && orgId && firstActiveAdminByOrg.get(String(orgId))) newManager = firstActiveAdminByOrg.get(String(orgId));
       if (newManager && String(existing.managerId||'') !== String(newManager._id)) { existing.managerId = newManager._id; changed = true; }

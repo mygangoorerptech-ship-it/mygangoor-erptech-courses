@@ -9,7 +9,7 @@ import { listOrganizations } from "../../api/organizations";
 import { listSaUsers } from "../../api/saUsers";
 import { listSaCourses } from "../../api/saCourses";
 
-// Admin/Vendor API
+// Admin/teacher API
 import { listAdUsers } from "../../api/adUsers";
 import { listCourses } from "../../api/courses";
 import { listPayments } from "../../api/payments";
@@ -59,7 +59,7 @@ export default function OverviewUnified() {
   const role = (user?.role || "").toLowerCase();
   const isSA = role === "superadmin";
   const isAdmin = role === "admin";
-  const isVendor = role === "vendor";
+  const isTeacher = role === "teacher";
 
   const enabled = status === "ready" && !!user;
 
@@ -76,7 +76,7 @@ export default function OverviewUnified() {
   });
 
   const adPaymentsQ = useQuery({
-    enabled: enabled && (isAdmin || isVendor),
+    enabled: enabled && (isAdmin || isTeacher),
     queryKey: ["ad:payments:org", user?.orgId || "no-org"],
     queryFn: async () => listPayments({}),
     staleTime: 60_000,
@@ -179,11 +179,11 @@ export default function OverviewUnified() {
     refetchOnWindowFocus: false,
   });
 
-  const saVendorsQ = useQuery({
+  const saTeachersQ = useQuery({
     enabled: enabled && isSA,
-    queryKey: ["sa:vendors:count"],
+    queryKey: ["sa:teachers:count"],
     queryFn: async () =>
-      (await listSaUsers({ role: "vendor", status: "all" } as any)).length,
+      (await listSaUsers({ role: "teacher", status: "all" } as any)).length,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
@@ -213,19 +213,19 @@ export default function OverviewUnified() {
     refetchOnWindowFocus: false,
   });
 
-  // ----------------- ADMIN/VENDOR COUNTS (ORG-SCOPED) -----------------
-  const adVendorsQ = useQuery({
-    enabled: enabled && (isAdmin || isVendor),
-    queryKey: ["ad:vendors:count", user?.orgId || "no-org"],
+  // ----------------- ADMIN/TEACHER COUNTS (ORG-SCOPED) -----------------
+  const adTeachersQ = useQuery({
+    enabled: enabled && (isAdmin || isTeacher),
+    queryKey: ["ad:teachers:count", user?.orgId || "no-org"],
     queryFn: async () =>
-      (await listAdUsers({ role: "vendor", status: "all" } as any)).length,
+      (await listAdUsers({ role: "teacher", status: "all" } as any)).length,
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
 
-  // Admin/Vendor API counts students as "student"
+  // Admin/Teacher API counts students as "student"
   const adStudentsQ = useQuery({
-    enabled: enabled && (isAdmin || isVendor),
+    enabled: enabled && (isAdmin || isTeacher),
     queryKey: ["ad:students:count", user?.orgId || "no-org"],
     queryFn: async () =>
       (await listAdUsers({ role: "student", status: "all" } as any)).length,
@@ -234,7 +234,7 @@ export default function OverviewUnified() {
   });
 
   const adCoursesQ = useQuery({
-    enabled: enabled && (isAdmin || isVendor),
+    enabled: enabled && (isAdmin || isTeacher),
     queryKey: ["ad:courses:count", user?.orgId || "no-org"],
     queryFn: async () => {
       const rows = await listCourses({ status: "all" } as any);
@@ -258,7 +258,7 @@ export default function OverviewUnified() {
     queryFn: async () =>
       listAuditLogs({
         limit: 10,
-        roles: ["admin", "vendor"],
+        roles: ["admin", "teacher"],
         orgOnly: !isSA,
       }),
     staleTime: 30_000,
@@ -302,21 +302,21 @@ export default function OverviewUnified() {
             });
           }
 
-          // Vendors / Teachers
+          // Teachers
           if (isSA) {
             cards.push({
-              key: "vendors",
-              label: "Vendors",
-              value: num(saVendorsQ.data),
-              loading: saVendorsQ.isLoading,
+              key: "teachers",
+              label: "Teachers",
+              value: num(saTeachersQ.data),
+              loading: saTeachersQ.isLoading,
               icon: <Users2 size={24} className="text-slate-600" />,
             });
           } else if (isAdmin) {
             cards.push({
-              key: "vendors",
-              label: "Vendors",
-              value: num(adVendorsQ.data),
-              loading: adVendorsQ.isLoading,
+              key: "teachers",
+              label: "Teachers",
+              value: num(adTeachersQ.data),
+              loading: adTeachersQ.isLoading,
               icon: <Users2 size={24} className="text-slate-600" />,
             });
           }
@@ -425,7 +425,7 @@ export default function OverviewUnified() {
       {/* Recent activity (audit) */}
       <div className="rounded-xl border bg-white">
         <div className="border-b p-3 font-medium">
-          Recent activity (admins & vendors)
+          Recent activity (admins & teachers)
         </div>
         <div className="divide-y">
           {(auditQ.data ?? []).map((log: any) => (

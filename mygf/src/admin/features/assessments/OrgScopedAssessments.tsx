@@ -26,10 +26,10 @@ export default function OrgScopedAssessments() {
   // 🔒 Auth gate (match the pattern used by Organizations/Users)
   const { user, status: authStatus } = useAuth();
   const role = user?.role;
-  const isAllowed = role === "admin" || role === "vendor";
+  const isAllowed = role === "admin" || role === "teacher";
   const isReady = authStatus === "ready" && !!user && isAllowed;
 
-  // role scoping is enforced by backend; admin/vendor see only (their org + global)
+  // role scoping is enforced by backend; admin/teacher see only (their org + global)
   const query = useQuery<Assessment[]>({
     queryKey: ["assessments", filters],
     queryFn: () => listAssessments({ q: filters.q, status: filters.status }),
@@ -40,7 +40,7 @@ export default function OrgScopedAssessments() {
   });
 
   const createMut = useMutation({
-    mutationFn: createAssessment, // backend forces orgId for admin/vendor
+    mutationFn: createAssessment, // backend forces orgId for admin/teacher
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assessments"] }),
   });
   const updateMut = useMutation({
@@ -65,11 +65,11 @@ export default function OrgScopedAssessments() {
     return <div className="p-6 text-sm text-slate-500">Checking permissions…</div>;
   }
   if (!isAllowed) {
-    return <div className="p-6 text-sm text-red-600">Forbidden: admin or vendor only.</div>;
+    return <div className="p-6 text-sm text-red-600">Forbidden: admin or teacher only.</div>;
   }
 
-  // Choose base path for detail routes depending on role (so this file works for both /admin and /vendor)
-  const base = role === "vendor" ? "/vendor" : "/admin";
+  // Choose base path for detail routes depending on role (so this file works for both /admin and /teacher)
+  const base = role === "teacher" ? "/teacher" : "/admin";
 
   return (
     <div className="space-y-4">

@@ -10,7 +10,7 @@ import Enrollment from "../models/Enrollment.js";
 function canSeeAll(actor){ return actor?.role === "superadmin"; }
 function scopeMatch(actor){
   if (canSeeAll(actor)) return {};
-  if (actor?.role === "admin" || actor?.role === "vendor") {
+  if (actor?.role === "admin" || actor?.role === "teacher") {
     let orgId = actor.orgId;
     if (orgId && typeof orgId === "object" && orgId._id) orgId = orgId._id;
     try { orgId = new Types.ObjectId(String(orgId)); } catch { return { _id: null }; }

@@ -2,10 +2,10 @@
 import { api } from './client'
 import type { SAUser, UserStatus } from '../types/user'
 
-export type AdminUserRole = 'teacher' | 'vendor' | 'student'
+export type AdminUserRole = 'teacher' | 'student'
 export type AdminMfa = { required: boolean; method: 'otp' | 'totp' | null }
 
-// Narrow SAUser.role and add mfa (returned by backend for vendor/student)
+// Narrow SAUser.role and add mfa (returned by backend for teacher/student)
 export type AdminUser = Omit<SAUser, 'role'> & {
   role: AdminUserRole
   mfa?: AdminMfa

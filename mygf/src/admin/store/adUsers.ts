@@ -91,7 +91,7 @@ export const useAdUsers = create<State>((set, get) => ({
         return data;
       }
       
-      // Vendor/student with credentials - returns the created user doc
+      // Teacher/student with credentials - returns the created user doc
       if (data && data.id) {
         const item = toClient(data);
         set((s) => ({ items: [item, ...s.items] }));

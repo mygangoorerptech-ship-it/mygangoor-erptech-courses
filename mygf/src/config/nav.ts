@@ -3,7 +3,7 @@
 import type React from "react";
 import { LayoutDashboard, Building2, Users, Shield, Settings, BookOpen, CreditCard, BarChart, FileText } from "lucide-react";
 
-export type Role = "superadmin" | "admin" | "teacher" | "vendor" | "student" | "orgadmin" | "orguser";
+export type Role = "superadmin" | "admin" | "teacher" | "student" | "orgadmin" | "orguser";
 
 export type MenuItem = {
   label: string;
@@ -21,7 +21,6 @@ export type RoleMenuMap = Record<Role, MenuGroup[]>;
 
 const SA = "/superadmin";
 const AD = "/admin";
-const VE = "/vendor"; // backward compat — kept so old /vendor routes still resolve
 const TE = "/teacher";
 
 export const MENUS: RoleMenuMap = {
@@ -100,21 +99,6 @@ export const MENUS: RoleMenuMap = {
       ],
     },
     { heading: "Settings", items: [ { label: "Settings", to: `${AD}/settings`, icon: Settings } ] },
-  ],
-
-  vendor: [
-    { heading: "Overview", items: [ { label: "Dashboard", to: `${VE}/overview`, icon: LayoutDashboard, exact: true } ] },
-    { heading: "Courses", items: [
-      { label: "Courses",   to: `${VE}/courses`, icon: BookOpen },
-      { label: "Add Notes", to: `${VE}/notes`,   icon: FileText },
-      { label: "Reports",   to: `${VE}/reports`, icon: BarChart },
-    ] },
-    { heading: "Students", items: [
-      { label: "Students", to: `${VE}/students`, icon: Users },
-    ] },
-    { heading: "Commerce", items: [
-      { label: "Payments", to: `${VE}/payments`, icon: CreditCard },
-    ] },
   ],
 
   teacher: [

@@ -727,7 +727,7 @@ export async function verifyMailer() {
 export async function sendStaffCredentialsEmail(
   to,
   {
-    role,                 // 'admin' | 'vendor' | 'student'
+    role,                 // 'admin' | 'teacher' | 'student'
     signinUrl,            // absolute URL to /signin
     email,                // account email
     password,             // generated or chosen password
@@ -735,19 +735,19 @@ export async function sendStaffCredentialsEmail(
     mfaRequired,          // optional: boolean (if omitted for students, inferred from mfaMethod)
     orgName,              // optional: pretty org name
     orgId,                // optional: fallback id if name missing
-    adminName,            // optional: for vendor/student, show supervising admin
+    adminName,            // optional: for teacher/student, show supervising admin
     managerName,          // alias for adminName (either works)
   }
 ) {
   const roleLabel =
     role === 'admin' ? 'Admin' :
-    role === 'vendor' ? 'Vendor' :
+    role === 'teacher' ? 'Teacher' :
     role === 'student' ? 'Student' : 'Account';
 
   // MFA rules:
-  // - Admin/Vendor: always required
+  // - Admin/Teacher: always required
   // - Student: required if mfaRequired===true; if not provided, infer from mfaMethod
-  const _mfaRequired = (role === 'admin' || role === 'vendor')
+  const _mfaRequired = (role === 'admin' || role === 'teacher')
     ? true
     : (typeof mfaRequired === 'boolean' ? mfaRequired : !!mfaMethod);
 
@@ -757,7 +757,7 @@ export async function sendStaffCredentialsEmail(
   const adminDisplay = adminName || managerName || '';
   const subject = `Your ${BRAND} ${roleLabel} account is ready`;
   const preheader = (() => {
-    if (role === 'admin' || role === 'vendor') {
+    if (role === 'admin' || role === 'teacher') {
       return "Sign in with the credentials below and complete MFA to activate your account.";
     }
     return _mfaRequired

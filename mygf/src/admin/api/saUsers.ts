@@ -9,7 +9,7 @@ export type CreateSaUserPayload = {
   status?: UserStatus;
   orgId?: string;
   mfa?: { required: boolean; method: 'otp'|'totp'|null };
-  managerId?: string; // for vendors under an admin
+  managerId?: string; // for teachers under an admin
 }
 
 export type UpdateSaUserPayload = Partial<CreateSaUserPayload>

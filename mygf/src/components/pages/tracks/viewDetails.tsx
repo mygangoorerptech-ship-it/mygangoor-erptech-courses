@@ -245,7 +245,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
   function next() { if (hasChapters) setIdx((p) => (p + 1) % chapters.length); }
   function goto(i: number) { if (hasChapters && i >= 0 && i < chapters.length) setIdx(i); }
 
-  // Instructor: vendor/owner acts as teacher; fallback "Unknown"
+  // Instructor: fallback "Unknown"
   const instructorDisplay = (data?.ownerName || (data as any)?.teacherName || "Unknown").trim();
   const instructorInitials = instructorDisplay.slice(0, 2).toUpperCase() || "UN";
 

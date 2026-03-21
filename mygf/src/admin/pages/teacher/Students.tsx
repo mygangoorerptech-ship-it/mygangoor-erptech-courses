@@ -1,5 +1,4 @@
-// src/admin/pages/vendor/Students.tsx
-// Shared by both /vendor and /teacher routes.
+// src/admin/pages/teacher/Students.tsx
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../../api/client";

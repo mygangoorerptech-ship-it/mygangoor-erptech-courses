@@ -13,7 +13,7 @@ r.get('/', ctrl.list);
 r.post('/', ctrl.create);
 r.patch('/:id', ctrl.patch);
 r.post('/:id/status', ctrl.setStatus);
-r.post('/:id/role', ctrl.setRole);     // optional, allows vendor<->student only
+r.post('/:id/role', ctrl.setRole);     // optional, allows teacher<->student only
 r.delete('/:id', ctrl.remove);
 r.post('/bulk-upsert', ctrl.bulkUpsert);
 

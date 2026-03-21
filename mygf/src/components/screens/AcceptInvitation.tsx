@@ -229,7 +229,7 @@ const AcceptInvitation: React.FC = () => {
                 <strong>Email:</strong> {invitation.email}
               </p>
               <p className="text-sm text-blue-800 mt-1">
-                <strong>Role:</strong> {invitation.role === 'orguser' ? 'Student' : invitation.role === 'vendor' ? 'Vendor' : invitation.role}
+                <strong>Role:</strong> {invitation.role === 'orguser' ? 'Student' : invitation.role === 'teacher' ? 'Teacher' : invitation.role}
               </p>
               {invitation.mfaRequired && (
                 <p className="text-sm text-blue-800 mt-1">

@@ -2,6 +2,8 @@
 import Notification from "../models/Notification.js";
 import { emitToUser } from "./notify.js";
 import { generatePeriodicReminders } from "../controllers/notificationsController.js";
+// C-2 fix: enrollment recovery job (runs every 5 minutes inside the scheduler tick)
+import { runEnrollmentRecovery } from "../jobs/enrollmentRecoveryJob.js";
 
 const DBG = process.env.DEBUG_NOTIFICATIONS !== '0';
 // const slog = (...args) => { if (DBG) console.log('[scheduler]', ...args); };
@@ -15,9 +17,20 @@ function nextTime(from, recurrence) {
   return d;
 }
 
+// C-2 fix: enrollment recovery runs every 5 minutes (300 000 ms).
+// Decoupled from the notification tick so it always fires regardless of NOTIFY_TICK_MS.
+const ENROLLMENT_RECOVERY_MS = 5 * 60 * 1000;
+
 export function startScheduler() {
   const TICK_MS = Number(process.env.NOTIFY_TICK_MS || 60000);
   // slog('start', { TICK_MS, recurrences: ['daily','weekly','monthly'] });
+
+  // C-2: start enrollment recovery on its own independent interval
+  setInterval(() => {
+    runEnrollmentRecovery().catch((e) =>
+      console.error("[scheduler] enrollmentRecovery error:", e?.message)
+    );
+  }, ENROLLMENT_RECOVERY_MS);
 
   setInterval(async () => {
     try {

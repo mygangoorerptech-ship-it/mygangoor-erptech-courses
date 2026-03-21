@@ -10,8 +10,7 @@ import {
 const r = Router();
 
 r.use(requireAuth);
-// Accept both "teacher" (new) and "vendor" (old JWT — backward compat during migration window)
-r.use(requireAnyRole("vendor", "teacher"));
+r.use(requireAnyRole("teacher"));
 
 r.get("/students", listTeacherStudents);
 r.post("/students/:studentId/courses/:courseId/complete", markStudentComplete);

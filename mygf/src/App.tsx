@@ -25,7 +25,6 @@ import SignIn from "./components/screens/SignIn";
 // ---------- Admin area (already present under src/admin) ----------
 import SuperadminLayout from "./admin/layouts/SuperadminLayout";
 import AdminLayout from "./admin/layouts/AdminLayout";
-import VendorLayout from "./admin/layouts/VendorLayout";
 import TeacherLayout from "./admin/layouts/TeacherLayout";
 
 // Superadmin pages
@@ -70,14 +69,14 @@ import ADSettings from "./admin/pages/admin/Settings";
 import ADUsers from "./admin/pages/admin/Users";
 import ADNotes from "./admin/pages/admin/Notes";
 
-//vendor pages
-import VEOverview from "./admin/pages/vendor/Overview";
-import VEAssessments from "./admin/pages/vendor/Assessments";
-import VEPayments from "./admin/pages/vendor/Payments";
-import VECourses from "./admin/pages/vendor/Courses";
-import VEReports from "./admin/pages/vendor/Reports";
-import VENotes from "./admin/pages/vendor/Notes";
-import VEStudents from "./admin/pages/vendor/Students";
+//teacher pages
+import VEOverview from "./admin/pages/teacher/Overview";
+import VEAssessments from "./admin/pages/teacher/Assessments";
+import VEPayments from "./admin/pages/teacher/Payments";
+import VECourses from "./admin/pages/teacher/Courses";
+import VEReports from "./admin/pages/teacher/Reports";
+import VENotes from "./admin/pages/teacher/Notes";
+import VEStudents from "./admin/pages/teacher/Students";
 
 // ---------- Centralized guards ----------
 import Shell from "./shell";
@@ -172,7 +171,7 @@ export default function App() {
       <Route
         path="/dashboard"
         element={
-          <Shell allowedRoles={["student", /^org/i]} requireMfaIf={(r) => r === "teacher" || r === "vendor"}>
+          <Shell allowedRoles={["student", /^org/i]} requireMfaIf={(r) => r === "teacher"}>
             <StudentDashboard />
           </Shell>
         }
@@ -247,27 +246,8 @@ export default function App() {
       <Route
         path="/teacher"
         element={
-          <Shell allowedRoles={["teacher", "vendor"]}>
+          <Shell allowedRoles={["teacher"]}>
             <TeacherLayout />
-          </Shell>
-        }
-      >
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<VEOverview />} />
-        <Route path="courses" element={<VECourses />} />
-        <Route path="reports" element={<VEReports />} />
-        <Route path="assessments" element={<VEAssessments />} />
-        <Route path="payments" element={<VEPayments />} />
-        <Route path="notes" element={<VENotes />} />
-        <Route path="students" element={<VEStudents />} />
-      </Route>
-
-      {/* ---------- Vendor area (backward compat — same layout, redirects not needed) ---------- */}
-      <Route
-        path="/vendor"
-        element={
-          <Shell allowedRoles={["vendor", "teacher"]}>
-            <VendorLayout />
           </Shell>
         }
       >

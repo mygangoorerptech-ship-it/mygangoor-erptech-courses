@@ -30,11 +30,11 @@ export async function list(req, res) {
     {
       role:
         role === 'all'
-          ? { $in: ['teacher', 'vendor', 'orguser'] }
+          ? { $in: ['teacher', 'orguser'] }
           : role === 'student'
           ? 'orguser'
           : role === 'teacher'
-          ? { $in: ['teacher', 'vendor'] }
+          ? 'teacher'
           : role,
     },
   ];
@@ -138,7 +138,7 @@ export async function create(req, res) {
     });
     
     if (exists) {
-      const roleDisplayName = exists.role === 'orguser' ? 'Student' : (exists.role === 'teacher' || exists.role === 'vendor') ? 'Teacher' : exists.role === 'admin' ? 'Admin' : exists.role;
+      const roleDisplayName = exists.role === 'orguser' ? 'Student' : exists.role === 'teacher' ? 'Teacher' : exists.role === 'admin' ? 'Admin' : exists.role;
       const statusDisplayName = exists.status === 'active' ? 'Active' : exists.status === 'inactive' ? 'Inactive' : exists.status === 'pending' ? 'Pending' : exists.status;
       
       console.error("[adUsers.create] ❌ User already exists (case-insensitive match):", {
@@ -206,7 +206,7 @@ export async function create(req, res) {
       });
       
       if (exists) {
-        const roleDisplayName = exists.role === 'orguser' ? 'Student' : (exists.role === 'teacher' || exists.role === 'vendor') ? 'Teacher' : exists.role === 'admin' ? 'Admin' : exists.role;
+        const roleDisplayName = exists.role === 'orguser' ? 'Student' : exists.role === 'teacher' ? 'Teacher' : exists.role === 'admin' ? 'Admin' : exists.role;
         const statusDisplayName = exists.status === 'active' ? 'Active' : exists.status === 'inactive' ? 'Inactive' : exists.status === 'pending' ? 'Pending' : exists.status;
         
         return {
@@ -485,7 +485,7 @@ export async function create(req, res) {
             console.warn("[adUsers.create] Could not lookup existing user:", lookupError?.message);
           }
           
-          const roleDisplayName = existingUser?.role === 'orguser' ? 'Student' : (existingUser?.role === 'teacher' || existingUser?.role === 'vendor') ? 'Teacher' : existingUser?.role === 'admin' ? 'Admin' : existingUser?.role || 'Unknown';
+          const roleDisplayName = existingUser?.role === 'orguser' ? 'Student' : existingUser?.role === 'teacher' ? 'Teacher' : existingUser?.role === 'admin' ? 'Admin' : existingUser?.role || 'Unknown';
           const statusDisplayName = existingUser?.status === 'active' ? 'Active' : existingUser?.status === 'inactive' ? 'Inactive' : existingUser?.status === 'pending' ? 'Pending' : existingUser?.status || 'Unknown';
           
           return res.status(409).json({ 
@@ -520,13 +520,13 @@ export async function create(req, res) {
           orgName, adminName: actor?.name || actor?.email,
         });
         emailSent = true;
-        console.log("[adUsers.create] ✅ Vendor credentials email sent successfully");
+        console.log("[adUsers.create] ✅ Teacher credentials email sent successfully");
       } catch (e) {
         emailError = e;
         const errorMessage = e?.message || String(e);
         const statusCode = e?.response?.statusCode || e?.code || (errorMessage.includes('403') ? 403 : null);
         
-        console.error("[adUsers.create] ⚠️ Vendor email failed:");
+        console.error("[adUsers.create] ⚠️ Teacher email failed:");
         console.error("[adUsers.create]   Error:", errorMessage);
         console.error("[adUsers.create]   Status:", statusCode || 'unknown');
         
@@ -589,7 +589,7 @@ export async function create(req, res) {
       }
       
       const duration = Date.now() - startTime;
-      console.log("[adUsers.create] ✅ Vendor creation completed in", duration, "ms");
+      console.log("[adUsers.create] ✅ Teacher creation completed in", duration, "ms");
       return res.json({ ...sanitize(doc), emailSent });
     }
 
@@ -634,7 +634,7 @@ export async function create(req, res) {
           console.warn("[adUsers.create] Could not lookup existing user:", lookupError?.message);
         }
         
-        const roleDisplayName = existingUser?.role === 'orguser' ? 'Student' : (existingUser?.role === 'teacher' || existingUser?.role === 'vendor') ? 'Teacher' : existingUser?.role === 'admin' ? 'Admin' : existingUser?.role || 'Unknown';
+        const roleDisplayName = existingUser?.role === 'orguser' ? 'Student' : existingUser?.role === 'teacher' ? 'Teacher' : existingUser?.role === 'admin' ? 'Admin' : existingUser?.role || 'Unknown';
         const statusDisplayName = existingUser?.status === 'active' ? 'Active' : existingUser?.status === 'inactive' ? 'Inactive' : existingUser?.status === 'pending' ? 'Pending' : existingUser?.status || 'Unknown';
         
         return res.status(409).json({ 
@@ -777,7 +777,7 @@ export async function patch(req, res) {
     const { id } = req.params;
     if (!actor?.orgId) return res.status(403).json({ ok: false });
 
-    const u = await User.findOne({ _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'vendor', 'orguser'] } });
+    const u = await User.findOne({ _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'orguser'] } });
     if (!u) return res.status(404).json({ ok: false });
 
     const patch = {};
@@ -801,7 +801,7 @@ export async function setStatus(req, res) {
     if (!['active', 'disabled'].includes(status)) return res.status(400).json({ ok: false });
 
     const u = await User.findOneAndUpdate(
-        { _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'vendor', 'orguser'] } },
+        { _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'orguser'] } },
         { $set: { status } },
         { new: true }
     );
@@ -809,7 +809,7 @@ export async function setStatus(req, res) {
     return res.json(sanitize(u));
 }
 
-// (Optional) POST /ad/users/:id/role — only vendor<->student switches
+// (Optional) POST /ad/users/:id/role — only teacher<->student switches
 export async function setRole(req, res) {
     const actor = req.user;
     const { id } = req.params;
@@ -820,7 +820,7 @@ export async function setRole(req, res) {
     const finalRole = inputRole === 'student' ? 'orguser' : inputRole;
 
     const u = await User.findOneAndUpdate(
-        { _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'vendor', 'orguser'] } },
+        { _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'orguser'] } },
         { $set: { role: finalRole } },
         { new: true }
     );
@@ -833,7 +833,7 @@ export async function remove(req, res) {
     const actor = req.user;
     const { id } = req.params;
 
-    const u = await User.findOne({ _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'vendor', 'orguser'] } });
+    const u = await User.findOne({ _id: id, orgId: actor.orgId, role: { $in: ['teacher', 'orguser'] } });
     if (!u) return res.status(404).json({ ok: false });
 
     await User.deleteOne({ _id: id });
@@ -860,7 +860,7 @@ export async function bulkUpsert(req, res) {
   const truthy  = (v) => /^(true|1|yes|y)$/i.test(String(v||'').trim());
   const normRole = (v) => {
     const r = String(v||'').toLowerCase().trim();
-    if (r === 'teacher' || r === 'vendor') return 'teacher'; // accept both during migration
+    if (r === 'teacher') return 'teacher';
     if (r === 'student') return 'student';
     return 'student';
   };
@@ -969,7 +969,7 @@ export async function bulkUpsert(req, res) {
 
     // --- UPDATE ---
     if (String(existing.orgId || '') !== String(scopeOrgId)) { skipped.push({ email, reason:'different_org' }); continue; }
-    if (!['teacher','vendor','orguser'].includes(existing.role)) { skipped.push({ email, reason:'role_not_allowed' }); continue; }
+    if (!['teacher','orguser'].includes(existing.role)) { skipped.push({ email, reason:'role_not_allowed' }); continue; }
 
     let changed = false;
     if (name !== undefined && existing.name !== name) { existing.name = name; changed = true; }

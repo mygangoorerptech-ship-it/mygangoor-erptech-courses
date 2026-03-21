@@ -39,6 +39,11 @@ const PaymentSchema = new mongoose.Schema({
   verifiedAt:  { type: Date, default: null },
   managerId:   { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   settled: { type: Boolean, default: false },
+  // C-2 fix: enrollment recovery flags.
+  // Set to true when ensureEnrollment() fails after payment capture.
+  // Cleared by enrollmentRecoveryJob once enrollment is confirmed.
+  needsEnrollment:      { type: Boolean, default: false, index: true },
+  enrollmentRetryCount: { type: Number,  default: 0 },
 }, { timestamps: true });
 
 PaymentSchema.index({ orgId: 1, courseId: 1, studentId: 1 });

@@ -94,7 +94,7 @@ export async function create(req, res) {
      } else {
        if (!actor.orgId) return res.status(403).json({ ok: false, message: "No org" });
        resolvedOrgId = actor.orgId;
-       if (actor.role === "vendor") managerId = actorId || actor.managerId || null;
+       if (actor.role === "teacher") managerId = actorId || actor.managerId || null;
      }
 
      // Coerce time limit: null unless >=30

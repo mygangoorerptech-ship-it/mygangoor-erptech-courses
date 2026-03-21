@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../admin/auth/store";
 import { useNavigate } from "react-router-dom";
 
-type Role = "superadmin" | "admin" | "vendor" | "student" | "orguser" | string;
+type Role = "superadmin" | "admin" | "teacher" | "student" | "orguser" | string;
 
 // --- Types that match the backend payloads ---
 type ReviewItem = {
@@ -92,7 +92,7 @@ function dashPrefix(role: Role) {
   const r = String(role || "").toLowerCase();
   if (r === "superadmin") return "/superadmin";
   if (r === "admin") return "/admin";
-  if (r === "vendor") return "/vendor";
+  if (r === "teacher") return "/teacher";
   return "/dashboard";
 }
 
@@ -132,7 +132,7 @@ export default function Reviews() {
 
   // Derived flags
   const isSuper = role === "superadmin";
-  const isReadOnly = !isSuper; // admin & vendor are readonly
+  const isReadOnly = !isSuper; // admin & teacher are readonly
 
   // Build query string
   const query = useMemo(() => {
@@ -143,7 +143,7 @@ export default function Reviews() {
     if (q) p.set("q", q);
     if (courseId) p.set("courseId", courseId);
     if (isSuper && orgId) p.set("orgId", orgId); // superadmin can cross-org
-    if (!isSuper) p.set("scope", "auto");        // admin/vendor -> server infers org/owner
+    if (!isSuper) p.set("scope", "auto");        // admin/teacher -> server infers org/owner
     if (minStars > 0) p.set("minStars", String(minStars));
     if (status !== "any") p.set("status", status);
     return p.toString();

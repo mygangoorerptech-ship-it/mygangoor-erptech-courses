@@ -7,7 +7,7 @@ const r = Router();
 
 r.use(requireAuth);
 
-r.get("/assessment-groups", requireAnyRole("superadmin", "admin", "vendor"), list);
+r.get("/assessment-groups", requireAnyRole("superadmin", "admin", "teacher"), list);
 r.post("/assessment-groups", requireAnyRole("superadmin", "admin"), create);
 r.put("/assessment-groups/:id", requireAnyRole("superadmin", "admin"), update);
 r.delete("/assessment-groups/:id", requireAnyRole("superadmin"), destroy);

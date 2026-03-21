@@ -21,27 +21,27 @@ export default function VEPayments(){
   const [openOffline, setOpenOffline] = useState(false)
 
   const query = useQuery({
-    queryKey:['vendor-payments', filters, orgId],
-    // vendor is org-scoped server-side; orgId included for cache segmentation
+    queryKey:['teacher-payments', filters, orgId],
+    // teacher is org-scoped server-side; orgId included for cache segmentation
     queryFn:()=> listPayments({ orgId, q:filters.q||undefined, status:filters.status })
   })
 
   const refundMut = useMutation({
     mutationFn:(id:string)=> refundPayment(id),
-    onSuccess:()=> qc.invalidateQueries({ queryKey:['vendor-payments'] })
+    onSuccess:()=> qc.invalidateQueries({ queryKey:['teacher-payments'] })
   })
 
   const createOfflineMut = useMutation({
     mutationFn: createOfflinePayment,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vendor-payments'] })
+      qc.invalidateQueries({ queryKey: ['teacher-payments'] })
       setOpenOffline(false)
     }
   })
 
   const verifyMut = useMutation({
     mutationFn:(id:string)=> verifyPayment(id),
-    onSuccess:()=> qc.invalidateQueries({ queryKey:['vendor-payments'] })
+    onSuccess:()=> qc.invalidateQueries({ queryKey:['teacher-payments'] })
   })
 
   const rows = query.data ?? []
@@ -69,7 +69,7 @@ export default function VEPayments(){
         </div>
         <div className="flex items-end justify-end md:col-span-2 gap-2">
           <Button onClick={()=> setOpenOffline(true)}><Plus size={16}/> Record Offline</Button>
-          <Button variant="ghost" onClick={()=> qc.invalidateQueries({ queryKey:['vendor-payments'] })}>Refresh</Button>
+          <Button variant="ghost" onClick={()=> qc.invalidateQueries({ queryKey:['teacher-payments'] })}>Refresh</Button>
         </div>
       </header>
 

@@ -185,11 +185,11 @@ export async function create(req, res) {
   let teacherObjectId = null;
   if (teacherId) {
     const t = await User.findOne({ _id: teacherId }).select("_id orgId role");
-    if (t && (!orgId || String(t.orgId) === String(orgId)) && t.role === "vendor") {
+    if (t && (!orgId || String(t.orgId) === String(orgId)) && t.role === "teacher") {
       teacherObjectId = t._id;
     }
   } else if (teacherEmail) {
-    const t = await User.findOne({ email: String(teacherEmail).toLowerCase(), role: "vendor" })
+    const t = await User.findOne({ email: String(teacherEmail).toLowerCase(), role: "teacher" })
       .select("_id orgId");
     if (t && (!orgId || String(t.orgId) === String(orgId))) {
       teacherObjectId = t._id;
@@ -252,14 +252,14 @@ export async function patch(req, res) {
 
   // optional teacherEmail mapping
   if (req.body?.teacherEmail) {
-    const t = await User.findOne({ email: String(req.body.teacherEmail).toLowerCase(), role: "vendor" })
+    const t = await User.findOne({ email: String(req.body.teacherEmail).toLowerCase(), role: "teacher" })
       .select("_id");
     p.teacherId = t ? t._id : null;
   }
 
   // validate teacherId if provided directly
   if (p.teacherId) {
-    const t = await User.findOne({ _id: p.teacherId, role: "vendor" }).select("_id");
+    const t = await User.findOne({ _id: p.teacherId, role: "teacher" }).select("_id");
     p.teacherId = t ? t._id : null;
   }
 
@@ -404,7 +404,7 @@ export async function bulkUpsert(req, res) {
       } else if (r.teacherEmail) {
         const t = await User.findOne({
           email: String(r.teacherEmail).toLowerCase(),
-          role: "vendor",
+          role: "teacher",
           ...(orgId ? { orgId } : {}),
         }).select("_id");
         patch.teacherId = t ? t._id : null;

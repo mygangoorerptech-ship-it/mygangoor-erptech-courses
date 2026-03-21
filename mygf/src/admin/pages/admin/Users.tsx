@@ -94,12 +94,12 @@ export default function ADUsers(){
                 <td className="p-3">{u.email}</td>
                 <td className="p-3">
                   <span className={
-                    (u.role==='teacher' || u.role==='vendor')
+                    u.role==='teacher'
                       ? 'inline-flex items-center gap-1 text-amber-700 bg-amber-50 rounded px-2 py-0.5'
                       : 'inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 rounded px-2 py-0.5'
                   }>
-                    {(u.role==='teacher' || u.role==='vendor') ? <UserCog size={14}/> : <Crown size={14}/>}
-                    {u.role==='vendor' ? 'teacher' : u.role}
+                    {u.role==='teacher' ? <UserCog size={14}/> : <Crown size={14}/>}
+                    {u.role}
                   </span>
                 </td>
                 <td className="p-3">
@@ -586,7 +586,7 @@ teacher1@acme.com,teacher,Teacher One,active,admin1@acme.com,Teach3r#Pass,true,t
   const truthy = (v:string) => /^(true|1|yes|y)$/i.test((v||'').trim())
   const normRole = (v:string) => {
     const r = (v||'').toLowerCase().trim()
-    if (r === 'teacher' || r === 'vendor') return 'teacher' // accept both during migration
+    if (r === 'teacher') return 'teacher'
     return r === 'student' ? 'student' : 'student'
   }
   const normStatus = (v:string) => {

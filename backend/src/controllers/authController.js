@@ -30,6 +30,10 @@ const RefreshTokenSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+// M-2 fix: TTL index so MongoDB auto-deletes expired tokens.
+// expireAfterSeconds: 0 means documents are removed as soon as `exp` is in the past.
+RefreshTokenSchema.index({ exp: 1 }, { expireAfterSeconds: 0 });
+
 const RefreshToken =
   mongoose.models.RefreshToken || mongoose.model("RefreshToken", RefreshTokenSchema);
 
@@ -44,6 +48,29 @@ function expFromNowSec(sec) {
 
 // --- debug logger ---
 const DEBUG_AUTH = process.env.DEBUG_AUTH === "1";
+
+// H-2 fix: in-memory TOTP replay prevention.
+// Tracks (userId + timeBucket + delta) combinations that have already been used.
+// With window:1, valid delta values are -1, 0, or 1 (one 30-second step each side).
+// Each entry auto-expires after 90 seconds (3 TOTP steps) via setTimeout.
+// Safe for single-process deployments; for multi-instance, replace with Redis SET NX.
+const _totpUsedKeys = new Map();
+
+function _totpReplayKey(uid, delta) {
+  // Bucket = current 30-second TOTP period. Ties the key to a specific time window.
+  const bucket = Math.floor(Date.now() / 30_000);
+  return `${uid}:${bucket}:${delta}`;
+}
+
+/** Returns true if this (uid, delta) combination was already consumed. */
+function _isTotpReplay(uid, delta) {
+  const key = _totpReplayKey(uid, delta);
+  if (_totpUsedKeys.has(key)) return true;
+  _totpUsedKeys.set(key, true);
+  // Auto-remove after 90 s — long enough to cover the full ±30 s window plus drift.
+  setTimeout(() => _totpUsedKeys.delete(key), 90_000);
+  return false;
+}
 const alog = (...args) => {
   if (DEBUG_AUTH) console.log(new Date().toISOString(), "[auth]", ...args);
 };
@@ -350,13 +377,14 @@ export async function totpVerify(req, res) {
       return res.status(400).json({ ok: false, message: "TOTP not setup" });
     }
 
+    // H-2 fix: window reduced from 3 (180 s) to 1 (60 s — ±30 s either side).
     const result = speakeasy.totp.verifyDelta({
       secret: secretEnc ? decryptTotpSecret(secretEnc) : legacySecret,
       encoding: "base32",
       token: String(code),
       digits: 6,
       step: 30,
-      window: process.env.MFA_WINDOW ? Number(process.env.MFA_WINDOW) : 3,
+      window: 1,
     });
 
     if (!result) {
@@ -364,6 +392,11 @@ export async function totpVerify(req, res) {
         console.log("[mfa] verify failed for", user.email, "code:", code);
       }
       return res.status(400).json({ ok: false, message: "Invalid code" });
+    }
+
+    // H-2 fix: reject replay — same (uid, delta, time-bucket) within 90 s.
+    if (_isTotpReplay(String(user._id), result.delta)) {
+      return res.status(400).json({ ok: false, message: "Code already used" });
     }
 
 let changed = false;

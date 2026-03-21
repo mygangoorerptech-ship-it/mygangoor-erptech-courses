@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { checkSession, logout as apiLogout } from "../api/auth";
 
-export type Role = "superadmin" | "admin" | "teacher" | "vendor" | "student" | "orgadmin" | "orguser";
+export type Role = "superadmin" | "admin" | "teacher" | "student" | "orgadmin" | "orguser";
 export type MfaInfo = { required: boolean; method?: "otp" | "totp" };
 
 export type User = {

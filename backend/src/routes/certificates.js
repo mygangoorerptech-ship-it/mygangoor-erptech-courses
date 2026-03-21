@@ -11,7 +11,7 @@ const templates = loadTemplates();
 const router = express.Router();
 
 // List templates for TemplatePicker
-router.get("/cert-templates", requireAuth, requireRole(["superadmin", "admin", "teacher", "vendor"]), (req, res) => {
+router.get("/cert-templates", requireAuth, requireRole(["superadmin", "admin", "teacher"]), (req, res) => {
   try {
     const list = Array.from(templates.values()).map((t) => ({
       id: t.id,
@@ -28,7 +28,7 @@ router.get("/cert-templates", requireAuth, requireRole(["superadmin", "admin", "
 router.post(
   "/certificates/generate",
   requireAuth,
-  requireRole(["superadmin", "admin", "teacher", "vendor"]),
+  requireRole(["superadmin", "admin", "teacher"]),
   adminActionLimiter,
   async (req, res) => {
     try {

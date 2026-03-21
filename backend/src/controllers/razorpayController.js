@@ -297,6 +297,11 @@ export async function verifyPayment(req, res) {
       console.log("[ENROLLMENT RESULT]", { result: enrollOk, order: razorpay_order_id });
     }
     if (enrollOk === false) {
+      // C-2 fix: mark for recovery job so enrollment is retried automatically.
+      await Payment.updateOne(
+        { _id: doc0._id },
+        { $set: { needsEnrollment: true }, $inc: { enrollmentRetryCount: 1 } }
+      ).catch((e) => console.error("[rzp.verify] recovery flag write failed:", e?.message));
       sendAlert("[CRITICAL] PAYMENT WITHOUT ENROLLMENT", {
         orderId: razorpay_order_id, studentId: String(sId), courseId: String(cId), orgId: String(oId),
       });
@@ -397,6 +402,11 @@ export async function webhook(req, res) {
     }
 const wEnrollOk = await ensureEnrollment({ studentId: sId, courseId: cId, orgId: oId, paymentId: doc._id, source: "online", managerId: mId || null });
     if (wEnrollOk === false) {
+      // C-2 fix: mark for recovery job so enrollment is retried automatically.
+      await Payment.updateOne(
+        { _id: doc._id },
+        { $set: { needsEnrollment: true }, $inc: { enrollmentRetryCount: 1 } }
+      ).catch((e) => console.error("[rzp.webhook] recovery flag write failed:", e?.message));
       sendAlert("[CRITICAL] PAYMENT WITHOUT ENROLLMENT (webhook)", {
         event: et, orderId, studentId: String(sId), courseId: String(cId), orgId: String(oId),
       });

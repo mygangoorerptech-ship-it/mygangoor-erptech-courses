@@ -67,12 +67,12 @@ export default function CourseFormModal({
   const { user } = useAuth();
   const role = user?.role || "student";
   const isSA = role === "superadmin";
-  const isVendor = role === "vendor";
+  const isTeacher = role === "teacher";
 
   const [courseType, setCourseType] = useState<CourseType>((initial?.courseType as CourseType) || "paid");
   const [durationText, setDurationText] = useState<string>(initial?.durationText || "");
-  const [teacherId, setTeacherId] = useState<string>(initial?.teacherId || (isVendor ? user?.id || "" : ""));
-  const [vendors, setVendors] = useState<Array<{ value: string; label: string }>>([]);
+  const [teacherId, setTeacherId] = useState<string>(initial?.teacherId || (isTeacher ? user?.id || "" : ""));
+  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
 
   // NEW: dynamic owners list (for SA) with fallback to provided admins
   const [ownerOptions, setOwnerOptions] = useState<Array<{ value: string; label: string }>>(admins || []);
@@ -169,14 +169,14 @@ export default function CourseFormModal({
   // ★ keep deps minimal & stable; avoid re-running due to label changes
   }, [isSA, orgId, initial?.ownerEmail]); // ★
 
-  // ── Fetch vendors (treated as teachers) ───────────────────────────────────────
+  // ── Fetch teachers ────────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
     async function run() {
       try {
         if (isSA) {
           const all = await listSaUsers({
-            role: "vendor",
+            role: "teacher",
             status: "all",
             orgId: orgId === "global" ? undefined : orgId,
           } as any);
@@ -197,10 +197,10 @@ export default function CourseFormModal({
           // ★ de-dupe by value so seeded + fetched don't double up
           opts = dedupeByValue(opts); // ★
 
-          if (!cancelled) setVendors(opts);
+          if (!cancelled) setTeachers(opts);
         } else {
-          // Admin/Vendor - org scoped already, returns only same-org vendors
-          const all = await listAdUsers({ role: "vendor", status: "all" } as any);
+          // Admin/Teacher - org scoped already, returns only same-org teachers
+          const all = await listAdUsers({ role: "teacher", status: "all" } as any);
           let opts = (all || []).map((u: any) => ({
             value: u.id,
             label: `${u.name || u.email} (${u.email})`,
@@ -217,10 +217,10 @@ export default function CourseFormModal({
           // ★ de-dupe here too
           opts = dedupeByValue(opts); // ★
 
-          if (!cancelled) setVendors(opts);
+          if (!cancelled) setTeachers(opts);
         }
       } catch {
-        if (!cancelled) setVendors([]);
+        if (!cancelled) setTeachers([]);
       }
     }
     run();
@@ -262,7 +262,7 @@ export default function CourseFormModal({
     setOwnerEmail(initial?.ownerEmail || "");
     setCourseType((initial?.courseType as CourseType) || "paid");
     setDurationText(initial?.durationText || "");
-    setTeacherId(initial?.teacherId || (isVendor ? user?.id || "" : ""));
+    setTeacherId(initial?.teacherId || (isTeacher ? user?.id || "" : ""));
     setIsBundled(!!initial?.isBundled || (initial?.chapters?.length ?? 0) > 0);
     setChapters(initial?.chapters?.length ? initial.chapters : []);
     setDemoVideoUrl(initial?.demoVideoUrl || "");
@@ -629,18 +629,18 @@ export default function CourseFormModal({
                   </div>
                 )}
 
-                {/* NEW: Vendor/Teacher (required) */}
+                {/* NEW: Teacher (required) */}
                 <div className="grid gap-3 md:grid-cols-2 mt-3">
-                  <Field label="Vendor / Teacher" required>
+                  <Field label="Teacher" required>
                     <Select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
                       <option value="">Select…</option>
                       {/* seed current teacher if not in list (prevents appearing blank on edit) */}
-                      {!!teacherId && !vendors.some((v) => v.value === teacherId) && (
+                      {!!teacherId && !teachers.some((v) => v.value === teacherId) && (
                         <option value={teacherId}>
                           {(initial as any)?.teacherName || (initial as any)?.teacherEmail || "Current teacher"}
                         </option>
                       )}
-                      {vendors.map((v) => (
+                      {teachers.map((v) => (
                         <option key={v.value} value={v.value}>
                           {v.label}
                         </option>

@@ -27,7 +27,7 @@ function normalize(data: any) {
   return data as { items: Course[]; total: number; page: number; pageSize: number };
 }
 
-// Admin + Vendor org-scoped surface -> /courses (or fallbacks)
+// Admin + Teacher org-scoped surface -> /courses (or fallbacks)
 export async function listCourses(filters: CourseFilters) {
   let lastErr: any = null;
 

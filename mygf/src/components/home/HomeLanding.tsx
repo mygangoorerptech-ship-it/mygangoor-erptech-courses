@@ -46,7 +46,7 @@ const goLoginOrDashboard = () => {
     switch (role) {
       case "superadmin": navigate("/superadmin"); break;
       case "admin":      navigate("/admin"); break;
-      case "vendor":     navigate("/vendor"); break;
+      case "teacher":    navigate("/teacher"); break;
       case "student":    navigate("/dashboard"); break;
       default:           navigate("/dashboard");
     }

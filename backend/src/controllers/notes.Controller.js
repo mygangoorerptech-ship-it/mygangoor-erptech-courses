@@ -69,7 +69,7 @@ function canManageCourse(actor, course) {
 
   if (actor.role === "admin") return true;
 
-  if (actor.role === "vendor") {
+  if (actor.role === "teacher") {
     const ownerOk = course.ownerId && String(course.ownerId) === String(actor.sub);
     const mgrOk   = course.managerId && String(course.managerId) === String(actor.sub);
     return ownerOk || mgrOk;

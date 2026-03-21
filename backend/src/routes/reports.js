@@ -6,7 +6,7 @@ import * as ctrl from "../controllers/reportsController.js";
 const r = Router();
 
 // All report operations require authentication and one of the allowed roles
-r.use(requireAuth, requireRole(["superadmin", "admin", "vendor"]));
+r.use(requireAuth, requireRole(["superadmin", "admin", "teacher"]));
 
 // Export to CSV. Declare before /:id to avoid routing conflicts.
 r.get("/export/csv", ctrl.exportCsv);
@@ -17,7 +17,7 @@ r.get("/", ctrl.list);
 // Create or update a progress record
 r.post("/", ctrl.upsert);
 
-// Remove a progress record (vendors cannot remove)
+// Remove a progress record (teachers cannot remove)
 r.delete("/:id", ctrl.remove);
 
 // Publish or update a certificate URL

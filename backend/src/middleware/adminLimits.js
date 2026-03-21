@@ -1,4 +1,4 @@
-// Lightweight, dependency-free rate limiter for admin/vendor/superadmin actions.
+// Lightweight, dependency-free rate limiter for admin/teacher/superadmin actions.
 // Works with ESM. Keeps memory usage low with fixed-time windows.
 
 const store = new Map();

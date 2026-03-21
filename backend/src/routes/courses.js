@@ -4,7 +4,7 @@ import { requireAuth, requireRole } from '../middleware/authz.js';
 import * as ctrl from '../controllers/coursesController.js';
 
 const r = Router();
-r.use(requireAuth, requireRole(['admin','vendor','student']));
+r.use(requireAuth, requireRole(['admin','teacher','student']));
 
 r.get('/', ctrl.list);
 r.post('/', ctrl.create);

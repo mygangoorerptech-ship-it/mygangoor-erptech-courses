@@ -7,13 +7,13 @@ import type { Role } from '../../auth/store';
 function routeForRole(role?: string){
   if (role === 'superadmin' || role === 'admin') return '/admin';
   if (role && role.startsWith('org')) return '/dashboard';
-  if (role === 'vendor') return '/vendor';
+  if (role === 'teacher') return '/teacher';
   if (role === 'student') return '/dashboard';
   return '/home';
 }
 
 /** Simple role hierarchy: superadmin >= admin >= orgadmin.
- * You can extend this if needed (e.g., admins can view vendor pages, etc.).
+ * You can extend this if needed (e.g., admins can view teacher pages, etc.).
  */
 function isAllowed(userRole: Role, required: Role) {
   if (userRole === required) return true;
@@ -24,7 +24,7 @@ function isAllowed(userRole: Role, required: Role) {
   // admin can access orgadmin area
   if (userRole === 'admin' && required === 'orgadmin') return true;
 
-  // extend here if you need vendor/orguser rules
+  // extend here if you need teacher/orguser rules
 
   return false;
 }

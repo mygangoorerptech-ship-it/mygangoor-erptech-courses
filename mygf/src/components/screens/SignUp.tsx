@@ -20,7 +20,7 @@ function routeForRole(role?: string) {
   if (role === "superadmin") return "/superadmin";
   if (role === "admin") return "/admin";
   if (role && role.startsWith("org")) return "/dashboard";
-  if (role === "vendor") return "/vendor";
+  if (role === "teacher") return "/teacher";
   if (role === "student") return "/dashboard";
   return "/home";
 }

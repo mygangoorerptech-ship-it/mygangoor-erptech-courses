@@ -24,14 +24,14 @@ r.get('/', requireAuth, notes.list);
  */
 // r.get('/:id/pdf-signed', requireAuth, notes.getPdfSignedUrl);
 
-/** Admin/vendor only: create/update/status/delete */
+/** Admin/teacher only: create/update/status/delete */
 // The requireRole() helper accepts a single argument. To allow multiple roles
 // pass an array. Passing multiple string arguments like
-// requireRole('superadmin','admin','vendor') would only take the first
+// requireRole('superadmin','admin','teacher') would only take the first
 // argument ("superadmin") and ignore the rest. See middleware/authz.js.
-r.post('/',        requireAuth, requireRole(['superadmin','admin','vendor']), notes.create);
-r.patch('/:id',    requireAuth, requireRole(['superadmin','admin','vendor']), notes.patch);
-r.post('/:id/status', requireAuth, requireRole(['superadmin','admin','vendor']), notes.setStatus);
-r.delete('/:id',   requireAuth, requireRole(['superadmin','admin','vendor']), notes.remove);
+r.post('/',        requireAuth, requireRole(['superadmin','admin','teacher']), notes.create);
+r.patch('/:id',    requireAuth, requireRole(['superadmin','admin','teacher']), notes.patch);
+r.post('/:id/status', requireAuth, requireRole(['superadmin','admin','teacher']), notes.setStatus);
+r.delete('/:id',   requireAuth, requireRole(['superadmin','admin','teacher']), notes.remove);
 
 export default r;

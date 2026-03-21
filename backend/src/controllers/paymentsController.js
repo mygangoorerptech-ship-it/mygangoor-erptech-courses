@@ -5,6 +5,7 @@ import Payment from "../models/Payment.js";
 import User from "../models/User.js";
 import Course from "../models/Course.js";
 import Enrollment from "../models/Enrollment.js";
+import { safeRegex } from "../utils/safeRegex.js";
 
 // ---- monitoring alert (non-blocking, non-throwing) ----
 function sendAlert(label, data) {
@@ -27,8 +28,8 @@ const pickActorId = (u) => {
   return isOid(cand) ? cand : null;
 };
 const pickManagerId = (u) => {
-  // some vendors may carry managerId (their supervising admin); guard carefully
-  if (!u || String(u.role).toLowerCase() !== "vendor") return null;
+  // teachers may carry managerId (their supervising admin); guard carefully
+  if (!u || String(u.role).toLowerCase() !== "teacher") return null;
   return isOid(u.managerId) ? u.managerId : null;
 };
 
@@ -91,7 +92,7 @@ function sanitize(p) {
 
 // ------------------------ queries ------------------------
 
-// GET /payments  (admin/vendor, scoped to their org)
+// GET /payments  (admin/teacher, scoped to their org)
 export async function list(req, res) {
   try {
     const actor = req.user;
@@ -110,7 +111,8 @@ export async function list(req, res) {
       and.push({ type: String(type).toLowerCase() });
     }
     if (q) {
-      const rx = { $regex: String(q), $options: "i" };
+      // H-4 fix: escape metacharacters to prevent ReDoS
+      const rx = { $regex: safeRegex(q), $options: "i" };
       and.push({
         $or: [
           { receiptNo: rx },
@@ -134,7 +136,7 @@ export async function list(req, res) {
   }
 }
 
-// POST /payments/offline  (admin/vendor creates an offline record)
+// POST /payments/offline  (admin/teacher creates an offline record)
 export async function createOffline(req, res) {
   try {
     const actor = req.user;
@@ -252,7 +254,7 @@ async function ensureEnrollment({ studentId, courseId, orgId, paymentId, source,
   }
 }
 
-// POST /payments/:id/verify  (admin/vendor verifies an offline payment; auto-enroll)
+// POST /payments/:id/verify  (admin/teacher verifies an offline payment; auto-enroll)
 export async function verify(req, res) {
   try {
     const actor = req.user;
@@ -322,6 +324,11 @@ export async function verify(req, res) {
       console.log("[ENROLLMENT RESULT]", { result: enrollOk, paymentId: String(doc._id) });
     }
     if (enrollOk === false) {
+      // C-2 fix: mark for recovery job so enrollment is retried automatically.
+      await Payment.updateOne(
+        { _id: doc._id },
+        { $set: { needsEnrollment: true }, $inc: { enrollmentRetryCount: 1 } }
+      ).catch((e) => console.error("[payments.verify] recovery flag write failed:", e?.message));
       sendAlert("[CRITICAL] PAYMENT WITHOUT ENROLLMENT (offline verify)", {
         paymentId: String(doc._id), studentId: String(doc.studentId), courseId: String(doc.courseId), orgId: String(doc.orgId),
       });
