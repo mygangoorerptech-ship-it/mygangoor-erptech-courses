@@ -99,12 +99,18 @@ export async function list(req, res) {
   if (status !== "all") and.push({ status });
 
   // ✅ use tolerant normalization for org filter
+// Apply org filter ONLY if explicitly provided
+if (orgId !== undefined) {
   const oid = normalizeOrgId(orgId);
+
   if (oid === null) {
-    and.push({ orgId: null }); // global
+    // explicit "global"
+    and.push({ orgId: null });
   } else if (oid) {
+    // specific org
     and.push({ orgId: oid });
   }
+}
 
   if (ownerEmail) {
     const owner = await User.findOne({ email: String(ownerEmail).toLowerCase() }).select("_id");
