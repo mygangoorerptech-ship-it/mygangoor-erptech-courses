@@ -135,6 +135,53 @@ export default function SAPayments(){
                 <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.orderId||target.subscriptionId||'—'}</div></div>
                 <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail||'—'}</div></div>
               </div>
+              {(() => {
+              let form = null
+
+              try {
+                form = target.notes ? JSON.parse(target.notes) : null
+              } catch {
+                form = { error: 'Invalid data' }
+              }
+
+              if (!form) return null
+
+              if (form.error) {
+                return (
+                  <div className="mt-4 border-t pt-3 text-xs text-red-500">
+                    Invalid join form data
+                  </div>
+                )
+              }
+
+              const fields: [string, any][] = [
+                ['Full Name', form.fullName],
+                ['Age', form.age],
+                ['Gender', form.gender],
+                ['Date of Birth', form.birth],
+                ['Mobile', form.mobile],
+                ['Email', form.email],
+                ['Address', form.address],
+              ]
+
+              return (
+                <div className="mt-4 border-t pt-3">
+                  <div className="text-xs text-slate-500 mb-2 font-medium">
+                    Join Form Details
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {fields.map(([label, val]) =>
+                      val != null ? (
+                        <div key={label}>
+                          <div className="text-xs text-slate-500">{label}</div>
+                          <div className="text-sm">{String(val)}</div>
+                        </div>
+                      ) : null
+                    )}
+                  </div>
+                </div>
+              )
+            })()}
               <div className="flex justify-end gap-2 pt-2">
                 {target.status==='captured' && (
                   <Button
