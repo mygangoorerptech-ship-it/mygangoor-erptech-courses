@@ -33,7 +33,7 @@ export default function ADUsers(){
   useEffect(() => {
     fetchIfStale({
       q: filters.q || undefined,
-      role: filters.role,
+      role: filters.role !== 'all' ? filters.role : undefined,
       status: filters.status,
       showUnverified: filters.showUnverified,
       // org scope is enforced server-side; superadmins can pass ?orgId via admin UI if needed
@@ -108,7 +108,7 @@ export default function ADUsers(){
                     : <span className="rounded px-1.5 py-0.5 bg-rose-50 text-rose-700">Disabled</span>}
                 </td>
                 <td className="p-3">
-  {u.isVerified === false
+  {!u.isVerified
     ? <span className="rounded px-1.5 py-0.5 bg-yellow-50 text-yellow-700">Unverified</span>
     : <span className="rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700">Verified</span>
   }
@@ -181,17 +181,17 @@ function EditUserModal({
 }) {
   const [name, setName]   = useState(initial?.name || '')
   const [email, setEmail] = useState(initial?.email || '')
-  const [role, setRole]   = useState<AdminUserRole>((initial?.role as AdminUserRole) || 'student')
-  const [mfaRequired, setMfaRequired] = useState<boolean>(initial?.mfa?.required ?? (role === 'student'))
-  const [mfaMethod, setMfaMethod] = useState<'otp'|'totp'|null>((initial?.mfa?.method as any) ?? (role === 'student' ? 'otp' : null))
+  const [role, setRole]   = useState<AdminUserRole>((initial?.role as AdminUserRole) || 'orguser')
+  const [mfaRequired, setMfaRequired] = useState<boolean>(initial?.mfa?.required ?? (role === 'orguser'))
+  const [mfaMethod, setMfaMethod] = useState<'otp'|'totp'|null>((initial?.mfa?.method as any) ?? (role === 'orguser' ? 'otp' : null))
   const [sendMethod, setSendMethod] = useState<'credentials' | 'invitation'>('credentials')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [invitationLink, setInvitationLink] = useState<string | null>(null)
 
-    // when role switches to student, default MFA ON
+    // when role switches to student/orguser, default MFA ON
  React.useEffect(()=>{
-   if (role === 'student' && !initial) {
+   if (role === 'orguser' && !initial) {
      setMfaRequired(true);
      setMfaMethod('otp');
    }
@@ -566,7 +566,7 @@ function EditUserModal({
 function CsvImportModal({ onClose, onImport }: { onClose: ()=>void; onImport: (rows:any[])=>Promise<any> }) {
   const [text, setText] = useState(
 `email,role,name,status,managerRef,password,mfaRequired,mfaMethod
-student1@acme.com,student,Student One,active,,,
+student1@acme.com,orguser,Student One,active,,,
 teacher1@acme.com,teacher,Teacher One,active,admin1@acme.com,Teach3r#Pass,true,totp`
   )
   const [importing, setImporting] = useState(false)
@@ -587,7 +587,7 @@ teacher1@acme.com,teacher,Teacher One,active,admin1@acme.com,Teach3r#Pass,true,t
   const normRole = (v:string) => {
     const r = (v||'').toLowerCase().trim()
     if (r === 'teacher') return 'teacher'
-    return r === 'student' ? 'student' : 'student'
+    return r === 'orguser' ? 'orguser' : 'student'
   }
   const normStatus = (v:string) => {
     const s = (v||'').toLowerCase().trim()
@@ -615,8 +615,8 @@ teacher1@acme.com,teacher,Teacher One,active,admin1@acme.com,Teach3r#Pass,true,t
   function buildTemplate(): string {
     return (
 `email,role,name,status,managerRef,password,mfaRequired,mfaMethod
-student1@acme.com,student,Student One,active,,,
-student2@acme.com,student,Student Two,active,admin1@acme.com,,true,otp
+student1@acme.com,orguser,Student One,active,,,
+student2@acme.com,orguser,Student Two,active,admin1@acme.com,,true,otp
 teacher1@acme.com,teacher,Teacher One,active,,Teach3r#Pass,true,totp
 teacher2@acme.com,teacher,Teacher Two,active,admin2@acme.com,,true,otp`
     )
@@ -667,7 +667,7 @@ teacher2@acme.com,teacher,Teacher Two,active,admin2@acme.com,,true,otp`
       })
 
       if (!row.email) continue
-      if (!row.role) row.role = 'student'
+      if (!row.role) row.role = 'orguser'
       if (row.mfa && typeof row.mfa === 'object') {
         if (row.mfa.required === undefined) row.mfa.required = true     // default ON
         if (row.mfa.method && !['otp','totp'].includes(row.mfa.method)) delete row.mfa.method

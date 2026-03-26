@@ -13,6 +13,11 @@ function sanitize(u) {
     return Object.assign(obj, { id: String(obj._id) });
 }
 
+// Single source of truth: UI/API says "student", DB stores "orguser"
+function normalizeRole(inputRole) {
+  return inputRole === 'student' ? 'orguser' : inputRole;
+}
+
 // GET /ad/users
 export async function list(req, res) {
   const actor = req.user;
@@ -30,9 +35,9 @@ export async function list(req, res) {
     {
       role:
         role === 'all'
-          ? { $in: ['teacher', 'orguser'] }
+          ? { $in: ['teacher', 'orguser', 'student'] }
           : role === 'student'
-          ? 'orguser'
+          ? { $in: ['orguser', 'student'] }
           : role === 'teacher'
           ? 'teacher'
           : role,
@@ -44,9 +49,11 @@ export async function list(req, res) {
     { email: { $regex: String(q), $options: 'i' } },
   ]});
   // Match SA behavior: by default hide unverified (but keep back-compat where field missing)
-  // if (String(showUnverified) !== 'true') {
-  //   and.push({ $or: [ { isVerified: { $exists: false } }, { isVerified: true } ] });
-  // }
+  if (String(showUnverified) !== 'true') {
+    and.push({ $or: [ { isVerified: { $exists: false } }, { isVerified: true } ] });
+  } else {
+    and.push({ isVerified: false });
+  }
   const where = { $and: and };
   const users = await User.find(where).sort({ createdAt: -1 }).lean();
   return res.json(users.map(sanitize));
@@ -463,7 +470,7 @@ export async function create(req, res) {
           managerId: actor.sub || actor._id || actor.id || null,
           invitedBy: actor.sub || actor._id || actor.id || null,
           mfa: { required: true, method: (mfa?.method === 'totp' ? 'totp' : 'otp') },
-          isVerified: false,
+          isVerified: true,
           passwordHash,
         });
         console.log("[adUsers.create] ✅ Teacher user created:", { userId: doc._id, email: normalizedEmail });
@@ -610,7 +617,7 @@ export async function create(req, res) {
         invitedBy: actor.sub || actor._id || actor.id || null,
         managerId: actor.sub || actor._id || actor.id || null,
         mfa: mfa?.required ? { required:true, method: mfa.method || 'otp' } : { required:false, method:null },
-        isVerified: false,
+        isVerified: true,
         passwordHash,
       });
       console.log("[adUsers.create] ✅ Student user created:", { userId: doc._id, email: normalizedEmail, role: doc.role });

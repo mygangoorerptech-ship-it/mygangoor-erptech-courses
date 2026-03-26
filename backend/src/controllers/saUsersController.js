@@ -218,7 +218,7 @@ export async function create(req, res) {
     const user = await User.create({
       name: name || null,
       email,
-      role: "student",
+      role: "orguser",
       status: "active",
       orgId: adminDoc.orgId,
       invitedBy: actor.sub || actor._id || actor.id || actor.uid || null, // FIX: record creator
@@ -586,7 +586,7 @@ export async function bulkUpsert(req, res) {
 
         const user = await User.create({
           email, name,
-          role: "student",
+          role: "orguser",
           status: status || "active",
           orgId: supervisingAdmin.orgId,
           invitedBy: actorId,

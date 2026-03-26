@@ -2,10 +2,10 @@
 import { api } from './client'
 import type { SAUser, UserStatus } from '../types/user'
 
-export type AdminUserRole = 'teacher' | 'student'
+export type AdminUserRole = 'teacher' | 'orguser' | 'student'
 export type AdminMfa = { required: boolean; method: 'otp' | 'totp' | null }
 
-// Narrow SAUser.role and add mfa (returned by backend for teacher/student)
+// Narrow SAUser.role and add mfa (returned by backend for teacher/student/orguser)
 export type AdminUser = Omit<SAUser, 'role'> & {
   role: AdminUserRole
   mfa?: AdminMfa
@@ -33,11 +33,12 @@ export type UpdateAdminUserPayload = Partial<CreateAdminUserPayload> & {
 
 export async function listAdUsers(filters: AdminUserFilters) {
   const r = await api.get('/ad/users', { params: filters });
-  return r.data as AdminUser[];
+  const users = r.data as AdminUser[];
+  return users.map(u => u.role === 'orguser' ? { ...u, role: 'student' as AdminUserRole } : u);
 }
 
 export async function createAdUser(payload: CreateAdminUserPayload) {
-  // teacher → returns AdminUser, student invite → { ok: true }
+  // teacher → returns AdminUser, student/orguser invite → { ok: true }
   const r = await api.post('/ad/users', payload);
   return r.data as AdminUser | { ok: true; };
 }
