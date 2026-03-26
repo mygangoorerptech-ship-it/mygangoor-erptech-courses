@@ -24,6 +24,7 @@ export default function ReviewsSection({ reviews, onSubmitReview }: Props) {
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const maxChars = 500;
 
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -41,6 +42,7 @@ const handleSubmit = async () => {
 
   try {
     setSubmitting(true);
+    setSubmitError(null);
 
     await Promise.resolve(
       onSubmitReview?.({
@@ -55,6 +57,11 @@ const handleSubmit = async () => {
     setHoverRating(0);
     setComment("");
     setShowForm(false);
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } }; message?: string };
+    setSubmitError(
+      err?.response?.data?.message || err?.message || "Failed to submit review. Please try again."
+    );
   } finally {
     setSubmitting(false);
   }
@@ -147,6 +154,13 @@ const handleSubmit = async () => {
                 </div>
               </div>
             </div>
+
+            {/* Submit error */}
+            {submitError && (
+              <p className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {submitError}
+              </p>
+            )}
 
             {/* Actions */}
             <div className="mt-4 flex items-center gap-3">

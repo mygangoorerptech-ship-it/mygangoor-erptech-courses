@@ -26,7 +26,7 @@ import paymentsRouter from "./src/routes/payments.js";
 import studentsRouter from "./src/routes/students.js";
 import auditRouter    from "./src/routes/audit.js";
 import debugRoutes from "./src/routes/debug.js";
-import { requireAuthNoRole } from "./src/middleware/authz.js";
+import { requireAuthNoRole, requireAuth } from "./src/middleware/authz.js";
 import studentCatalogRouter from "./src/routes/studentCatalog.js";
 import razorpayRouter from "./src/routes/razorpay.js";
 import courseReviewsRouter from "./src/routes/courseReviewsRoute.js";
@@ -350,7 +350,7 @@ const templatesDir = fs.existsSync(templatesCandidate1) ? templatesCandidate1 : 
 app.use("/api/static/templates", express.static(templatesDir));
 app.use("/api", certificatesRouter);
 app.use("/api", notificationsRouter);
-app.use("/api/admin", adminReviewRouter);
+app.use("/api/admin", requireAuth, adminReviewRouter);
 app.use("/api/admin", contactMessagesRouter);
 app.use("/api/notes", notesRouter);
 app.use("/api/student/notes", studentNotesRouter);

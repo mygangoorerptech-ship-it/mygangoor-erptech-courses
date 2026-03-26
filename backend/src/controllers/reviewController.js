@@ -71,21 +71,28 @@ export async function createCourseReview(req, res) {
       comment: comment.trim(),
     });
     await review.save();
-    // Update aggregate rating on Course. Use a transaction to avoid
-    // inconsistent state, but this simple implementation re-fetches
-    // existing values and updates atomically.
+    // Update aggregate rating on Course atomically using a MongoDB
+    // aggregation-pipeline update (MongoDB 4.2+). This avoids the
+    // read-modify-write race condition present in the previous version.
     try {
-      const c = await Course.findById(courseId).select('ratingAvg ratingCount').lean();
-      let ratingAvg = 0;
-      let ratingCount = 0;
-      if (c && Number.isFinite(c.ratingAvg) && Number.isFinite(c.ratingCount)) {
-        ratingCount = Number(c.ratingCount) + 1;
-        ratingAvg = ((Number(c.ratingAvg) * Number(c.ratingCount)) + ratingNum) / ratingCount;
-      } else {
-        ratingCount = 1;
-        ratingAvg = ratingNum;
-      }
-      await Course.findByIdAndUpdate(courseId, { ratingAvg, ratingCount });
+      await Course.findByIdAndUpdate(courseId, [
+        {
+          $set: {
+            ratingCount: { $add: [{ $ifNull: ['$ratingCount', 0] }, 1] },
+            ratingAvg: {
+              $divide: [
+                {
+                  $add: [
+                    { $multiply: [{ $ifNull: ['$ratingAvg', 0] }, { $ifNull: ['$ratingCount', 0] }] },
+                    ratingNum,
+                  ],
+                },
+                { $add: [{ $ifNull: ['$ratingCount', 0] }, 1] },
+              ],
+            },
+          },
+        },
+      ]);
     } catch (err) {
       console.warn('[createCourseReview] failed to update course rating', err);
       // ignore; not critical

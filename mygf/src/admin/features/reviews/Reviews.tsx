@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../../admin/auth/store";
 import { useNavigate } from "react-router-dom";
+import { api } from "../../api/client";
 
 type Role = "superadmin" | "admin" | "teacher" | "student" | "orguser" | string;
 
@@ -65,26 +66,10 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-// --- Fetch helpers ---
-async function apiGET<T>(url: string): Promise<T> {
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-async function apiPATCH<T>(url: string, body: any): Promise<T> {
-  const res = await fetch(url, {
-    method: "PATCH",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-async function apiDELETE<T>(url: string): Promise<T> {
-  const res = await fetch(url, { method: "DELETE", credentials: "include" });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+// Axios error helper — extracts the most useful message from an AxiosError
+function errMsg(e: unknown, fallback: string): string {
+  const err = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
+  return err?.response?.data?.message || err?.response?.data?.error || err?.message || fallback;
 }
 
 // Dashboard route prefix helper
@@ -158,10 +143,10 @@ export default function Reviews() {
         const qs = new URLSearchParams();
         if (isSuper && orgId) qs.set("orgId", orgId);
         if (!isSuper) qs.set("scope", "auto");
-        const data = await apiGET<ReviewsSummary>(`/api/admin/reviews/summary?${qs.toString()}`);
+        const { data } = await api.get<ReviewsSummary>(`/admin/reviews/summary?${qs.toString()}`);
         if (alive) setSummary(data);
-      } catch (e: any) {
-        if (alive) setError(e?.message || "Failed to load summary");
+      } catch (e: unknown) {
+        if (alive) setError(errMsg(e, "Failed to load summary"));
       }
     })();
     return () => {
@@ -177,10 +162,10 @@ export default function Reviews() {
       try {
         setLoading(true);
         setError(null);
-        const data = await apiGET<PagedReviews>(`/api/admin/reviews?${query}`);
+        const { data } = await api.get<PagedReviews>(`/admin/reviews?${query}`);
         if (alive) setPageData(data);
-      } catch (e: any) {
-        if (alive) setError(e?.message || "Failed to load reviews");
+      } catch (e: unknown) {
+        if (alive) setError(errMsg(e, "Failed to load reviews"));
       } finally {
         if (alive) setLoading(false);
       }
@@ -196,25 +181,31 @@ export default function Reviews() {
   const toggleVisibility = async (r: ReviewItem) => {
     if (!isSuper) return;
     const next = r.status === "visible" ? "hidden" : "visible";
-    await apiPATCH(`/api/admin/reviews/${r.id}`, { status: next });
-    setPageData((prev) => ({
-      ...prev,
-      rows: prev.rows.map((row) => (row.id === r.id ? { ...row, status: next } : row)),
-    }));
+    try {
+      await api.patch(`/admin/reviews/${r.id}`, { status: next });
+      setPageData((prev) => ({
+        ...prev,
+        rows: prev.rows.map((row) => (row.id === r.id ? { ...row, status: next } : row)),
+      }));
+    } catch (e: unknown) {
+      setError(errMsg(e, "Failed to update review"));
+    }
   };
 
   const deleteReview = async (r: ReviewItem) => {
     if (!isSuper) return;
     if (!confirm("Delete this review permanently?")) return;
-    await apiDELETE(`/api/admin/reviews/${r.id}`);
-    setPageData((prev) => ({ ...prev, rows: prev.rows.filter((x) => x.id !== r.id), total: prev.total - 1 }));
     try {
+      await api.delete(`/admin/reviews/${r.id}`);
+      setPageData((prev) => ({ ...prev, rows: prev.rows.filter((x) => x.id !== r.id), total: prev.total - 1 }));
       const qs = new URLSearchParams();
       if (isSuper && orgId) qs.set("orgId", orgId);
       if (!isSuper) qs.set("scope", "auto");
-      const s = await apiGET<ReviewsSummary>(`/api/admin/reviews/summary?${qs.toString()}`);
+      const { data: s } = await api.get<ReviewsSummary>(`/admin/reviews/summary?${qs.toString()}`);
       setSummary(s);
-    } catch {}
+    } catch (e: unknown) {
+      setError(errMsg(e, "Failed to delete review"));
+    }
   };
 
   const courseOptions = summary?.courses || [];
@@ -391,7 +382,24 @@ export default function Reviews() {
       {/* Reviews List */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
         {loading && pageData.rows.length === 0 && (
-          <div className="p-8 text-center text-gray-500">Loading reviews…</div>
+          <ul className="divide-y divide-gray-100" aria-busy="true" aria-label="Loading reviews">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <li key={i} className="p-4 sm:p-5">
+                <div className="flex items-start gap-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
+                      <div className="h-4 bg-gray-200 rounded w-28" />
+                      <div className="h-4 bg-gray-200 rounded w-20" />
+                    </div>
+                    <div className="h-3 bg-gray-200 rounded w-full" />
+                    <div className="h-3 bg-gray-200 rounded w-2/3" />
+                    <div className="h-3 bg-gray-200 rounded w-24" />
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
         {error && <div className="p-4 text-red-600">{error}</div>}
         {!loading && pageData.rows.length === 0 && !error && (

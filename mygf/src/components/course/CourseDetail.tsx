@@ -1,7 +1,7 @@
 // mygf/src/components/course/CourseDetail.tsx
 import { useMemo, useState, useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import NavBar from "../home/NavBar";
 import CourseHeader from "./CourseHeader";
 import CourseProgress from "./CourseProgress";
@@ -75,11 +75,14 @@ export default function CourseDetail() {
     },
   });
 
-    // Fetch reviews for this course. This returns an object with
+    const queryClient = useQueryClient();
+
+  // Fetch reviews for this course. This returns an object with
   // { reviews: ReviewType[], ratingAvg: number, ratingCount: number }.
   const { data: reviewsResponse, refetch: refetchReviews } = useQuery({
     queryKey: ["course:reviews", courseId],
     enabled: !!courseId,
+    staleTime: 60_000,
     queryFn: async () => {
       const { data } = await api.get(`/courses/${courseId}/reviews`);
       return data as {
@@ -90,18 +93,43 @@ export default function CourseDetail() {
     },
   });
 
-  // Handle submitting a new review. When a review is submitted, post
-  // to the backend and refresh the reviews list. We do not update
-  // course details here; the rating and count are overridden below
-  // using the reviewsResponse.
+  // Handle submitting a new review. Optimistically inserts the new
+  // review into the React Query cache so the student sees it instantly,
+  // then fires a background refetch to reconcile with the server.
   const handleSubmitReview = async (r: { name?: string; rating: number; comment: string }) => {
     if (!courseId) return;
-    await api.post(`/courses/${courseId}/reviews`, {
+    const res = await api.post(`/courses/${courseId}/reviews`, {
       name: r.name,
       rating: r.rating,
       comment: r.comment,
     });
-    // Refresh reviews after posting
+    // Optimistic update — use the review returned by the server when
+    // available, otherwise construct one from the submitted values.
+    const serverReview = res.data?.review;
+    const optimisticReview = serverReview ?? {
+      name: r.name || 'Anonymous',
+      rating: r.rating,
+      comment: r.comment,
+      date: new Date().toISOString(),
+    };
+    queryClient.setQueryData(
+      ["course:reviews", courseId],
+      (old: { reviews: typeof optimisticReview[]; ratingAvg: number; ratingCount: number } | undefined) => {
+        if (!old) return old;
+        const newCount = (old.ratingCount || 0) + 1;
+        const newAvg =
+          newCount > 1
+            ? ((old.ratingAvg || 0) * (old.ratingCount || 0) + r.rating) / newCount
+            : r.rating;
+        return {
+          ...old,
+          reviews: [optimisticReview, ...old.reviews],
+          ratingCount: newCount,
+          ratingAvg: newAvg,
+        };
+      }
+    );
+    // Background refetch to reconcile with server truth
     refetchReviews();
   };
 

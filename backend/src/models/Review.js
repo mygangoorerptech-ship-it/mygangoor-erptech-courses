@@ -17,6 +17,15 @@ const ReviewSchema = new mongoose.Schema({
   name: { type: String, trim: true, default: '' },
   rating: { type: Number, min: 0, max: 5, required: true },
   comment: { type: String, trim: true, required: true },
+  status: {
+    type: String,
+    enum: ['visible', 'hidden', 'pending'],
+    default: 'visible',
+  },
 }, { timestamps: true });
+
+ReviewSchema.index({ courseId: 1, studentId: 1 });
+ReviewSchema.index({ rating: 1 });
+ReviewSchema.index({ status: 1 });
 
 export default mongoose.models.Review ?? mongoose.model('Review', ReviewSchema);

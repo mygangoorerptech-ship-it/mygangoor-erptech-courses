@@ -204,62 +204,61 @@ export async function summary(req, res) {
       { $match: { ...matchScope } },
     ];
 
-    const overallAgg = await Review.aggregate([
-      ...base,
-      {
-        $group: {
-          _id: null,
-          count: { $sum: 1 },
-          avgRating: { $avg: "$rating" },
-        },
-      },
-    ]);
-    const overall = overallAgg[0] || { count: 0, avgRating: 0 };
+    const isSuperAdmin = String(req.user?.role || "").toLowerCase() === "superadmin";
 
-    const coursesAgg = await Review.aggregate([
-      ...base,
-      {
-        $group: {
-          _id: "$course._id",
-          courseTitle: { $first: "$course.title" },
-          orgId: { $first: "$course.orgId" },
-          count: { $sum: 1 },
-          avgRating: { $avg: "$rating" },
-        },
-      },
-      { $sort: { count: -1, _id: -1 } },
-      { $limit: 200 },
-    ]);
-
-    let orgs = null;
-    if (String(req.user?.role || "").toLowerCase() === "superadmin") {
-      const orgAgg = await Review.aggregate([
+    const [overallResult, coursesResult, orgsResult] = await Promise.all([
+      Review.aggregate([
+        ...base,
+        { $group: { _id: null, count: { $sum: 1 }, avgRating: { $avg: "$rating" } } },
+      ]),
+      Review.aggregate([
         ...base,
         {
           $group: {
-            _id: "$course.orgId",
-            orgName: { $first: "$org.name" },
-            count: { $sum: 1 },
+            _id: "$course._id",
+            courseTitle: { $first: "$course.title" },
+            orgId:       { $first: "$course.orgId" },
+            orgName:     { $first: "$org.name" },
+            count:       { $sum: 1 },
+            avgRating:   { $avg: "$rating" },
           },
         },
         { $sort: { count: -1, _id: -1 } },
         { $limit: 200 },
-      ]);
-      orgs = orgAgg.map((o) => ({ orgId: String(o._id), orgName: o.orgName || "Organization", count: o.count }));
-    }
+      ]),
+      isSuperAdmin
+        ? Review.aggregate([
+            ...base,
+            {
+              $group: {
+                _id:     "$course.orgId",
+                orgName: { $first: "$org.name" },
+                count:   { $sum: 1 },
+              },
+            },
+            { $sort: { count: -1, _id: -1 } },
+            { $limit: 200 },
+          ])
+        : Promise.resolve([]),
+    ]);
+
+    const overall = overallResult[0] || { count: 0, avgRating: 0 };
+    const orgs = isSuperAdmin
+      ? orgsResult.map((o) => ({ orgId: String(o._id), orgName: o.orgName || "Organization", count: o.count }))
+      : null;
 
     return res.json({
       overall: {
         count: overall.count || 0,
         avgRating: overall.avgRating || 0,
       },
-      courses: coursesAgg.map((c) => ({
-        courseId: String(c._id),
+      courses: coursesResult.map((c) => ({
+        courseId:    String(c._id),
         courseTitle: c.courseTitle,
-        orgId: c.orgId ? String(c.orgId) : null,
-        orgName: null,
-        count: c.count,
-        avgRating: c.avgRating || 0,
+        orgId:       c.orgId ? String(c.orgId) : null,
+        orgName:     c.orgName || null,
+        count:       c.count,
+        avgRating:   c.avgRating || 0,
       })),
       orgs,
     });
