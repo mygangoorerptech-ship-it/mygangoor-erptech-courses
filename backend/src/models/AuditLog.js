@@ -7,6 +7,7 @@ const auditLogSchema = new mongoose.Schema(
     action:  {
       type: String,
       enum: [
+        // ── auth / security events (existing) ──
         "PASSWORD_CHANGE",
         "EMAIL_CHANGE_REQUEST",
         "EMAIL_CHANGE_VERIFY",
@@ -16,6 +17,15 @@ const auditLogSchema = new mongoose.Schema(
         "SESSION_REVOKED",
         "SESSION_REVOKED_ALL",
         "SUSPICIOUS_LOGIN",
+        // ── session events ──
+        "login",
+        "logout",
+        // ── admin CRUD events ──
+        "create",
+        "update",
+        "delete",
+        "status_change",
+        "role_change",
       ],
       required: true,
     },

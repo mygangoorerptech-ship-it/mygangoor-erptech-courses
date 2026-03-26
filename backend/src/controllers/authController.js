@@ -231,6 +231,7 @@ export async function login(req, res) {
     const { access, refresh, jti, refreshExp } = mintTokens(user, ua);
     await saveRefresh(user.id, jti, refreshExp, ua, ip);
     setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+    writeAudit(user._id, "login", req);
     // Tokens are in HttpOnly cookies only — never expose in JSON body (XSS risk)
     return res.json({ ok: true, user });
   } catch (err) {
@@ -744,8 +745,9 @@ export async function logout(req, res) {
     const rt = getActiveRefreshCookie(req);
     if (rt) {
       try {
-        const { jti } = jwt.verify(rt, JWT_REFRESH_SECRET);
+        const { jti, sub } = jwt.verify(rt, JWT_REFRESH_SECRET);
         if (jti) await revokeRefresh(jti, undefined);
+        if (sub) writeAudit(sub, "logout", req);
       } catch {}
     }
   } finally {

@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
 import { sendInvitationEmail, sendOtpEmail, sendStaffCredentialsEmail } from "../utils/email.js";
 import Organization from "../models/Organization.js";
+import AuditLog from "../models/AuditLog.js";
 
 const hash = (v) => crypto.createHash("sha256").update(String(v)).digest("hex");
 
@@ -325,6 +326,16 @@ export async function setRole(req, res) {
   }
   const user = await User.findByIdAndUpdate(id, { $set: { role } }, { new: true });
   if (!user) return res.status(404).json({ ok: false });
+  // fire-and-forget audit — never blocks the response
+  const actorId = req.user?._id || req.user?.sub || req.user?.id;
+  const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+  AuditLog.create({
+    userId:  actorId || user._id,
+    action:  "role_change",
+    ip,
+    ua:      req.get("User-Agent") || "",
+    meta:    { targetUserId: String(user._id), newRole: role },
+  }).catch((e) => console.error("[audit] role_change write failed:", e?.message));
   return res.json(sanitize(user));
 }
 
