@@ -18,7 +18,12 @@ const PaymentSchema = new mongoose.Schema({
   amount: { type: Number, required: true }, // paise
   currency: { type: String, default: "INR" },
 
-  orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", required: true },
+  orgId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Organization",
+  required: false,
+  default: null,
+},
   courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 

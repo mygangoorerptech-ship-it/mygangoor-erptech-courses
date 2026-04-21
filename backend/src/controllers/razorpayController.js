@@ -82,21 +82,29 @@ const { ObjectId } = mongoose.Types;
 const toId = (v) => (isOid(v) ? new ObjectId(String(v)) : null);
 
 async function ensureEnrollment({ studentId, courseId, orgId, paymentId, source, managerId }) {
-  // All three IDs are required. orgId must be a valid ObjectId (= course.orgId).
-  // Global courses (orgId=null) cannot create an enrollment — surface this explicitly.
-  if (!isOid(studentId) || !isOid(courseId) || !isOid(orgId)) {
-    console.warn("[enrollment] skipped: invalid ids", {
-      studentId: !!studentId, courseId: !!courseId, orgId: !!orgId,
-    });
-    return false;
-  }
+// studentId + courseId are mandatory.
+// orgId is optional because superadmin-owned public/global courses use orgId = null.
+if (!isOid(studentId) || !isOid(courseId)) {
+  console.warn("[enrollment] skipped: invalid ids", {
+    studentId: !!studentId,
+    courseId: !!courseId,
+    orgId: !!orgId,
+  });
+  return false;
+}
 
-  const filter = { studentId, courseId, orgId };
+  const filter = {
+  studentId,
+  courseId,
+  orgId: orgId || null,
+};
 
   // IMPORTANT: do NOT include paymentId here to avoid $set/$setOnInsert conflict
   const update = {
     $setOnInsert: {
-      studentId, courseId, orgId,
+      studentId, 
+      courseId, 
+      orgId: orgId || null,
       status: "premium",
       source: source || "online",
       ...(managerId ? { managerId } : {}),
