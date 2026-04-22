@@ -79,11 +79,13 @@ export const useAuth = create<AuthState>()((set, get) => ({
     // The storage event fires in OTHER tabs only (not the current one), so
     // this never causes a recursive call within this tab.
     try { localStorage.setItem("auth:logout", Date.now().toString()); } catch { /* storage unavailable in private browsing — cross-tab sync best-effort */ }
-    window.location.assign("/login");
+    sessionStorage.removeItem("pendingJoinModal");
+    sessionStorage.removeItem("pendingJoinCourseId");
+    sessionStorage.removeItem("autoOpenJoinModal");
   },
 
   setTokens: (t) => set({ tokens: t ?? {} }),
-  setUser:   (u) => set({ user: u }),
+  setUser: (u) => set({ user: u }),
 
   hydrate: async () => {
     const { status } = get();
