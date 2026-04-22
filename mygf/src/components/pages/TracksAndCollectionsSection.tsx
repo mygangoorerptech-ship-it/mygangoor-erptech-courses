@@ -85,7 +85,7 @@ function TracksBody({ user }: { user?: User }) {
   // Wishlist store init (runs once on mount)
   const wishlistStore = useWishlist();
   const { init: initWishlist, isWishlisted, toggle } = wishlistStore;
-  useEffect(() => { void initWishlist?.().catch(() => { }); }, [initWishlist]);
+  useEffect(() => { void initWishlist?.().catch(() => {}); }, [initWishlist]);
 
   // ── Normalize ONLY: level, discountPercent, bundle cover image ───────────────
   const normalizedCourses: Course[] = useMemo(() => {
@@ -172,46 +172,27 @@ function TracksBody({ user }: { user?: User }) {
   const { premiumIds, tick, fetchActive } = useEnrollmentStore();
   const [showJoin, setShowJoin] = useState(false);
   const [joinCourseId, setJoinCourseId] = useState<string | undefined>(undefined);
-
+  
   // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
   const [searchParams, setSearchParams] = useSearchParams();
-useEffect(() => {
-  const openJoinModal = searchParams.get("openJoinModal");
-  const pendingJoinModal = sessionStorage.getItem("pendingJoinModal");
-  const pendingJoinCourseId = sessionStorage.getItem("pendingJoinCourseId");
-
-  // ONLY explicit modal triggers should run:
-  // 1. URL param from home flow
-  // 2. pending session after login return WITH saved course id
-  const shouldOpen =
-    openJoinModal === "true" ||
-    (pendingJoinModal === "true" && !!pendingJoinCourseId);
-
-  if (!shouldOpen) return;
-
-  if (user) {
-    if (pendingJoinCourseId) {
-      setJoinCourseId(pendingJoinCourseId);
+  useEffect(() => {
+    const openJoinModal = searchParams.get('openJoinModal');
+    if (openJoinModal === 'true') {
+      if (user) {
+        // User is authenticated, open the modal
+        setShowJoin(true);
+        // Remove the parameter from URL to avoid reopening on refresh
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('openJoinModal');
+        setSearchParams(newParams, { replace: true });
+      } else {
+        // User is not authenticated, set flag and redirect to login
+        // StudentDashboard will check this flag after login and redirect here
+        sessionStorage.setItem('pendingJoinModal', 'true');
+        navigate('/login', { replace: true });
+      }
     }
-
-    setShowJoin(true);
-
-    // cleanup immediately after successful restore
-    sessionStorage.removeItem("pendingJoinModal");
-    sessionStorage.removeItem("pendingJoinCourseId");
-
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete("openJoinModal");
-    setSearchParams(newParams, { replace: true });
-    return;
-  }
-
-  // redirect ONLY for real pending enrollment flow
-  if (pendingJoinCourseId) {
-    sessionStorage.setItem("pendingJoinModal", "true");
-    navigate("/login", { replace: true });
-  }
-}, [searchParams, user, navigate, setSearchParams]);
+  }, [searchParams, user, navigate, setSearchParams]);
 
   // A course is free ONLY when price is explicitly 0 — null/undefined = unknown, NOT free
   const freeIds = useMemo(() => {
@@ -221,8 +202,8 @@ useEffect(() => {
         typeof c.pricePaise === "number"
           ? c.pricePaise
           : typeof c.price === "number"
-            ? Math.round(c.price * 100)
-            : null; // null = unknown price, never treated as free
+          ? Math.round(c.price * 100)
+          : null; // null = unknown price, never treated as free
       if (p !== null && p <= 0) s.add(String(c.id));
     });
     return s;
@@ -305,17 +286,7 @@ useEffect(() => {
                   onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
                   // NEW: pass premium + enroll handler (opens JoinNowModal)
                   isPremium={isPremium(course.id)}
-                  onRequireEnroll={(c) => {
-                    if (!user) {
-                      sessionStorage.setItem("pendingJoinModal", "true");
-                      sessionStorage.setItem("pendingJoinCourseId", String(c.id));
-                      navigate("/login", { replace: true });
-                      return;
-                    }
-
-                    setJoinCourseId(String(c.id));
-                    setShowJoin(true);
-                  }}
+                  onRequireEnroll={(c) => { setJoinCourseId(String(c.id)); setShowJoin(true); }}
                 />
               ))}
 
@@ -368,8 +339,8 @@ useEffect(() => {
             </div>
           </div>
         </div>
-        {/* Footer at the end */}
-        {/* <Footer
+              {/* Footer at the end */}
+      {/* <Footer
         brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       /> */}
@@ -384,8 +355,8 @@ useEffect(() => {
           title="Back to top"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5l-7 7M12 5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            <path d="M12 5l-7 7M12 5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
       )}
