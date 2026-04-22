@@ -85,7 +85,7 @@ function TracksBody({ user }: { user?: User }) {
   // Wishlist store init (runs once on mount)
   const wishlistStore = useWishlist();
   const { init: initWishlist, isWishlisted, toggle } = wishlistStore;
-  useEffect(() => { void initWishlist?.().catch(() => {}); }, [initWishlist]);
+  useEffect(() => { void initWishlist?.().catch(() => { }); }, [initWishlist]);
 
   // ── Normalize ONLY: level, discountPercent, bundle cover image ───────────────
   const normalizedCourses: Course[] = useMemo(() => {
@@ -172,7 +172,7 @@ function TracksBody({ user }: { user?: User }) {
   const { premiumIds, tick, fetchActive } = useEnrollmentStore();
   const [showJoin, setShowJoin] = useState(false);
   const [joinCourseId, setJoinCourseId] = useState<string | undefined>(undefined);
-  
+
   // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -202,8 +202,8 @@ function TracksBody({ user }: { user?: User }) {
         typeof c.pricePaise === "number"
           ? c.pricePaise
           : typeof c.price === "number"
-          ? Math.round(c.price * 100)
-          : null; // null = unknown price, never treated as free
+            ? Math.round(c.price * 100)
+            : null; // null = unknown price, never treated as free
       if (p !== null && p <= 0) s.add(String(c.id));
     });
     return s;
@@ -286,7 +286,17 @@ function TracksBody({ user }: { user?: User }) {
                   onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
                   // NEW: pass premium + enroll handler (opens JoinNowModal)
                   isPremium={isPremium(course.id)}
-                  onRequireEnroll={(c) => { setJoinCourseId(String(c.id)); setShowJoin(true); }}
+                  onRequireEnroll={(c) => {
+                    if (!user) {
+                      sessionStorage.setItem("pendingJoinModal", "true");
+                      sessionStorage.setItem("pendingJoinCourseId", String(c.id));
+                      navigate("/login", { replace: true });
+                      return;
+                    }
+
+                    setJoinCourseId(String(c.id));
+                    setShowJoin(true);
+                  }}
                 />
               ))}
 
@@ -339,8 +349,8 @@ function TracksBody({ user }: { user?: User }) {
             </div>
           </div>
         </div>
-              {/* Footer at the end */}
-      {/* <Footer
+        {/* Footer at the end */}
+        {/* <Footer
         brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       /> */}
@@ -355,8 +365,8 @@ function TracksBody({ user }: { user?: User }) {
           title="Back to top"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5l-7 7M12 5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 5l-7 7M12 5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       )}
