@@ -175,24 +175,30 @@ function TracksBody({ user }: { user?: User }) {
   
   // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
   const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    const openJoinModal = searchParams.get('openJoinModal');
-    if (openJoinModal === 'true') {
-      if (user) {
-        // User is authenticated, open the modal
-        setShowJoin(true);
-        // Remove the parameter from URL to avoid reopening on refresh
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('openJoinModal');
-        setSearchParams(newParams, { replace: true });
-      } else {
-        // User is not authenticated, set flag and redirect to login
-        // StudentDashboard will check this flag after login and redirect here
-        sessionStorage.setItem('pendingJoinModal', 'true');
-        navigate('/login', { replace: true });
-      }
+useEffect(() => {
+  const openJoinModal = searchParams.get("openJoinModal");
+  const courseId = searchParams.get("courseId");
+
+  if (openJoinModal !== "true") return;
+
+  if (user) {
+    if (courseId) {
+      setJoinCourseId(courseId);
     }
-  }, [searchParams, user, navigate, setSearchParams]);
+
+    setShowJoin(true);
+
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("openJoinModal");
+    newParams.delete("courseId");
+    setSearchParams(newParams, { replace: true });
+  } else {
+    navigate(
+      `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+      { replace: true }
+    );
+  }
+}, [searchParams, user, navigate, setSearchParams]);
 
   // A course is free ONLY when price is explicitly 0 — null/undefined = unknown, NOT free
   const freeIds = useMemo(() => {
@@ -286,7 +292,19 @@ function TracksBody({ user }: { user?: User }) {
                   onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
                   // NEW: pass premium + enroll handler (opens JoinNowModal)
                   isPremium={isPremium(course.id)}
-                  onRequireEnroll={(c) => { setJoinCourseId(String(c.id)); setShowJoin(true); }}
+                  onRequireEnroll={(c) => {
+  if (!user) {
+    navigate(
+      `/login?redirect=${encodeURIComponent(
+        `/tracks?openJoinModal=true&courseId=${c.id}`
+      )}`
+    );
+    return;
+  }
+
+  setJoinCourseId(String(c.id));
+  setShowJoin(true);
+}}
                 />
               ))}
 
