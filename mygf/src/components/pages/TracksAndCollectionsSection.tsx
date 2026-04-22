@@ -180,31 +180,35 @@ useEffect(() => {
   const pendingJoinModal = sessionStorage.getItem("pendingJoinModal");
   const pendingJoinCourseId = sessionStorage.getItem("pendingJoinCourseId");
 
+  // ONLY explicit modal triggers should run:
+  // 1. URL param from home flow
+  // 2. pending session after login return WITH saved course id
   const shouldOpen =
-    openJoinModal === "true" || pendingJoinModal === "true";
+    openJoinModal === "true" ||
+    (pendingJoinModal === "true" && !!pendingJoinCourseId);
 
   if (!shouldOpen) return;
 
   if (user) {
-    setShowJoin(true);
-
     if (pendingJoinCourseId) {
       setJoinCourseId(pendingJoinCourseId);
     }
 
+    setShowJoin(true);
+
+    // cleanup immediately after successful restore
     sessionStorage.removeItem("pendingJoinModal");
     sessionStorage.removeItem("pendingJoinCourseId");
 
     const newParams = new URLSearchParams(searchParams);
     newParams.delete("openJoinModal");
     setSearchParams(newParams, { replace: true });
-  } else {
+    return;
+  }
+
+  // redirect ONLY for real pending enrollment flow
+  if (pendingJoinCourseId) {
     sessionStorage.setItem("pendingJoinModal", "true");
-
-    if (pendingJoinCourseId) {
-      sessionStorage.setItem("pendingJoinCourseId", pendingJoinCourseId);
-    }
-
     navigate("/login", { replace: true });
   }
 }, [searchParams, user, navigate, setSearchParams]);
