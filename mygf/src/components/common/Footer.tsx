@@ -124,7 +124,7 @@ const Footer: React.FC<{ className?: string }> = ({ className = "" }) => {
           <br className="md:hidden" />
           <span className="ml-1">
             Designed & Developed by{" "}
-            <span className="text-pink-500">UpRise</span>
+            <span className="text-pink-500">NexioGlobal</span>
           </span>
         </p>
 

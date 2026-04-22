@@ -117,14 +117,14 @@ const isAuthed = isAuthenticated;
 <div className="hidden md:flex items-center space-x-8">
 
   {/* Courses (only if authenticated) */}
-  {isAuthed && (
+  {/* {isAuthed && ( */}
     <button
     onClick={() => navigate("/tracks")}
       className="text-gray-700 hover:text-pink-500 transition-colors"
     >
       Courses
     </button>
-  )}
+  {/* )} */}
 
   {/* Notification bell */}
   {isAuthed && <NotificationBell />}
@@ -212,7 +212,7 @@ const isAuthed = isAuthenticated;
           <div className="my-3 h-px bg-pink-100" />
 
           {/* Courses */}
-{isAuthed && (
+{/* {isAuthed && ( */}
   <button
     onClick={() => {
       setMobileOpen(false);
@@ -223,7 +223,7 @@ const isAuthed = isAuthenticated;
     <i className="fa-solid fa-book-open text-gray-600" />
     <span>Courses</span>
   </button>
-)}
+{/* )} */}
 
           <button
             onClick={goDashOrLogin}
