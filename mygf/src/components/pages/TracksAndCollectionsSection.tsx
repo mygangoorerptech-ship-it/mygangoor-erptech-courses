@@ -175,24 +175,39 @@ function TracksBody({ user }: { user?: User }) {
 
   // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
   const [searchParams, setSearchParams] = useSearchParams();
-  useEffect(() => {
-    const openJoinModal = searchParams.get('openJoinModal');
-    if (openJoinModal === 'true') {
-      if (user) {
-        // User is authenticated, open the modal
-        setShowJoin(true);
-        // Remove the parameter from URL to avoid reopening on refresh
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete('openJoinModal');
-        setSearchParams(newParams, { replace: true });
-      } else {
-        // User is not authenticated, set flag and redirect to login
-        // StudentDashboard will check this flag after login and redirect here
-        sessionStorage.setItem('pendingJoinModal', 'true');
-        navigate('/login', { replace: true });
-      }
+useEffect(() => {
+  const openJoinModal = searchParams.get("openJoinModal");
+  const pendingJoinModal = sessionStorage.getItem("pendingJoinModal");
+  const pendingJoinCourseId = sessionStorage.getItem("pendingJoinCourseId");
+
+  const shouldOpen =
+    openJoinModal === "true" || pendingJoinModal === "true";
+
+  if (!shouldOpen) return;
+
+  if (user) {
+    setShowJoin(true);
+
+    if (pendingJoinCourseId) {
+      setJoinCourseId(pendingJoinCourseId);
     }
-  }, [searchParams, user, navigate, setSearchParams]);
+
+    sessionStorage.removeItem("pendingJoinModal");
+    sessionStorage.removeItem("pendingJoinCourseId");
+
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("openJoinModal");
+    setSearchParams(newParams, { replace: true });
+  } else {
+    sessionStorage.setItem("pendingJoinModal", "true");
+
+    if (pendingJoinCourseId) {
+      sessionStorage.setItem("pendingJoinCourseId", pendingJoinCourseId);
+    }
+
+    navigate("/login", { replace: true });
+  }
+}, [searchParams, user, navigate, setSearchParams]);
 
   // A course is free ONLY when price is explicitly 0 — null/undefined = unknown, NOT free
   const freeIds = useMemo(() => {
