@@ -48,17 +48,25 @@ export function setAuthCookies(req, res, { accessToken, refreshToken }) {
   //    HTTPS (useHostPrefix=true) → "strict": strongest standard, no
   //    cross-site leakage. HTTP / cross-site → preserve existing lax/none.
 const wantsCrossSite = process.env.CROSS_SITE === "1";
-let sameSite;
 
-if (wantsCrossSite) {
-  sameSite = "none";   // ✅ allow cross-site cookies
-} else if (useHostPrefix) {
-  sameSite = "strict"; // ✅ only for same-origin setups
-} else {
-  sameSite = "lax";
-}
+/**
+ * Production rule:
+ *
+ * Vercel frontend ↔ Render backend = cross-site cookies
+ *
+ * Must use:
+ *   SameSite=None
+ *   Secure=true
+ *
+ * Never use SameSite=Strict for auth cookies here,
+ * otherwise browser rejects cookies and auth breaks.
+ */
+let sameSite = wantsCrossSite ? "none" : "lax";
 
-// Safety: browsers reject SameSite=None without Secure
+/**
+ * Browser safety:
+ * SameSite=None requires Secure=true
+ */
 if (sameSite === "none" && !secure) {
   sameSite = "lax";
 }
