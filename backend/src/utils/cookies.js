@@ -40,9 +40,15 @@ export function setAuthCookies(req, res, { accessToken, refreshToken }) {
   // the request arrived over HTTPS regardless of NODE_ENV.
   // Previous value was `secure && !isDev`; the !isDev guard is removed
   // so that HTTPS dev environments also benefit from __Host-* protection.
-  const useHostPrefix = secure;
-  const sessionName = useHostPrefix ? "__Host-session" : "sid";
-  const refreshName = useHostPrefix ? "__Host-refresh" : "sr";
+/**
+ * Production-safe cookie naming
+ *
+ * Always use standard cookie names.
+ * Do NOT use __Host-* cookies because browser prefix rules
+ * are causing production rejection and unstable auth.
+ */
+const sessionName = "sid";
+const refreshName = "sr";
 
   // 4. PHASE 2: production-grade SameSite policy.
   //    HTTPS (useHostPrefix=true) → "strict": strongest standard, no
@@ -112,15 +118,14 @@ if (sameSite === "none" && !secure) {
     res.clearCookie(name, { path: "/" }); // covers SameSite=Strict (Phase 2)
   };
 
-  if (useHostPrefix) {
-    // Active set: __Host-* → expire HTTP dev alternatives.
-    clearAllVariants("sid");
-    clearAllVariants("sr");
-  } else {
-    // Active set: sid/sr → expire HTTPS prod alternatives.
-    clearAllVariants("__Host-session");
-    clearAllVariants("__Host-refresh");
-  }
+/**
+ * Always clear every possible historical cookie name.
+ * This prevents stale cookies from old deployments.
+ */
+clearAllVariants("sid");
+clearAllVariants("sr");
+clearAllVariants("__Host-session");
+clearAllVariants("__Host-refresh");
 
   // -----------------------------------------------------------------
   // PHASE 4: dev-only access-token mirror.

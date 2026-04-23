@@ -6,12 +6,11 @@ import User from "../models/User.js";
 export function requireAuth(req, res, next) {
   const auth = req.headers.authorization || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-  const cookieToken =
-    req.cookies?.["__Host-session"] ||
-    req.cookies?.["sid"] ||
-    req.cookies?.["access"] ||
-    req.cookies?.["accessToken"] ||
-    null;
+const cookieToken =
+  req.cookies?.["sid"] ||
+  req.cookies?.["access"] ||
+  req.cookies?.["accessToken"] ||
+  null;
 
   const token = bearer || cookieToken;
   if (!token) {

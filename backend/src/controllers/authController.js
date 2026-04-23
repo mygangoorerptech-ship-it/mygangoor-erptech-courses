@@ -73,15 +73,15 @@ const alog = (...args) => {
 // the cookie we READ is always the same cookie we WROTE.
 // ---------------------------------------------------------------------------
 function getActiveRefreshCookie(req) {
-  // Mirrors cookies.js setAuthCookies — useHostPrefix = secure (HTTPS-only,
-  // no isDev guard) so the cookie we READ always matches the one we WRITE.
-  const viaHttps =
-    req?.secure === true ||
-    String(req?.headers?.["x-forwarded-proto"] || "").toLowerCase().includes("https");
-  const useHostPrefix = !!viaHttps; // same as `secure` in cookies.js
-  return useHostPrefix
-    ? req.cookies?.["__Host-refresh"]
-    : req.cookies?.sr;
+/**
+ * Production-safe refresh cookie reader
+ *
+ * Always read standard refresh cookie.
+ * No __Host-* switching.
+ */
+function getActiveRefreshCookie(req) {
+  return req.cookies?.sr || null;
+}
 }
 
 // Lightweight UA parser — no external dependency needed.
@@ -618,7 +618,7 @@ export async function verifyInvitation(req, res) {
 export async function check(req, res) {
   try {
     const header = req.headers.authorization || "";
-    const accessCookie = req.cookies?.["__Host-session"] || req.cookies?.sid || null;
+    const accessCookie = req.cookies?.sid || null;
     const headerTok = header.startsWith("Bearer ") ? header.slice(7) : null;
     const token = accessCookie || headerTok;
 
