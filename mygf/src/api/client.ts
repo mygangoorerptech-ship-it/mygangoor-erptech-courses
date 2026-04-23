@@ -29,22 +29,44 @@ export const api = axios.create({
 // `access` cookie is never set (NODE_ENV === 'production').
 api.interceptors.request.use((config) => {
   try {
-    // Match the `access` cookie value; ignore if not present
-    const match = document.cookie.match(/(?:^|;\s*)access=([^;]+)/);
+    /**
+     * IMPORTANT:
+     * Never attach Authorization header
+     * to public catalog routes.
+     *
+     * Sending stale access token to a public route
+     * can cause backend 401 even when route is public.
+     */
+    const url = String(config.url || "");
+
+    const isPublicCatalog =
+      url.includes("/student-catalog/courses/cards") ||
+      url.includes("/courses/cards");
+
+    if (isPublicCatalog) {
+      return config;
+    }
+
+    const match = document.cookie.match(
+      /(?:^|;\s*)access=([^;]+)/
+    );
+
     if (match) {
       const token = decodeURIComponent(match[1]);
-      // If headers exist, set Authorization; otherwise create a typed object
+
       if (config.headers) {
-        // Cast because AxiosHeaders doesn’t have index signatures
-        (config.headers as any).Authorization = `Bearer ${token}`;
+        (config.headers as any).Authorization =
+          `Bearer ${token}`;
       } else {
-        // When headers are undefined, assign a minimal compatible object
-        config.headers = { Authorization: `Bearer ${token}` } as any;
+        config.headers = {
+          Authorization: `Bearer ${token}`,
+        } as any;
       }
     }
   } catch {
-    // silently ignore any errors reading cookies (e.g. SSR)
+    // silently ignore
   }
+
   return config;
 });
 
@@ -73,15 +95,37 @@ api.interceptors.response.use(
     // /auth/refresh  – would cause infinite loop
     // /auth/logout   – session is already being torn down
     // /auth/check    – handled internally by checkSession() with validateStatus
-    const url = (cfg?.url || '').toString();
-    const isAuthMgmt = url.includes('/auth/refresh') ||
-                       url.includes('/auth/logout') ||
-                       url.includes('/auth/check');
+const url = (cfg?.url || '').toString();
+
+/**
+ * Auth-management endpoints:
+ * never retry / never force logout
+ */
+const isAuthMgmt =
+  url.includes('/auth/refresh') ||
+  url.includes('/auth/logout') ||
+  url.includes('/auth/check');
+
+/**
+ * Public catalog endpoints:
+ * guest-safe routes must never trigger
+ * global auth logout flow.
+ */
+const isPublicRoute =
+  url.includes('/student-catalog/courses/cards') ||
+  url.includes('/student-catalog/courses/') ||
+  url.includes('/public/catalog');
 
     // Only handle typical auth-expiry codes and never loop on auth management endpoints
-    if (!cfg || cfg.__retried || isAuthMgmt || (status !== 401 && status !== 419)) {
-      throw err;
-    }
+if (
+  !cfg ||
+  cfg.__retried ||
+  isAuthMgmt ||
+  isPublicRoute ||
+  (status !== 401 && status !== 419)
+) {
+  throw err;
+}
 
     // Single-flight, shared across the whole app
     const ok = await refreshOnce();

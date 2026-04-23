@@ -1,5 +1,5 @@
 // src/api/wishlist.ts
-import { api } from '../config/api';
+import { api } from './client';
 
 export async function getWishlistIds(): Promise<string[]> {
   const { data } = await api.get('/student/wishlist');

@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { getWishlistIds, addWishlist, removeWishlist } from '../../../api/wishlist';
 
-let _inited = false;
+let _initedForUser: string | null = null;
 
 type State = {
   ids: Set<string>;
@@ -21,15 +21,63 @@ export const useWishlist = create<State>()(
 
       // Call ONLY after auth is ready to avoid 401s
       init: async () => {
-        if (_inited) return;
-        _inited = true;
-        try {
-          const ids = await getWishlistIds(); // GET /api/student/wishlist
-          set({ ids: new Set(ids), ready: true });
-        } catch {
-          // If unauthorized or network error, don't crash the page.
-          // Keep whatever we have (from sessionStorage) and just mark ready.
+        /**
+         * Guest users must never hit protected wishlist API.
+         * Also reset state correctly across login/logout
+         * and different users.
+         */
+        const authState =
+          typeof window !== "undefined"
+            ? (await import("../../../auth/store")).useAuth.getState()
+            : null;
+
+        const currentUserId = authState?.user?.id
+          ? String(authState.user.id)
+          : null;
+
+        /**
+         * Guest mode:
+         * clear stale previous-user wishlist state
+         */
+        if (!currentUserId) {
+          _initedForUser = null;
+
+          set({
+            ids: new Set<string>(),
+            ready: true,
+          });
+
+          return;
+        }
+
+        /**
+         * Already initialized for this same user
+         */
+        if (_initedForUser === currentUserId) {
           set({ ready: true });
+          return;
+        }
+
+        /**
+         * New login OR switched user
+         */
+        _initedForUser = currentUserId;
+
+        try {
+          const ids = await getWishlistIds();
+
+          set({
+            ids: new Set(ids),
+            ready: true,
+          });
+        } catch {
+          /**
+           * Never break public page rendering
+           */
+          set({
+            ids: new Set<string>(),
+            ready: true,
+          });
         }
       },
 
@@ -37,6 +85,14 @@ export const useWishlist = create<State>()(
 
       // Optimistic toggle. Server receives POST /api/student/wishlist/toggle
       toggle: async (id: string) => {
+        const authState =
+          typeof window !== "undefined"
+            ? (await import("../../../auth/store")).useAuth.getState()
+            : null;
+
+        if (!authState?.user?.id) {
+          throw new Error("Login required");
+        }
         const key = String(id);
         const before = get().ids;
         const has = before.has(key);

@@ -84,7 +84,19 @@ function TracksBody({ user }: { user?: User }) {
   // Wishlist store init (runs once on mount)
   const wishlistStore = useWishlist();
   const { init: initWishlist, isWishlisted, toggle } = wishlistStore;
-  useEffect(() => { void initWishlist?.().catch(() => {}); }, [initWishlist]);
+
+  /**
+   * IMPORTANT:
+   * Wishlist endpoint is protected.
+   * Never call wishlist init for guest users,
+   * otherwise global 401 interceptor redirects
+   * public /tracks page back to /login.
+   */
+  useEffect(() => {
+    if (!user?.id) return;
+
+    void initWishlist?.().catch(() => { });
+  }, [user?.id, initWishlist]);
 
   // ── Normalize ONLY: level, discountPercent, bundle cover image ───────────────
   const normalizedCourses: Course[] = useMemo(() => {
@@ -171,33 +183,33 @@ function TracksBody({ user }: { user?: User }) {
   const { premiumIds, tick, fetchActive } = useEnrollmentStore();
   const [showJoin, setShowJoin] = useState(false);
   const [joinCourseId, setJoinCourseId] = useState<string | undefined>(undefined);
-  
+
   // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
   const [searchParams, setSearchParams] = useSearchParams();
-useEffect(() => {
-  const openJoinModal = searchParams.get("openJoinModal");
-  const courseId = searchParams.get("courseId");
+  useEffect(() => {
+    const openJoinModal = searchParams.get("openJoinModal");
+    const courseId = searchParams.get("courseId");
 
-  if (openJoinModal !== "true") return;
+    if (openJoinModal !== "true") return;
 
-  if (user) {
-    if (courseId) {
-      setJoinCourseId(courseId);
+    if (user) {
+      if (courseId) {
+        setJoinCourseId(courseId);
+      }
+
+      setShowJoin(true);
+
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("openJoinModal");
+      newParams.delete("courseId");
+      setSearchParams(newParams, { replace: true });
+    } else {
+      navigate(
+        `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
+        { replace: true }
+      );
     }
-
-    setShowJoin(true);
-
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete("openJoinModal");
-    newParams.delete("courseId");
-    setSearchParams(newParams, { replace: true });
-  } else {
-    navigate(
-      `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`,
-      { replace: true }
-    );
-  }
-}, [searchParams, user, navigate, setSearchParams]);
+  }, [searchParams, user, navigate, setSearchParams]);
 
   // A course is free ONLY when price is explicitly 0 — null/undefined = unknown, NOT free
   const freeIds = useMemo(() => {
@@ -207,8 +219,8 @@ useEffect(() => {
         typeof c.pricePaise === "number"
           ? c.pricePaise
           : typeof c.price === "number"
-          ? Math.round(c.price * 100)
-          : null; // null = unknown price, never treated as free
+            ? Math.round(c.price * 100)
+            : null; // null = unknown price, never treated as free
       if (p !== null && p <= 0) s.add(String(c.id));
     });
     return s;
@@ -292,18 +304,18 @@ useEffect(() => {
                   // NEW: pass premium + enroll handler (opens JoinNowModal)
                   isPremium={isPremium(course.id)}
                   onRequireEnroll={(c) => {
-  if (!user) {
-    navigate(
-      `/login?redirect=${encodeURIComponent(
-        `/tracks?openJoinModal=true&courseId=${c.id}`
-      )}`
-    );
-    return;
-  }
+                    if (!user) {
+                      navigate(
+                        `/login?redirect=${encodeURIComponent(
+                          `/tracks?openJoinModal=true&courseId=${c.id}`
+                        )}`
+                      );
+                      return;
+                    }
 
-  setJoinCourseId(String(c.id));
-  setShowJoin(true);
-}}
+                    setJoinCourseId(String(c.id));
+                    setShowJoin(true);
+                  }}
                 />
               ))}
 
@@ -356,8 +368,8 @@ useEffect(() => {
             </div>
           </div>
         </div>
-              {/* Footer at the end */}
-      {/* <Footer
+        {/* Footer at the end */}
+        {/* <Footer
         brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       /> */}
@@ -372,8 +384,8 @@ useEffect(() => {
           title="Back to top"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M12 5l-7 7M12 5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <path d="M12 5l-7 7M12 5l7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 5v14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
       )}
