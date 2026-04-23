@@ -92,10 +92,56 @@ api.interceptors.response.use(
     //   store.ts → api/auth.ts → client.ts → (lazy) store.ts
     // Return a never-settling promise so the original caller's chain is
     // silently abandoned while logout() navigates the page away.
-    if (!ok) {
-      import('../auth/store').then(({ useAuth }) => useAuth.getState().logout()).catch(() => {});
-      return new Promise(() => {});
-    }
+if (!ok) {
+  /**
+   * Refresh failed permanently.
+   *
+   * IMPORTANT:
+   * Do NOT call full logout() here.
+   *
+   * logout() performs POST /auth/logout, which causes
+   * repeated logout storms when multiple concurrent
+   * requests hit 401 at the same time.
+   *
+   * At this point the backend session is already invalid.
+   * Only local auth cleanup is needed.
+   */
+  import("../auth/store")
+    .then(({ useAuth }) => {
+      useAuth.setState({
+        user: null,
+        tokens: {},
+        mfaVerified: false,
+        initialized: true,
+        status: "ready",
+        lastChecked: Date.now(),
+        hadRefreshHint: false,
+      });
+
+      try {
+        localStorage.setItem(
+          "eca:auth:terminated",
+          JSON.stringify({ ts: Date.now() })
+        );
+
+        localStorage.setItem(
+          "auth:logout",
+          Date.now().toString()
+        );
+      } catch {
+        // storage unavailable
+      }
+
+      sessionStorage.removeItem("pendingJoinModal");
+      sessionStorage.removeItem("pendingJoinCourseId");
+      sessionStorage.removeItem("autoOpenJoinModal");
+
+      window.location.href = "/login";
+    })
+    .catch(() => {});
+
+  return new Promise(() => {});
+}
 
     cfg.__retried = true;
 
