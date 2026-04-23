@@ -77,20 +77,36 @@ if (process.env.NODE_ENV === "production") {
   console.log("[cors] Configured allowed origins:", allow.length > 0 ? allow.join(", ") : "⚠️ NONE - CORS will reject all requests! Set CORS_ORIGIN env var.");
 }
 
-const corsOptions = { 
-  origin(origin, cb) { 
-    if (!origin) {
-      // Reject requests without Origin header in production
-      return cb(null, false);
-    }
-    
-    const isAllowed = allow.includes(origin);
-    // Gate CORS warn behind DEBUG_CORS=1 to prevent log flood from bots/scanners in production
-    if (!isAllowed && process.env.NODE_ENV === "production" && process.env.DEBUG_CORS === "1") {
-      console.warn(`[cors] Origin "${origin}" not in allowlist. Allowed: [${allow.join(", ")}]`);
-    }
-    return cb(null, isAllowed); 
-  }, 
+const corsOptions = {
+origin(origin, cb) {
+  /**
+   * Allow requests without Origin header.
+   *
+   * Needed for:
+   * - browser-managed credential flows
+   * - EventSource / SSE
+   * - same-origin internal requests
+   * - health checks
+   * - Render internal probes
+   * - curl / server-to-server requests
+   *
+   * Rejecting these causes missing CORS headers and
+   * breaks cookie persistence in production.
+   */
+  if (!origin) {
+    return cb(null, true);
+  }
+
+  const isAllowed = allow.includes(origin);
+
+  if (!isAllowed && process.env.NODE_ENV === "production" && process.env.DEBUG_CORS === "1") {
+    console.warn(
+      `[cors] Origin "${origin}" not in allowlist. Allowed: [${allow.join(", ")}]`
+    );
+  }
+
+  return cb(null, isAllowed);
+},
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With", "If-None-Match", "Cache-Control"],
