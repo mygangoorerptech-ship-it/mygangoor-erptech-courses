@@ -85,7 +85,29 @@ export const useAuth = create<AuthState>()((set, get) => ({
     }
 
     // Always clear local state and signal other tabs regardless of API outcome.
-    set({ user: null, tokens: {}, mfaVerified: false, status: "idle", lastChecked: 0, hadRefreshHint: false });
+    set({
+  user: null,
+  tokens: {},
+  mfaVerified: false,
+
+  /**
+   * IMPORTANT:
+   * Explicit logout is a completed auth state.
+   *
+   * Do NOT reset to "idle", because that triggers
+   * useAuthHydration() → hydrate() → /auth/check again,
+   * causing immediate re-check, refresh attempts,
+   * and logout loops in production.
+   *
+   * "ready" means auth state is known:
+   * user is intentionally logged out.
+   */
+  status: "ready",
+
+  initialized: true,
+  lastChecked: Date.now(),
+  hadRefreshHint: false,
+});
     try { localStorage.setItem("auth:logout", Date.now().toString()); } catch { /* storage unavailable in private browsing */ }
     sessionStorage.removeItem("pendingJoinModal");
     sessionStorage.removeItem("pendingJoinCourseId");
@@ -99,35 +121,51 @@ export const useAuth = create<AuthState>()((set, get) => ({
   setTokens: (t) => set({ tokens: t ?? {} }),
   setUser: (u) => set({ user: u }),
 
-  hydrate: async () => {
-    const { status } = get();
-    if (status === "checking") return;
+ hydrate: async () => {
+  const { status } = get();
+  if (status === "checking") return;
 
-    set({ status: "checking" });
-    try {
-      const res = await checkSession();
-      if (res?.ok && res?.user) {
-        set({
-          user: res.user as User,
-          tokens: {},
-          mfaVerified: !(res.user as User)?.mfa?.required,
-          initialized: true,
-          status: "ready",
-          lastChecked: Date.now(),
-          hadRefreshHint: true,
-        });
-      } else {
-        set({
-          user: null,
-          tokens: {},
-          mfaVerified: false,
-          initialized: true,
-          status: "ready",
-          lastChecked: Date.now(),
-          hadRefreshHint: false,
-        });
-      }
-    } catch {
+  set({ status: "checking" });
+
+  /**
+   * Respect explicit logout seal.
+   * If logout already happened, do not rehydrate
+   * from refresh cookies on public routes.
+   */
+  try {
+    const terminatedRaw = localStorage.getItem("eca:auth:terminated");
+
+    if (terminatedRaw) {
+      set({
+        user: null,
+        tokens: {},
+        mfaVerified: false,
+        initialized: true,
+        status: "ready",
+        lastChecked: Date.now(),
+        hadRefreshHint: false,
+      });
+      return;
+    }
+  } catch {
+    // storage unavailable (private mode, browser policy)
+    // continue normally with session check
+  }
+
+  try {
+    const res = await checkSession();
+
+    if (res?.ok && res?.user) {
+      set({
+        user: res.user as User,
+        tokens: {},
+        mfaVerified: !(res.user as User)?.mfa?.required,
+        initialized: true,
+        status: "ready",
+        lastChecked: Date.now(),
+        hadRefreshHint: true,
+      });
+    } else {
       set({
         user: null,
         tokens: {},
@@ -138,5 +176,16 @@ export const useAuth = create<AuthState>()((set, get) => ({
         hadRefreshHint: false,
       });
     }
-  },
+  } catch {
+    set({
+      user: null,
+      tokens: {},
+      mfaVerified: false,
+      initialized: true,
+      status: "ready",
+      lastChecked: Date.now(),
+      hadRefreshHint: false,
+    });
+  }
+},
 }));
