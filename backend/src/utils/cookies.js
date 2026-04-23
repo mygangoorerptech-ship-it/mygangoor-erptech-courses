@@ -84,13 +84,17 @@ if (sameSite === "none" && !secure) {
     path: "/", // no Domain attribute — qualifies for __Host-* in prod
   };
 
-  if (process.env.DEBUG_AUTH === "1") {
-    console.log("[cookies] setAuthCookies:", {
-      viaHttps, secure, sameSite, useHostPrefix, sessionName, refreshName,
-      accessTokenLength: accessToken?.length || 0,
-      refreshTokenLength: refreshToken?.length || 0,
-    });
-  }
+if (process.env.DEBUG_AUTH === "1") {
+  console.log("[cookies] setAuthCookies:", {
+    viaHttps,
+    secure,
+    sameSite,
+    sessionName,
+    refreshName,
+    accessTokenLength: accessToken?.length || 0,
+    refreshTokenLength: refreshToken?.length || 0,
+  });
+}
 
   // Derive access-cookie maxAge from the same TTL used to sign the JWT.
   const accessMaxAge = parseTtlMs(process.env.ACCESS_TTL || "1h");
