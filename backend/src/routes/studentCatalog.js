@@ -14,8 +14,6 @@ r.get(
 // NEW: minimal cards payload for Tracks
 r.get(
   "/courses/cards",
-  requireAuth,
-  requireRole({ anyOf: ["student", "orguser", "orgadmin"] }),
   listCatalogCards
 );
 

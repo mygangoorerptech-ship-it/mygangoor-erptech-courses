@@ -57,17 +57,17 @@ export async function checkSession(): Promise<{ ok: boolean; user?: unknown }> {
 }
 
 export async function refresh(): Promise<{ ok: boolean; accessToken?: string }> {
-  const { data } = await api.post('auth/refresh');
+  const { data } = await api.post('auth/refresh', {});
   return data;
 }
 
 export async function logout(): Promise<{ ok: boolean }> {
   const res = await api.post(
     'auth/logout',
-    null,
+    {},
     {
-      maxRedirects: 0,          // 🔥 prevent backend redirect
-      validateStatus: status => status < 400 || status === 302,
+      maxRedirects: 0,
+      validateStatus: (status) => status < 400 || status === 302,
     }
   );
 
