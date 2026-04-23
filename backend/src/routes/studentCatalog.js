@@ -14,6 +14,10 @@ r.get(
 // NEW: minimal cards payload for Tracks
 r.get(
   "/courses/cards",
+  (req, _res, next) => {
+    console.log("[PUBLIC ROUTE HIT] /courses/cards");
+    next();
+  },
   listCatalogCards
 );
 
