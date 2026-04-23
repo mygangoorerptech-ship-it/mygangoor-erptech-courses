@@ -96,40 +96,51 @@ if (process.env.DEBUG_AUTH === "1") {
   });
 }
 
-  // Derive access-cookie maxAge from the same TTL used to sign the JWT.
-  const accessMaxAge = parseTtlMs(process.env.ACCESS_TTL || "1h");
+const accessMaxAge = parseTtlMs(process.env.ACCESS_TTL || "1h");
 
-  res.cookie(sessionName, accessToken, { ...base, maxAge: accessMaxAge });
-
-  // PHASE 5: config-driven refresh TTL via REFRESH_TTL env var (default 30d).
-  // Keeps the cookie lifetime consistent with the signed JWT TTL.
-  res.cookie(refreshName, refreshToken, {
-    ...base,
-    maxAge: parseTtlMs(process.env.REFRESH_TTL || "30d"),
+const clearAllVariants = (name) => {
+  res.clearCookie(name, {
+    path: "/",
+    sameSite: "lax",
+    secure: false,
   });
 
-  // -----------------------------------------------------------------
-  // PHASE 3: cross-clear the OPPOSITE cookie set so the browser never
-  // accumulates both __Host-* (HTTPS) and sid/sr (HTTP) simultaneously.
-  //
-  // clearAllVariants covers every attribute combination a previous session
-  // could have used — including the new SameSite=Strict added in Phase 2
-  // (a plain path-only clear is required for that variant).
-  // -----------------------------------------------------------------
-  const clearAllVariants = (name) => {
-    res.clearCookie(name, { path: "/", sameSite: "lax",   secure: false });
-    res.clearCookie(name, { path: "/", sameSite: "none",  secure: true  });
-    res.clearCookie(name, { path: "/" }); // covers SameSite=Strict (Phase 2)
-  };
+  res.clearCookie(name, {
+    path: "/",
+    sameSite: "none",
+    secure: true,
+  });
+
+  res.clearCookie(name, {
+    path: "/", // covers strict / legacy variants
+  });
+};
 
 /**
- * Always clear every possible historical cookie name.
- * This prevents stale cookies from old deployments.
+ * IMPORTANT:
+ * Clear historical cookies FIRST.
+ *
+ * Never clear AFTER setting new cookies,
+ * otherwise the browser immediately deletes
+ * the fresh login session.
  */
 clearAllVariants("sid");
 clearAllVariants("sr");
 clearAllVariants("__Host-session");
 clearAllVariants("__Host-refresh");
+
+/**
+ * Now write fresh auth cookies
+ */
+res.cookie(sessionName, accessToken, {
+  ...base,
+  maxAge: accessMaxAge,
+});
+
+res.cookie(refreshName, refreshToken, {
+  ...base,
+  maxAge: parseTtlMs(process.env.REFRESH_TTL || "30d"),
+});
 
   // -----------------------------------------------------------------
   // PHASE 4: dev-only access-token mirror.
