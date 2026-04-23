@@ -35,7 +35,7 @@ type AuthState = {
 
   login: (payload: { user: User; tokens?: Tokens }) => void;
   verifyMfa: () => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 
   setTokens: (t?: Tokens) => void;
   setUser: (u: User | null) => void;
@@ -73,15 +73,27 @@ export const useAuth = create<AuthState>()((set, get) => ({
   verifyMfa: () => set({ mfaVerified: true }),
 
   logout: async () => {
-    try { await apiLogout(); } catch { /* backend may already be unreachable — proceed with local cleanup */ }
+    // Seal the refresh gate before the API call so a page reload cannot
+    // silently restore the session via the refresh path even if the call fails.
+    try { localStorage.setItem("eca:auth:terminated", JSON.stringify({ ts: Date.now() })); } catch { /* storage unavailable in private browsing */ }
+
+    let apiError: unknown = null;
+    try {
+      await apiLogout();
+    } catch (err) {
+      apiError = err;
+    }
+
+    // Always clear local state and signal other tabs regardless of API outcome.
     set({ user: null, tokens: {}, mfaVerified: false, status: "idle", lastChecked: 0, hadRefreshHint: false });
-    // PHASE 6: signal all other tabs to logout via the storage event.
-    // The storage event fires in OTHER tabs only (not the current one), so
-    // this never causes a recursive call within this tab.
-    try { localStorage.setItem("auth:logout", Date.now().toString()); } catch { /* storage unavailable in private browsing — cross-tab sync best-effort */ }
+    try { localStorage.setItem("auth:logout", Date.now().toString()); } catch { /* storage unavailable in private browsing */ }
     sessionStorage.removeItem("pendingJoinModal");
     sessionStorage.removeItem("pendingJoinCourseId");
     sessionStorage.removeItem("autoOpenJoinModal");
+
+    // Re-throw after cleanup so user-facing callers can surface the failure
+    // explicitly instead of silently claiming the session was terminated.
+    if (apiError) throw apiError;
   },
 
   setTokens: (t) => set({ tokens: t ?? {} }),

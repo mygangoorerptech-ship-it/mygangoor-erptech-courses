@@ -107,7 +107,7 @@ export default function App() {
       if (e.key !== "auth:logout") return;
       const state = useAuth.getState();
       if (!state.user) return; // already logged out in this tab
-      state.logout();
+      state.logout().catch(() => { /* originating tab already cleared the server session */ });
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -128,7 +128,7 @@ export default function App() {
         const res = await checkSession();
         if (res && !res.ok) {
           // Both /auth/check and the silent refresh inside checkSession failed.
-          useAuth.getState().logout();
+          useAuth.getState().logout().catch(() => { /* session already invalid server-side */ });
         }
       } catch {
         // Interceptor (Phase 1) may have already triggered logout.
@@ -154,7 +154,10 @@ export default function App() {
 <Route
   path="/course/:courseId"
   element={
-    <RequireOrgUser loading={<TracksGateLoader />}>
+    <RequireOrgUser
+      loading={<TracksGateLoader />}
+      allowedRoles={["student", "orguser", "admin", "teacher", "superadmin", "orgadmin"]}
+    >
       <CourseDetail />
     </RequireOrgUser>
   }

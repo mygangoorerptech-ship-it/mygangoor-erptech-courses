@@ -29,8 +29,7 @@ import { useWishlist } from "./tracks/wishlistStore";
  */
 export default function TracksAndCollectionsSection() {
   useAuthHydration();
-  const { user, status, hydrate } = useAuth();
-  useEffect(() => { if (status === "idle") hydrate(); }, [status, hydrate]);
+  const { user, status } = useAuth();
 
   // public view doesn't depend on router location for gating
   // Public page: no auth/role gate

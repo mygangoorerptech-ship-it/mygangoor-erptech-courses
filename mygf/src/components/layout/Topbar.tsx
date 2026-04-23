@@ -17,8 +17,11 @@ export default function Topbar({
 
   const handleLogout = async () => {
     try {
-      await (logout?.());
-    } catch {}
+      await logout?.();
+    } catch {
+      alert("Sign out failed. Please try again or close this browser tab to end your session.");
+      return;
+    }
     nav("/login", { replace: true });
   };
 

@@ -2,7 +2,6 @@
 import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/store";
-import { resetAuthHydration } from "../../hooks/useAuthHydration";
 
 type Props = {
   onSignOut?: () => void;
@@ -16,8 +15,12 @@ const handleClick = useCallback(async () => {
   if (onSignOut) return onSignOut();
 
   if (confirm("Are you sure you want to sign out?")) {
-    await storeLogout?.();
-    resetAuthHydration();
+    try {
+      await storeLogout?.();
+    } catch {
+      alert("Sign out failed. Please try again or close this browser tab to end your session.");
+      return;
+    }
     navigate("/login", { replace: true });
   }
 }, [onSignOut, storeLogout, navigate]);
