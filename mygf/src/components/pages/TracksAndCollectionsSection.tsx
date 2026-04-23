@@ -385,6 +385,7 @@ useEffect(() => {
           onClose={() => setShowJoin(false)}
         />
       )}
+      <Footer />
     </>
   );
 }
