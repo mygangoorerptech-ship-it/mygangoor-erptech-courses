@@ -123,51 +123,75 @@ export default function RecentCertificatesCard({ items: _incoming, onViewAll }: 
 
   const empty = loaded && (!items || items.length === 0);
 
-  return (
-    <Card>
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-lg font-bold text-gray-900">Recent Certificates</h4>
-        {onViewAll ? (
-          <button onClick={onViewAll} className="text-blue-600 hover:underline text-sm">
-            View All
-          </button>
-        ) : null}
-      </div>
-
-      {empty ? (
-        <div className="text-sm text-gray-600">no certificates available</div>
-      ) : (
-        <div className="space-y-3">
-          {items.map((c) => (
-            <div
-              key={c.id}
-              className={`border ${c.borderColor} rounded-xl p-3 bg-gradient-to-r ${c.bgGradient} cursor-pointer hover:shadow-md transition`}
-              onClick={() => handleDownload(c as any)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => (e.key === "Enter" ? handleDownload(c as any) : undefined)}
-              title="Download certificate"
-            >
-              <div className="flex items-center space-x-3">
-                <i className={`fas fa-award ${c.iconColor} text-lg`} />
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">{c.title}</p>
-                  <p className="text-xs text-gray-600">Issued: {c.issued || "—"}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+return (
+  <Card>
+    {/* HEADER */}
+    <div className="flex items-center justify-between mb-4">
+      <h4 className="text-sm font-semibold text-gray-900">
+        Certificates
+      </h4>
 
       {onViewAll ? (
         <button
           onClick={onViewAll}
-          className="w-full mt-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:to-purple-700 transition-all duration-200 font-medium text-white py-2 rounded-lg"
+          className="text-sm text-gray-500 hover:text-gray-700 transition"
         >
-          View All Certificates
+          View all
         </button>
       ) : null}
-    </Card>
-  );
+    </div>
+
+    {/* EMPTY STATE */}
+    {empty ? (
+      <div className="text-sm text-gray-500">
+        No certificates available
+      </div>
+    ) : (
+      <div className="divide-y divide-gray-200">
+        {items.map((c) => (
+          <div
+            key={c.id}
+            className="flex items-center justify-between py-3 cursor-pointer hover:bg-gray-50 transition"
+            onClick={() => handleDownload(c as any)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) =>
+              e.key === "Enter" ? handleDownload(c as any) : undefined
+            }
+            title="Download certificate"
+          >
+            {/* LEFT */}
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
+                <i className="fas fa-award text-gray-500 text-sm" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {c.title}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Issued: {c.issued || "—"}
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT ICON */}
+            <i className="fas fa-download text-gray-400 text-sm" />
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* FOOTER BUTTON */}
+    {onViewAll ? (
+      <button
+        onClick={onViewAll}
+        className="w-full mt-4 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-md hover:bg-gray-50 transition"
+      >
+        View All Certificates
+      </button>
+    ) : null}
+  </Card>
+);
 }

@@ -11,38 +11,44 @@ export default function DashboardHeader({ onSignOut }: Props) {
   const navigate = useNavigate();
   const { logout: storeLogout } = useAuth();
 
-const handleClick = useCallback(async () => {
-  if (onSignOut) return onSignOut();
+  const handleClick = useCallback(async () => {
+    if (onSignOut) return onSignOut();
 
-  if (confirm("Are you sure you want to sign out?")) {
-    try {
-      await storeLogout?.();
-    } catch {
-      alert("Sign out failed. Please try again or close this browser tab to end your session.");
-      return;
+    if (confirm("Are you sure you want to sign out?")) {
+      try {
+        await storeLogout?.();
+      } catch {
+        alert("Sign out failed. Please try again or close this browser tab to end your session.");
+        return;
+      }
+      navigate("/login", { replace: true });
     }
-    navigate("/login", { replace: true });
-  }
-}, [onSignOut, storeLogout, navigate]);
+  }, [onSignOut, storeLogout, navigate]);
 
   return (
-    <header className="bg-white shadow-lg border-b border-gray-200">
+    <header className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-4">
-          <div className="flex items-center space-x-4">
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-lg">
-              <i className="fas fa-graduation-cap text-white text-xl" />
+        <div className="flex items-center justify-between py-4">
+
+          {/* LEFT */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100">
+              <i className="fas fa-graduation-cap text-gray-600 text-sm" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Student Dashboard</h1>
+            <h1 className="text-lg font-semibold text-gray-900">
+              Student Dashboard
+            </h1>
           </div>
 
+          {/* RIGHT */}
           <button
             onClick={handleClick}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+            className="border border-red-200 text-red-600 hover:bg-red-50 text-sm font-medium px-3 py-1.5 rounded-lg transition flex items-center gap-2"
           >
-            <i className="fas fa-sign-out-alt" />
+            <i className="fas fa-sign-out-alt text-xs" />
             <span>Sign Out</span>
           </button>
+
         </div>
       </div>
     </header>

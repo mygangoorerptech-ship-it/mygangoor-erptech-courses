@@ -4,8 +4,9 @@ const { Types } = mongoose;
 import Payment from "../models/Payment.js";
 import User from "../models/User.js";
 import Course from "../models/Course.js";
-import Enrollment from "../models/Enrollment.js";
 import { safeRegex } from "../utils/safeRegex.js";
+import { ensureEnrollment } from "../services/enrollmentService.js";
+import { reconcileOfflinePayment } from "../services/paymentReconciliationService.js";
 
 // ---- monitoring alert (non-blocking, non-throwing) ----
 function sendAlert(label, data) {
@@ -16,7 +17,7 @@ function sendAlert(label, data) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text: `${label}\n\`\`\`${JSON.stringify(data, null, 2)}\`\`\`` }),
-  }).catch(() => {});
+  }).catch(() => { });
 }
 
 // ------------------------ helpers ------------------------
@@ -56,8 +57,8 @@ function sanitize(p) {
     o?.studentId && typeof o.studentId === "object" && o.studentId?._id
       ? String(o.studentId._id)
       : o?.studentId
-      ? String(o.studentId)
-      : null;
+        ? String(o.studentId)
+        : null;
 
   const studentEmail =
     o?.studentId && typeof o.studentId === "object" && o.studentId !== null && "email" in o.studentId
@@ -103,7 +104,14 @@ export async function list(req, res) {
     const { q, status, type } = req.query || {};
     let orgId = toId(actor.orgId);
 
-    const and = [{ orgId }];
+    const and = [
+      {
+        $or: [
+          { orgId },        // org-based payments
+          { orgId: null },  // global course payments
+        ],
+      },
+    ];
     if (status && String(status).toLowerCase() !== "all") {
       and.push({ status: String(status).toLowerCase() });
     }
@@ -164,18 +172,39 @@ export async function createOffline(req, res) {
     }).select("_id orgId");
     if (!course) return res.status(404).json({ ok: false, message: "course not found" });
 
-    const courseOrgId = course.orgId ? toId(course.orgId) : null;
-    if (!isOid(courseOrgId)) {
-      return res.status(400).json({ ok: false, message: "course has no owning org; contact superadmin" });
+    // Prevent duplicate pending/captured offline payments
+    const existingPayment = await Payment.findOne({
+      studentId: toId(studentId),
+      courseId: toId(courseId),
+
+      status: {
+        $in: ["pending_verification", "captured"],
+      },
+
+      createdSource: {
+        $in: ["admin_manual", "teacher_manual"],
+      },
+    }).lean();
+
+    if (existingPayment) {
+      return res.status(409).json({
+        ok: false,
+        message:
+          existingPayment.status === "captured"
+            ? "Course already purchased."
+            : "Payment verification already pending.",
+      });
     }
+
+    const courseOrgId = course.orgId ? toId(course.orgId) : null;
 
     const submittedBy = pickActorId(actor);
     const managerId = pickManagerId(actor);
 
     const doc = await Payment.create({
       type: "offline",
-      method: "upi",
-      status: "submitted",
+      method: "cash", // we can allow more methods in future if needed
+      status: "pending_verification", // offline payments require verification
       amount: Math.floor(Number(amount)),
       currency: "INR",
       orgId: courseOrgId,          // FIXED: course.orgId, not actor.orgId
@@ -186,7 +215,13 @@ export async function createOffline(req, res) {
       notes: typeof notes === "string" ? notes : JSON.stringify(notes || {}),
       submittedBy: submittedBy || null,
       ...(managerId ? { managerId } : {}),
+      createdSource:
+        actor.role === "teacher"
+          ? "teacher_manual"
+          : "admin_manual"
     });
+
+    await reconcileOfflinePayment(doc);
 
     return res.status(201).json(sanitize(doc));
   } catch (e) {
@@ -195,62 +230,151 @@ export async function createOffline(req, res) {
   }
 }
 
-// Upsert premium enrollment for student & course
-async function ensureEnrollment({ studentId, courseId, orgId, paymentId, source, managerId }) {
-  const sid = toId(studentId);
-  const cid = toId(courseId);
-  const oid = toId(orgId);
-  const pid = paymentId ? toId(paymentId) : null;
-
-  // All three IDs required. orgId must be course.orgId (non-null).
-  if (!isOid(sid) || !isOid(cid) || !isOid(oid)) {
-    console.warn("[ensureEnrollment] skipped: invalid ids", {
-      studentId: !!sid, courseId: !!cid, orgId: !!oid,
-    });
-    return false;
-  }
-
-  // Compose filter without paymentId to avoid write conflicts on upsert
-  const filter = { studentId: sid, courseId: cid, orgId: oid };
-
-  const update = {
-    $setOnInsert: {
-      studentId: sid,
-      courseId: cid,
-      orgId: oid,
-      status: "premium",
-      source: source || "offline",
-      ...(managerId ? { managerId: toId(managerId) } : {}),
-    },
-  };
-
-  if (pid) {
-    update.$set = { paymentId: pid };
-  }
-
+// POST /payments/claim
+// Student submits offline payment receipt/reference for verification/reconciliation
+export async function claimReceipt(req, res) {
   try {
-    const result = await Enrollment.updateOne(filter, update, { upsert: true, setDefaultsOnInsert: true });
-    if (process.env.NODE_ENV === "development") {
-      console.log("[ENROLLMENT RESULT]", { student: String(sid), course: String(cid), org: String(oid), upserted: result.upsertedCount });
+
+    const actor = req.user;
+
+    const studentId = pickActorId(actor);
+
+    if (!studentId || !isOid(studentId)) {
+      return res.status(401).json({
+        ok: false,
+        message: "Unauthorized",
+      });
     }
 
-    // Backfill managerId if missing
-    if (managerId) {
-      await Enrollment.updateOne(
-        { ...filter, $or: [{ managerId: null }, { managerId: { $exists: false } }] },
-        { $set: { managerId: toId(managerId) } }
-      );
+    const {
+      courseId,
+      amount,
+      receiptNo,
+      referenceId,
+      notes,
+    } = req.body || {};
+
+    if (
+      !courseId ||
+      !Number.isFinite(Number(amount))
+    ) {
+      return res.status(400).json({
+        ok: false,
+        message: "courseId and amount required",
+      });
     }
-    return true;
+
+    if (!receiptNo && !referenceId) {
+      return res.status(400).json({
+        ok: false,
+        message:
+          "receiptNo or referenceId required",
+      });
+    }
+
+    if (!isOid(courseId)) {
+      return res.status(400).json({
+        ok: false,
+        message: "invalid courseId",
+      });
+    }
+
+    // Course validation
+    const course = await Course.findOne({
+      _id: courseId,
+      status: { $ne: "draft" },
+    })
+      .select("_id orgId")
+      .lean();
+
+    if (!course) {
+      return res.status(404).json({
+        ok: false,
+        message: "course not found",
+      });
+    }
+
+    // Prevent duplicate active claims/purchases
+    const existingPayment = await Payment.findOne({
+      studentId: toId(studentId),
+      courseId: toId(courseId),
+
+      status: {
+        $in: [
+          "pending_verification",
+          "captured",
+        ],
+      },
+
+      createdSource: "student_claim",
+    }).lean();
+
+    if (existingPayment) {
+      return res.status(409).json({
+        ok: false,
+        message:
+          existingPayment.status === "captured"
+            ? "Course already purchased."
+            : "Payment verification already pending.",
+      });
+    }
+
+    const doc = await Payment.create({
+      type: "offline",
+
+      method: "cash",
+
+      status: "pending_verification",
+
+      createdSource: "student_claim",
+
+      amount: Math.floor(Number(amount)),
+
+      currency: "INR",
+
+      orgId: course.orgId
+        ? toId(course.orgId)
+        : null,
+
+      courseId: toId(courseId),
+
+      studentId: toId(studentId),
+
+      receiptNo:
+        receiptNo?.trim() || undefined,
+
+      referenceId:
+        referenceId?.trim() || undefined,
+
+      notes:
+        typeof notes === "string"
+          ? notes
+          : JSON.stringify(notes || {}),
+    });
+
+    // Attempt automatic reconciliation
+    await reconcileOfflinePayment(doc);
+
+    const latest = await Payment.findById(doc._id)
+      .populate("studentId", "email name")
+      .lean();
+
+    return res.status(201).json({
+      ok: true,
+      payment: sanitize(latest),
+    });
+
   } catch (e) {
-    if (e?.code === 11000) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[ENROLLMENT RESULT]", { student: String(sid), course: String(cid), duplicate: true });
-      }
-      return true; // idempotent in race
-    }
-    console.error("[ensureEnrollment] upsert failed:", e?.message, { studentId: sid, courseId: cid, orgId: oid });
-    return false;
+
+    console.error(
+      "[payments.claimReceipt]",
+      e
+    );
+
+    return res.status(500).json({
+      ok: false,
+      message: "claim receipt failed",
+    });
   }
 }
 
@@ -273,7 +397,9 @@ export async function verify(req, res) {
     // Step 2: Authorization — admin may verify if they own the course's org OR the student's org.
     // This supports the cross-org case: student from Org A buys course from Org B;
     // both Org A admin (manages the student) and Org B admin (owns the course) can verify.
-    const payOrgMatch = String(toId(candidate.orgId)) === String(orgId);
+    const payOrgMatch =
+      candidate.orgId &&
+      String(toId(candidate.orgId)) === String(orgId);
     let authorized = payOrgMatch;
     if (!authorized && candidate.studentId) {
       const studentInOrg = await User.findOne({ _id: candidate.studentId, orgId }).select("_id").lean();
@@ -284,18 +410,21 @@ export async function verify(req, res) {
     }
 
     // Idempotent: already captured
-    if (candidate.status === "captured") {
+    if (
+      candidate.status === "captured" ||
+      candidate.reconciliationStatus === "matched"
+    ) {
       return res.json(sanitize(candidate));
     }
 
     // Status guard
-    if (!["submitted", "pending", "claimed"].includes(candidate.status)) {
+    if (!["pending_verification"].includes(candidate.status)) {
       return res.status(400).json({ ok: false, message: "payment not verifiable in current status" });
     }
 
     // Step 3: Atomic status update (no orgId in filter — authorization already passed above)
     const doc = await Payment.findOneAndUpdate(
-      { _id: id, status: { $in: ["submitted", "pending", "claimed"] } },
+      { _id: id, status: { $in: ["pending_verification"] } },
       { $set: { status: "captured", verifiedBy, verifiedAt: new Date() } },
       { new: true }
     )
@@ -312,10 +441,19 @@ export async function verify(req, res) {
     // Derive managerId from actor or org lookup
     const managerId = pickManagerId(actor) || (await resolveManagerId(orgId));
 
+    // ✅ FIX: fallback orgId for global courses
+    let enrollmentOrgId = doc.orgId;
+
+    if (!isOid(enrollmentOrgId)) {
+      const course = await Course.findById(doc.courseId).select("orgId").lean();
+      enrollmentOrgId = course?.orgId || null;
+    }
+
+    // allow null orgId for global courses
     const enrollOk = await ensureEnrollment({
       studentId: doc.studentId,
       courseId: doc.courseId,
-      orgId: doc.orgId,          // always course.orgId (set at payment creation)
+      orgId: enrollmentOrgId || null,
       paymentId: doc._id,
       source: "offline",
       managerId,
@@ -327,7 +465,10 @@ export async function verify(req, res) {
       // C-2 fix: mark for recovery job so enrollment is retried automatically.
       await Payment.updateOne(
         { _id: doc._id },
-        { $set: { needsEnrollment: true }, $inc: { enrollmentRetryCount: 1 } }
+        {
+          $set: { needsEnrollment: true },
+          $inc: { enrollmentRetryCount: 1 },
+        }
       ).catch((e) => console.error("[payments.verify] recovery flag write failed:", e?.message));
       sendAlert("[CRITICAL] PAYMENT WITHOUT ENROLLMENT (offline verify)", {
         paymentId: String(doc._id), studentId: String(doc.studentId), courseId: String(doc.courseId), orgId: String(doc.orgId),
@@ -399,7 +540,10 @@ export async function listAll(req, res) {
     if (status && String(status).toLowerCase() !== "all") and.push({ status: String(status).toLowerCase() });
     if (type && String(type).toLowerCase() !== "all") and.push({ type: String(type).toLowerCase() });
     if (q) {
-      const rx = { $regex: String(q), $options: "i" };
+      const rx = {
+        $regex: safeRegex(q),
+        $options: "i"
+      };
       and.push({
         $or: [
           { receiptNo: rx },

@@ -3,10 +3,14 @@ import mongoose from "mongoose";
 
 const EnrollmentSchema = new mongoose.Schema({
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true, required: true },
-  courseId:  { type: mongoose.Schema.Types.ObjectId, ref: "Course", index: true, required: true },
-  orgId:     { type: mongoose.Schema.Types.ObjectId, ref: "Organization", index: true, required: true },
-  status: { type: String, enum: ["free","premium","trial","revoked"], default: "premium" },
-  source: { type: String, enum: ["online","offline","admin","teacher","claim"], default: "offline" },
+  courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", index: true, required: true },
+  orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", index: true, required: false, default: null },
+  status: { type: String, enum: ["free", "premium", "trial", "revoked"], default: "premium" },
+  source: {
+    type: String,
+    enum: ["online", "offline", "admin", "teacher"],
+    default: "offline"
+  },
   paymentId: { type: mongoose.Schema.Types.ObjectId, ref: "Payment", default: null },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // teacher’s admin
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
@@ -14,7 +18,7 @@ const EnrollmentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 EnrollmentSchema.index(
-  { studentId: 1, courseId: 1, orgId: 1 },
+  { studentId: 1, courseId: 1 },
   { unique: true }
 );
 

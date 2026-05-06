@@ -54,6 +54,7 @@ import notesRouter from "./src/routes/notes.js";
 import studentNotesRouter from "./src/routes/studentNotes.js";
 import contactMessagesRouter from "./src/routes/contactMessages.js";
 import teacherRouter from "./src/routes/teacher.js";
+import centersRouter from "./src/routes/centers.js";
 
 
 import path from "path";
@@ -322,6 +323,7 @@ if (DEBUG_STUDENT) {
 
 app.use("/api/public", publicRoutes);
 app.use("/api/public", publicContactRoutes);
+app.use("/api/student-catalog", studentCatalogRouter);
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api/organizations", organizationsRouter);
@@ -337,7 +339,6 @@ app.use("/api/student/payments", studentPaymentsRouter);
 app.use("/api/student/enrollments", studentEnrollmentsRouter);
 app.use("/api/checkout/razorpay", razorpayRouter);
 app.get("/api/debug/claims", (req, res, next) => next());
-app.use("/api/student-catalog", studentCatalogRouter);
 app.use("/api/students", studentsRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/sa/audit", saAuditRouter);
@@ -357,6 +358,8 @@ app.use("/api/sa/payouts", saPayoutsRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/student/join", joinStateRouter);
 app.use("/api/student/wishlist", studentWishlistRouter);
+// ❌ DEPRECATED: replaced by organizations
+// app.use("/api/centers", centersRouter);
 app.use("/api/config", configRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/student/progress", studentProgressRouter);

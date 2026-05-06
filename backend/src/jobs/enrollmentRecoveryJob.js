@@ -1,131 +1,202 @@
 // backend/src/jobs/enrollmentRecoveryJob.js
-// C-2 fix: recover payments whose enrollment creation failed.
 //
-// Design:
-//   - Runs every 5 minutes via scheduler.
-//   - Finds Payment documents where needsEnrollment === true.
-//   - Retries ensureEnrollment() for each.
-//   - On success: clears needsEnrollment flag.
-//   - On failure: increments enrollmentRetryCount (for alerting / manual review).
-//   - Capped at MAX_RETRIES to prevent infinite retry loops on permanently bad data.
-//   - Fully idempotent: the Enrollment upsert unique index (studentId+courseId+orgId)
-//     ensures no duplicate enrollments even if the job runs concurrently.
+// Enrollment Recovery Engine
+//
+// Purpose:
+//   Recover captured payments where enrollment creation failed.
+//
+// Flow:
+//   1. Find payments where needsEnrollment=true
+//   2. Retry ensureEnrollment()
+//   3. On success:
+//        - clear recovery flag
+//        - clear error metadata
+//   4. On failure:
+//        - increment retry counter
+//        - store retry metadata
+//   5. After MAX_RETRIES:
+//        - keep payment visible for admin review
+//        - DO NOT clear needsEnrollment
+//
+// Safety:
+//   - Fully idempotent
+//   - Enrollment unique index prevents duplicates
+//   - Shared enrollment service is single source of truth
+//   - Global courses supported (orgId may be null)
 
-import mongoose from "mongoose";
 import Payment from "../models/Payment.js";
-import Enrollment from "../models/Enrollment.js";
-
-const isOid = (v) => mongoose.isValidObjectId(v);
-const { ObjectId } = mongoose.Types;
-const toId = (v) => (v && isOid(v) ? new ObjectId(String(v)) : null);
+import { ensureEnrollment } from "../services/enrollmentService.js";
 
 const MAX_RETRIES = 10;
+const BATCH_SIZE = 200;
 
-// Standalone ensureEnrollment — mirrors logic in paymentsController + razorpayController
-// without importing from those modules (avoids circular deps).
-async function ensureEnrollment({ studentId, courseId, orgId, paymentId, source, managerId }) {
-  const sid = toId(studentId);
-  const cid = toId(courseId);
-  const oid = toId(orgId);
-
-  if (!sid || !cid || !oid) {
-    console.warn("[enrollmentRecoveryJob] skipped: invalid ids", {
-      studentId: !!sid, courseId: !!cid, orgId: !!oid,
-    });
-    return false;
-  }
-
-  const filter = { studentId: sid, courseId: cid, orgId: oid };
-  const update = {
-    $setOnInsert: {
-      studentId: sid,
-      courseId: cid,
-      orgId: oid,
-      status: "premium",
-      source: source || "offline",
-      ...(managerId ? { managerId: toId(managerId) } : {}),
-    },
-  };
-  const pid = toId(paymentId);
-  if (pid) update.$set = { paymentId: pid };
-
-  try {
-    await Enrollment.updateOne(filter, update, { upsert: true, setDefaultsOnInsert: true });
-    return true;
-  } catch (e) {
-    if (e?.code === 11000) return true; // duplicate key = already enrolled (idempotent)
-    console.error("[enrollmentRecoveryJob] ensureEnrollment failed:", e?.message, {
-      studentId: String(sid), courseId: String(cid), orgId: String(oid),
-    });
-    return false;
-  }
-}
-
-// Main job function — called by scheduler every 5 minutes.
+// Main recovery worker
 export async function runEnrollmentRecovery() {
   let processed = 0;
   let recovered = 0;
-  let failed    = 0;
+  let failed = 0;
 
   try {
-    const pending = await Payment.find({ needsEnrollment: true })
-      .select("_id studentId courseId orgId paymentId managerId source enrollmentRetryCount type")
-      .limit(200) // process at most 200 per tick
+
+    const pending = await Payment.find({
+      needsEnrollment: true,
+      status: "captured",
+    })
+      .select(
+        "_id studentId courseId orgId managerId type enrollmentRetryCount"
+      )
+      .sort({ updatedAt: 1 })
+      .limit(BATCH_SIZE)
       .lean();
 
-    if (!pending.length) return;
+    if (!pending.length) {
+      return;
+    }
 
-    console.log(`[enrollmentRecoveryJob] found ${pending.length} payment(s) needing enrollment`);
+    console.log(
+      `[enrollmentRecoveryJob] found ${pending.length} payment(s)`
+    );
 
     for (const pay of pending) {
+
       processed++;
 
-      // Stop retrying after MAX_RETRIES — likely a data problem; alert manually.
+      // Max retry protection
       if ((pay.enrollmentRetryCount || 0) >= MAX_RETRIES) {
-        console.error("[enrollmentRecoveryJob] max retries reached — manual review required", {
-          paymentId: String(pay._id),
-          studentId: String(pay.studentId),
-          courseId: String(pay.courseId),
-          retryCount: pay.enrollmentRetryCount,
-        });
-        // Clear the flag so we stop retrying but record a final high count
+
+        console.error(
+          "[enrollmentRecoveryJob] max retries exceeded",
+          {
+            paymentId: String(pay._id),
+            studentId: String(pay.studentId),
+            courseId: String(pay.courseId),
+            retryCount: pay.enrollmentRetryCount,
+          }
+        );
+
+        // IMPORTANT:
+        // Keep needsEnrollment=true
+        // so admin dashboard can still detect broken payments.
         await Payment.updateOne(
           { _id: pay._id },
-          { $set: { needsEnrollment: false } }
+          {
+            $set: {
+              lastEnrollmentError:
+                "Max enrollment retries exceeded",
+              lastEnrollmentRetryAt: new Date(),
+            },
+          }
         ).catch(() => {});
+
         failed++;
         continue;
       }
 
-      const ok = await ensureEnrollment({
-        studentId: pay.studentId,
-        courseId:  pay.courseId,
-        orgId:     pay.orgId,
-        paymentId: pay._id,
-        source:    pay.source || (pay.type === "online" ? "online" : "offline"),
-        managerId: pay.managerId || null,
-      });
+      try {
 
-      if (ok) {
+        const ok = await ensureEnrollment({
+          studentId: pay.studentId,
+          courseId: pay.courseId,
+          orgId: pay.orgId || null,
+          paymentId: pay._id,
+          source:
+            pay.type === "online"
+              ? "online"
+              : "offline",
+          managerId: pay.managerId || null,
+        });
+
+        if (ok) {
+
+          await Payment.updateOne(
+            { _id: pay._id },
+            {
+              $set: {
+                needsEnrollment: false,
+                lastEnrollmentError: null,
+                lastEnrollmentRetryAt: new Date(),
+              },
+            }
+          );
+
+          recovered++;
+
+          console.log(
+            "[RECOVERY SUCCESS]",
+            {
+              paymentId: String(pay._id),
+            }
+          );
+
+        } else {
+
+          await Payment.updateOne(
+            { _id: pay._id },
+            {
+              $inc: {
+                enrollmentRetryCount: 1,
+              },
+              $set: {
+                lastEnrollmentRetryAt: new Date(),
+                lastEnrollmentError:
+                  "Enrollment recovery retry failed",
+              },
+            }
+          ).catch(() => {});
+
+          failed++;
+
+          console.error(
+            "[RECOVERY FAILED]",
+            {
+              paymentId: String(pay._id),
+            }
+          );
+        }
+
+      } catch (err) {
+
         await Payment.updateOne(
           { _id: pay._id },
-          { $set: { needsEnrollment: false } }
-        );
-        recovered++;
-        console.log("[enrollmentRecoveryJob] enrollment recovered", { paymentId: String(pay._id) });
-      } else {
-        await Payment.updateOne(
-          { _id: pay._id },
-          { $inc: { enrollmentRetryCount: 1 } }
+          {
+            $inc: {
+              enrollmentRetryCount: 1,
+            },
+            $set: {
+              lastEnrollmentRetryAt: new Date(),
+              lastEnrollmentError:
+                err?.message ||
+                "Enrollment recovery exception",
+            },
+          }
         ).catch(() => {});
+
         failed++;
+
+        console.error(
+          "[RECOVERY EXCEPTION]",
+          {
+            paymentId: String(pay._id),
+            error: err?.message,
+          }
+        );
       }
     }
 
-    if (processed > 0) {
-      console.log("[enrollmentRecoveryJob] done", { processed, recovered, failed });
-    }
+    console.log(
+      "[enrollmentRecoveryJob] completed",
+      {
+        processed,
+        recovered,
+        failed,
+      }
+    );
+
   } catch (e) {
-    console.error("[enrollmentRecoveryJob] unexpected error:", e?.message);
+
+    console.error(
+      "[enrollmentRecoveryJob] fatal error:",
+      e?.message
+    );
   }
 }

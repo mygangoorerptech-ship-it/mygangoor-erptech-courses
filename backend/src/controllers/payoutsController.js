@@ -68,79 +68,134 @@ export async function list(req, res) {
  * the org are included. Optional fields: method, reference, note.
  */
 export async function create(req, res) {
+  const session = await mongoose.startSession();
+
   try {
     const actor = req.user || {};
     if (!actor || actor.role !== "superadmin") {
       return res.status(403).json({ ok: false });
     }
 
-    // 🔧 Be robust to token shapes: sub | _id | id | uid
+    // 🔧 robust actor id extraction
     const actorId = actor.sub || actor._id || actor.id || actor.uid || null;
     if (!actorId) {
       console.error("[payouts.create] Missing actor id on token", actor);
       return res.status(401).json({ ok: false, message: "Unauthenticated" });
     }
 
-    const { orgId, paymentIds, method, reference, note, includeSettled, dateFrom, dateTo } = req.body || {};
+    const {
+      orgId,
+      paymentIds,
+      method,
+      reference,
+      note,
+      includeSettled,
+      dateFrom,
+      dateTo
+    } = req.body || {};
+
+    // ✅ validate orgId
     if (!orgId || !mongoose.isValidObjectId(orgId)) {
       return res.status(400).json({ ok: false, message: "invalid orgId" });
     }
 
+    // ✅ ensure org exists (CRITICAL)
+    const org = await Organization.findById(orgId).lean();
+    if (!org) {
+      return res.status(404).json({ ok: false, message: "organization not found" });
+    }
+
+    // ✅ base filter
     const filter = {
       orgId,
       type: "online",
       status: "captured",
-      // default: only unsettled; if includeSettled is true, don't constrain by settled
       ...(includeSettled ? {} : { settled: false }),
     };
 
-    // Optional explicit selection
+    // ✅ explicit paymentIds handling (SECURE)
     if (Array.isArray(paymentIds) && paymentIds.length > 0) {
       const ids = paymentIds.filter((id) => mongoose.isValidObjectId(id));
-      if (ids.length === 0) {
+
+      if (!ids.length) {
         return res.status(400).json({ ok: false, message: "no valid paymentIds" });
       }
+
       filter._id = { $in: ids };
+      filter.orgId = orgId; // 🔒 enforce org scope
     }
 
-    // Optional date range filter on createdAt
+    // ✅ date filter
     if (dateFrom || dateTo) {
-      const gte = dateFrom ? new Date(`${dateFrom}T00:00:00.000Z`) : new Date(0);
-      const lte = dateTo ? new Date(`${dateTo}T23:59:59.999Z`) : new Date();
+      const gte = dateFrom
+        ? new Date(`${dateFrom}T00:00:00.000Z`)
+        : new Date(0);
+
+      const lte = dateTo
+        ? new Date(`${dateTo}T23:59:59.999Z`)
+        : new Date();
+
       filter.createdAt = { $gte: gte, $lte: lte };
     }
 
-    // Fetch the payments we will include
-    const payments = await Payment.find(filter).lean();
-    if (!payments.length) {
-      return res.status(400).json({ ok: false, message: "no payments to payout" });
-    }
+    let payoutDoc;
 
-    // compute totals and ids
-    const total = payments.reduce((sum, p) => sum + p.amount, 0);
-    const payIds = payments.map((p) => p._id);
+    await session.withTransaction(async () => {
+      const payments = await Payment.find(filter).session(session).lean();
 
-    // mark payments as settled when we're doing the normal flow
-    if (!includeSettled) {
-      await Payment.updateMany({ _id: { $in: payIds } }, { $set: { settled: true } });
-    }
+      if (!payments.length) {
+        throw new Error("no payments to payout");
+      }
 
-    // create payout record
-    const payout = await Payout.create({
-      orgId,
-      paymentIds: payIds,
-      totalAmount: total,
-      status: "completed", // current flow assumes immediate completion
-      method: method || "manual",
-      reference: reference || null,
-      note: note || null,
-      createdBy: actorId,           // ✅ FIXED
+      const total = payments.reduce((sum, p) => sum + p.amount, 0);
+      const payIds = payments.map((p) => p._id);
+
+      // ✅ race-safe update
+      if (!includeSettled) {
+        await Payment.updateMany(
+          { _id: { $in: payIds }, settled: false },
+          { $set: { settled: true } },
+          { session }
+        );
+      }
+
+      const payout = await Payout.create(
+        [
+          {
+            orgId,
+            paymentIds: payIds,
+            totalAmount: total,
+            status: "completed",
+            method: method || "manual",
+            reference: reference || null,
+            note: note || null,
+            createdBy: actorId,
+          },
+        ],
+        { session }
+      );
+
+      payoutDoc = payout[0];
     });
 
-    return res.json({ ok: true, id: payout._id, totalAmount: total, paymentCount: payIds.length });
+    return res.json({
+      ok: true,
+      id: payoutDoc._id,
+      totalAmount: payoutDoc.totalAmount,
+      paymentCount: payoutDoc.paymentIds.length,
+    });
+
   } catch (e) {
     console.error("[payouts.create]", e);
-    return res.status(500).json({ ok: false, message: "payout create failed" });
+
+    return res.status(400).json({
+      ok: false,
+      message: e.message || "payout create failed",
+    });
+
+  } finally {
+    // ✅ always clean session
+    session.endSession();
   }
 }
 

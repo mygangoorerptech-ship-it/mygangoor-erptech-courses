@@ -1,3 +1,4 @@
+//src/config/env.ts
 // Extract base URL, removing trailing slashes and /api suffix if present
 // This ensures API_ROOT is the backend base URL (without /api)
 // and API_BASE is always API_ROOT + /api (never double /api/api)

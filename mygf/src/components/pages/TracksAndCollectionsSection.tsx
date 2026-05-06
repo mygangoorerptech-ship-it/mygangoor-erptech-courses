@@ -22,6 +22,8 @@ import { useAuthHydration } from "../../hooks/useAuthHydration";
 import JoinNowModal from "../join/JoinNowModal";
 import { useEnrollmentStore } from "../../store/enrollmentStore";
 import { useWishlist } from "./tracks/wishlistStore";
+import CourseCentersModal from "./tracks/CourseCentersModal";
+import StudentSidebar from "../dashboard/StudentSidebar";
 
 /**
  * Parent: only auth/location hooks + redirects/skeleton.
@@ -84,6 +86,9 @@ function TracksBody({ user }: { user?: User }) {
   // Wishlist store init (runs once on mount)
   const wishlistStore = useWishlist();
   const { init: initWishlist, isWishlisted, toggle } = wishlistStore;
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [showCenters, setShowCenters] = useState(false);
+  const [selectedOrgName, setSelectedOrgName] = useState<string | null>(null);
 
   /**
    * IMPORTANT:
@@ -129,6 +134,8 @@ function TracksBody({ user }: { user?: User }) {
         level: toUiLevel(rawLevel),
         discountPercent: realDiscount,
         cover: bundleCover,
+        centerIds: Array.isArray((c as any).centerIds) ? (c as any).centerIds : [],
+        centerNames: Array.isArray((c as any).centerNames) ? (c as any).centerNames : [],
       };
     });
   }, [apiCourses]);
@@ -183,6 +190,8 @@ function TracksBody({ user }: { user?: User }) {
   const { premiumIds, tick, fetchActive } = useEnrollmentStore();
   const [showJoin, setShowJoin] = useState(false);
   const [joinCourseId, setJoinCourseId] = useState<string | undefined>(undefined);
+  const [selectedCourseForCenters, setSelectedCourseForCenters] = useState<Course | null>(null);
+  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(null);
 
   // Check URL parameter to open JoinNowModal (from home.html "Join Now" button)
   const [searchParams, setSearchParams] = useSearchParams();
@@ -194,10 +203,11 @@ function TracksBody({ user }: { user?: User }) {
 
     if (user) {
       if (courseId) {
-        setJoinCourseId(courseId);
+        const course = apiCourses?.find(c => String(c.id) === String(courseId));
+        if (course) {
+          setSelectedCourseForCenters(course); // ✅ open center modal
+        }
       }
-
-      setShowJoin(true);
 
       const newParams = new URLSearchParams(searchParams);
       newParams.delete("openJoinModal");
@@ -247,133 +257,195 @@ function TracksBody({ user }: { user?: User }) {
       {/* Top progress bar (active during load or prefetch) */}
       <TopProgressBar active={loading || prefetching} />
       {/* make the sticky NavBar full-bleed (not inside max-w) */}
-      <div className="relative z-20">
+      <div className="fixed top-0 left-0 w-full z-50">
         <NavBar />
       </div>
 
-      {/* Hero header: mimic /tracks black header */}
-      <section className="relative w-full overflow-hidden !p-0 !m-0" style={{ padding: 0, margin: 0 }}>
-        <div className="bg-black text-white">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-28 text-center">
-            <h1 className="text-4xl sm:text-6xl font-black tracking-tighter text-center" style={{ fontFamily: "'Oswald', sans-serif", letterSpacing: '-0.03em', fontWeight: 900 }}>Classes</h1>
-            <div className="mt-4 text-sm text-white/80">
-              <a href="/home" className="hover:text-white">Home</a>
-              <span className="mx-2">/</span>
-              <span>Classes</span>
+      {/* LAYOUT WRAPPER */}
+      <div className="flex pt-16 sm:pt-20">
+
+        {/* SIDEBAR */}
+        <StudentSidebar />
+
+        {/* MAIN CONTENT */}
+        <div className="flex-1 min-w-0">
+
+          {/* Hero Header */}
+          <section
+            className="relative w-full overflow-hidden border-b border-white/10 bg-black"
+            style={{ padding: 0, margin: 0 }}
+          >
+            {/* SUBTLE BACKDROP EFFECT */}
+            <div className="absolute inset-0 opacity-[0.04]">
+              <div className="absolute left-1/2 top-0 h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-white blur-3xl" />
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Main content area */}
-      <section aria-labelledby="tracks-title" className="relative isolate w-full overflow-hidden !pt-0 !pb-6 !m-0" style={{ paddingTop: 0, margin: 0 }}>
-        {/* abstract background */}
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,#9ae6b4,transparent)] blur-2xl opacity-60" />
-          <div className="absolute -top-16 right-10 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,#93c5fd,transparent)] blur-2xl opacity-70" />
-          <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,#a7f3d0,transparent)] blur-2xl opacity-60" />
-          <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_10%,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0.3)_45%,rgba(255,255,255,0)_70%)]" />
-        </div>
+            <div className="relative mx-auto flex max-w-7xl flex-col items-center justify-center px-2 py-12 text-center sm:px-4 sm:py-14 lg:px-4">
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8" style={{ paddingTop: 0 }}>
-          <h2 id="tracks-title" className="sr-only">Browse Tracks &amp; Collections</h2>
+              {/* MINI LABEL */}
+              <div className="mb-4 inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-medium tracking-wide text-white/70 backdrop-blur">
+                Learning Programs
+              </div>
 
-          <div className="mt-0">
-            <SearchBar value={query} onChange={setQuery} />
-          </div>
+              {/* TITLE */}
+              <h1
+                className="text-4xl font-black tracking-[-0.04em] text-white sm:text-5xl"
+                style={{
+                  fontFamily: "'Oswald', sans-serif",
+                  fontWeight: 900,
+                }}
+              >
+                Classes
+              </h1>
 
-          <FilterChips
-            activeChip={activeChip}
-            setActiveChip={setActiveChip}
-            over12h={over12h}
-            toggleOver12h={() => setOver12h((v) => !v)}
-          />
+              {/* BREADCRUMB */}
+              <div className="mt-4 flex items-center gap-2 text-sm text-white/55">
+                <a
+                  href="/home"
+                  className="transition hover:text-white"
+                >
+                  Home
+                </a>
 
-          <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-12">
-            {/* Cards */}
-            <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {loading &&
-                Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)}
+                <span className="text-white/25">/</span>
 
-              {!loading && !error && filtered.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  course={course}
-                  isWishlisted={!!isWishlisted?.(course.id)}
-                  onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
-                  // NEW: pass premium + enroll handler (opens JoinNowModal)
-                  isPremium={isPremium(course.id)}
-                  onRequireEnroll={(c) => {
-                    if (!user) {
-                      navigate(
-                        `/login?redirect=${encodeURIComponent(
-                          `/tracks?openJoinModal=true&courseId=${c.id}`
-                        )}`
-                      );
-                      return;
-                    }
+                <span className="text-white/85">
+                  Classes
+                </span>
+              </div>
+            </div>
+          </section>
 
-                    setJoinCourseId(String(c.id));
-                    setShowJoin(true);
-                  }}
-                />
-              ))}
+          {/* Main content area */}
+          <section aria-labelledby="tracks-title" className="relative isolate w-full overflow-hidden !pt-0 !pb-6 !m-0" style={{ paddingTop: 0, margin: 0 }}>
+            {/* abstract background */}
+            <div className="pointer-events-none absolute inset-0 -z-10">
+              <div className="absolute -top-24 -left-20 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,#9ae6b4,transparent)] blur-2xl opacity-60" />
+              <div className="absolute -top-16 right-10 h-64 w-64 rounded-full bg-[radial-gradient(closest-side,#93c5fd,transparent)] blur-2xl opacity-70" />
+              <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,#a7f3d0,transparent)] blur-2xl opacity-60" />
+              <div className="absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_10%,rgba(255,255,255,0.7)_0%,rgba(255,255,255,0.3)_45%,rgba(255,255,255,0)_70%)]" />
+            </div>
 
-              {!loading && !error && filtered.length === 0 && (
-                <div className="col-span-full rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-slate-500">
-                  No results. Try a different filter.
-                </div>
-              )}
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8" style={{ paddingTop: 0 }}>
+              <h2 id="tracks-title" className="sr-only">Browse Tracks &amp; Collections</h2>
 
-              {!loading && error && (
-                <div className="col-span-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
-                  <p className="font-medium">Failed to load courses.</p>
-                  <p className="text-sm opacity-80">{error}</p>
-                  <button
-                    onClick={reload}
-                    className="mt-3 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
-              {/* Infinite-scroll sentinel; shows subtle skeleton while loading */}
-              {!error && filtered.length > 0 && (
-                <div className="col-span-full">
-                  {loading ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {[...Array(3)].map((_, i) => <CourseCardSkeleton key={`s-${i}`} />)}
+              <div className="mt-0">
+                <SearchBar value={query} onChange={setQuery} />
+              </div>
+
+              <FilterChips
+                activeChip={activeChip}
+                setActiveChip={setActiveChip}
+                over12h={over12h}
+                toggleOver12h={() => setOver12h((v) => !v)}
+              />
+
+              <div className="mt-7 grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* Cards */}
+                <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {loading &&
+                    Array.from({ length: 6 }).map((_, i) => <CourseCardSkeleton key={i} />)}
+
+                  {!loading && !error && filtered.map((course) => (
+                    <CourseCard
+                      key={course.id}
+                      course={course}
+                      isWishlisted={!!isWishlisted?.(course.id)}
+                      onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
+                      // NEW: pass premium + enroll handler (opens JoinNowModal)
+                      isPremium={isPremium(course.id)}
+                      onRequireEnroll={(c) => {
+
+                        const isCenterBased =
+                          Array.isArray((c as any).centerIds) &&
+                          (c as any).centerIds.length > 0;
+
+                        // ✅ CENTER-BASED COURSES
+                        // Guests can browse centers
+                        if (isCenterBased) {
+                          setSelectedCourse(c);
+                          setShowCenters(true);
+                          return;
+                        }
+
+                        // ✅ GLOBAL COURSES
+                        // Must login before enrollment
+                        if (!user) {
+                          navigate(
+                            `/login?redirect=${encodeURIComponent(
+                              window.location.pathname + window.location.search
+                            )}`
+                          );
+                          return;
+                        }
+
+                        // ✅ AUTH USER + GLOBAL COURSE
+                        setSelectedOrgId(null);
+                        setSelectedOrgName(null);
+                        setJoinCourseId(String(c.id));
+                        setShowJoin(true);
+                      }}
+                    />
+                  ))}
+
+                  {!loading && !error && filtered.length === 0 && (
+                    <div className="col-span-full rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-slate-500">
+                      No results. Try a different filter.
                     </div>
-                  ) : hasMore ? (
-                    <div ref={sentinelRef} className="h-6 w-full" />
-                  ) : (
-                    <div className="text-center text-xs text-slate-500">You’ve reached the end.</div>
+                  )}
+
+                  {!loading && error && (
+                    <div className="col-span-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-700">
+                      <p className="font-medium">Failed to load courses.</p>
+                      <p className="text-sm opacity-80">{error}</p>
+                      <button
+                        onClick={reload}
+                        className="mt-3 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )}
+                  {/* Infinite-scroll sentinel; shows subtle skeleton while loading */}
+                  {!error && filtered.length > 0 && (
+                    <div className="col-span-full">
+                      {loading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                          {[...Array(3)].map((_, i) => <CourseCardSkeleton key={`s-${i}`} />)}
+                        </div>
+                      ) : hasMore ? (
+                        <div ref={sentinelRef} className="h-6 w-full" />
+                      ) : (
+                        <div className="text-center text-xs text-slate-500">You’ve reached the end.</div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
 
-            {/* Sidebar */}
-            <div className="lg:col-span-3">
-              {loading ? (
-                <SidebarSkeleton />
-              ) : (
-                <SidebarSmartFilter
-                  wishlist={sidebarWishlist}
-                  onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
-                  availability={availability}
-                  setAvailability={setAvailability}
-                />
-              )}
+                {/* Sidebar */}
+                <div className="lg:col-span-3">
+                  {loading ? (
+                    <SidebarSkeleton />
+                  ) : (
+                    <SidebarSmartFilter
+                      wishlist={sidebarWishlist}
+                      onToggleWishlist={(c) => { if (!user) { navigate("/login"); return; } void toggle?.(c.id); }}
+                      availability={availability}
+                      setAvailability={setAvailability}
+                    />
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        {/* Footer at the end */}
-        {/* <Footer
+            {/* Footer at the end */}
+            {/* <Footer
         brandName="ECA Academy"
         tagline="Learn smarter. Build faster."
       /> */}
-      </section>
+          </section>
+
+        </div>
+      </div>
 
       {/* Back-to-top FAB (keeps your visual language) */}
       {showTop && (
@@ -390,10 +462,32 @@ function TracksBody({ user }: { user?: User }) {
         </button>
       )}
 
+      {selectedCourse && showCenters && (
+        <CourseCentersModal
+          visible={showCenters}
+          course={selectedCourse}
+          onClose={() => setShowCenters(false)}
+          onSelectCenter={(orgId, orgName) => {
+            if (!orgId) {
+              console.error("❌ Center ID missing");
+              return;
+            }
+
+            setSelectedOrgId(orgId);
+            setSelectedOrgName(orgName); // ✅ THIS FIXES YOUR ISSUE
+            setJoinCourseId(String(selectedCourse?.id));
+            setShowCenters(false);
+            setShowJoin(true);
+          }}
+        />
+      )}
+
       {/* payment/enroll modal — enrollment state managed via useEnrollmentStore */}
       {showJoin && (
         <JoinNowModal
           selectedCourseId={joinCourseId}
+          selectedOrgId={selectedOrgId}
+          selectedOrgName={selectedOrgName}
           onClose={() => setShowJoin(false)}
         />
       )}

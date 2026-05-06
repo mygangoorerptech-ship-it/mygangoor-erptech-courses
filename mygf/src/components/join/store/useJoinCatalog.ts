@@ -1,3 +1,4 @@
+//src/components/join/store/useJoinCatalog.ts
 import { create } from "zustand";
 import { api } from "../../../api/client";
 import type { CourseOption } from "../types";
@@ -36,31 +37,35 @@ export const useJoinCatalog = create<CatalogState>((set, get) => ({
       const raw: RawCourse[] = Array.isArray(res?.data)
         ? res.data
         : Array.isArray(res?.data?.items)
-        ? res.data.items
-        : [];
+          ? res.data.items
+          : [];
 
       const list: CourseOption[] = raw.map((rc: RawCourse, idx: number) => {
-        const id = String(rc.id ?? rc._id ?? idx);
+        const id = String(rc.id ?? rc._id ?? `course-${idx}`);
         const title = String(rc.title ?? "Untitled");
 
         // ----- price & discount (match /tracks logic) -----
         // Prefer paise. If backend sent rupees earlier, we’ll convert.
         const rawPricePaise = (() => {
-          const p = Number(rc.price);
           const pp = Number(rc.pricePaise);
-          if (Number.isFinite(pp) && pp > 0) return pp;
-          if (Number.isFinite(p) && p > 0) {
-            // Heuristic: if value is suspiciously small (<10000), treat as rupees and convert
+          if (Number.isFinite(pp) && pp >= 0) return Math.round(pp);
+
+          const p = Number(rc.price);
+          if (Number.isFinite(p) && p >= 0) {
             return p < 10000 ? Math.round(p * 100) : Math.round(p);
           }
-          return null;
+
+          return 0; // ✅ NEVER null
         })();
 
-        const discountPercent = Number.isFinite(rc.discountPercent) ? Number(rc.discountPercent) : 0;
+        const discountPercent = (() => {
+          const d = Number(rc.discountPercent);
+          return Number.isFinite(d) && d > 0 ? d : 0;
+        })();
 
         const mrpPaise = rawPricePaise;
         const salePaise =
-          mrpPaise != null && discountPercent > 0
+          mrpPaise > 0 && discountPercent > 0
             ? Math.max(0, Math.round(mrpPaise * (1 - discountPercent / 100)))
             : mrpPaise;
 
@@ -78,7 +83,10 @@ export const useJoinCatalog = create<CatalogState>((set, get) => ({
           return "Beginner";
         })();
 
-        const rating = Number.isFinite(rc.rating) ? Number(rc.rating) : 0;
+        const rating = (() => {
+          const r = Number(rc.rating);
+          return Number.isFinite(r) ? r : 0;
+        })();
         const ratingCount = Number.isFinite(rc.ratingCount) ? Number(rc.ratingCount) : 0;
         const durationHours = Number.isFinite(rc.durationHours) ? Number(rc.durationHours) : undefined;
 
@@ -86,8 +94,10 @@ export const useJoinCatalog = create<CatalogState>((set, get) => ({
         const item: CourseOption = {
           id,
           title,
-          duration: rc.duration ?? (durationHours ? `${durationHours}h` : ""),
-          price: mrpPaise != null ? Math.round(mrpPaise / 100) : 0, // ✅ preserves previous consumers
+          duration:
+            rc.duration ??
+            (durationHours ? `${durationHours}h` : "N/A"),
+          price: salePaise != null ? Math.round(salePaise / 100) : 0, // ✅ preserves previous consumers
         };
 
         // Attach extended fields (TS-safe without changing CourseOption type)
@@ -107,7 +117,14 @@ export const useJoinCatalog = create<CatalogState>((set, get) => ({
           discountPercent,
 
           // org name from API (null = global / platform course)
-          orgName: rc.orgName ?? null,
+          orgName:
+            rc.orgName ??
+            rc.org ??
+            rc.organization ??
+            (Array.isArray(rc.centerNames) ? rc.centerNames.join(", ") : null) ??
+            null,
+          centerIds: Array.isArray(rc.centerIds) ? rc.centerIds : [],
+          centerNames: Array.isArray(rc.centerNames) ? rc.centerNames : [],
         });
 
         return item;
@@ -120,8 +137,9 @@ export const useJoinCatalog = create<CatalogState>((set, get) => ({
         list.every((c, i) =>
           c.id === current[i]?.id &&
           c.title === current[i]?.title &&
-          c.duration === current[i]?.duration &&
-          c.price === current[i]?.price
+          c.pricePaise === (current[i] as any)?.pricePaise &&
+          c.salePaise === (current[i] as any)?.salePaise &&
+          c.orgName === current[i]?.orgName
         );
 
       if (!same) set({ courses: list });

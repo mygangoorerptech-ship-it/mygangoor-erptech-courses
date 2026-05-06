@@ -1,3 +1,4 @@
+//src/components/pages/tracks/store.ts
 import { create } from "zustand";
 import type { Course } from "./types";
 import { fetchCoursesPage, type Audience } from "./api";

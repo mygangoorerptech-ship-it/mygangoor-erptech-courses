@@ -11,6 +11,7 @@ import ReminderPopup from "./components/notifications/ReminderPopup";
 // import HomeSection from "./components/home/HomeSection";
 // import HomeLanding from "./components/home/HomeLanding"; // DISCONNECTED: Now using static HTML
 import TracksAndCollectionsSection from "./components/pages/TracksAndCollectionsSection";
+import EnrolledCoursesPage from "./components/enrolled/EnrolledCoursesPage";
 import SignUp from "./components/screens/SignUp";
 import AcceptInvitation from "./components/screens/AcceptInvitation";
 import CourseDetail from "./components/course/CourseDetail";
@@ -81,6 +82,7 @@ import VESettings from "./admin/pages/teacher/Settings";
 
 // ---------- Centralized guards ----------
 import Shell from "./shell";
+import CentersPage from "./components/centers/CentersPage";
 
 // PHASE 2: poll interval in ms — check session every 4 minutes.
 const SESSION_POLL_MS = 4 * 60 * 1000;
@@ -140,136 +142,139 @@ export default function App() {
 
   return (
     <NotificationsProvider>
-    <Routes>
-      {/* Default route redirects to static HTML home page */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      
-      {/* Home is served as static HTML from html-pages folder (outside React) */}
-      {/* The backend and vite.config.ts handle serving /home directly */}
-      {/* We don't need a React route for /home anymore - it's served as plain HTML */}
-      
-      {/* Public: Tracks catalog is accessible without authentication */}
-<Route path="/tracks" element={<TracksAndCollectionsSection />} />
+      <Routes>
+        {/* Default route redirects to static HTML home page */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
-<Route
-  path="/course/:courseId"
-  element={
-    <RequireOrgUser
-      loading={<TracksGateLoader />}
-      allowedRoles={["student", "orguser", "admin", "teacher", "superadmin", "orgadmin"]}
-    >
-      <CourseDetail />
-    </RequireOrgUser>
-  }
-/>
-      <Route path="/about" element={<AboutSection />} />
-      <Route path="/login" element={<SignIn />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/accept-invitation" element={<AcceptInvitation />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/reset-password/:token" element={<ResetPassword />} />
-      <Route path="/claim-receipt" element={<ReceiptClaim />} />
+        {/* Home is served as static HTML from html-pages folder (outside React) */}
+        {/* The backend and vite.config.ts handle serving /home directly */}
+        {/* We don't need a React route for /home anymore - it's served as plain HTML */}
 
-      {/* Student dashboard (protected by Shell) */}
-      <Route
-        path="/dashboard"
-        element={
-          <Shell allowedRoles={["student", /^org/i]} requireMfaIf={(r) => r === "teacher"}>
-            <StudentDashboard />
-          </Shell>
-        }
-      />
+        {/* Public: Tracks catalog is accessible without authentication */}
+        <Route path="/tracks" element={<TracksAndCollectionsSection />} />
+        <Route path="/centers" element={<CentersPage />} />
 
-      {/* MFA route target */}
-      <Route path="/mfa" element={<Mfa />} />
+        <Route
+          path="/course/:courseId"
+          element={
+            <RequireOrgUser
+              loading={<TracksGateLoader />}
+              allowedRoles={["student", "orguser", "admin", "teacher", "superadmin", "orgadmin"]}
+            >
+              <CourseDetail />
+            </RequireOrgUser>
+          }
+        />
+        <Route path="/about" element={<AboutSection />} />
+        <Route path="/login" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/accept-invitation" element={<AcceptInvitation />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/claim-receipt" element={<ReceiptClaim />} />
 
-      {/* ---------- Superadmin area (guarded by Shell) ---------- */}
-      <Route
-        path="/superadmin"
-        element={
-          <Shell allowedRoles={["superadmin"]}>
-            <SuperadminLayout />
-          </Shell>
-        }
-      >
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<SAOverview />} />
-        <Route path="organizations" element={<SAOrganizations />} />
-        <Route path="users" element={<SAUsers />} />
-        <Route path="students" element={<SAStudents />} />
-        <Route path="courses" element={<SACourses />} />
-        <Route path="payments" element={<SAPayments />} />
-        <Route path="subscriptions" element={<SASubscriptions />} />
-        {/* <Route path="analytics" element={<SAAnalytics />} /> */}
-        <Route path="cms" element={<SACMS />} />
-        <Route path="audit" element={<SAAuditLogs />} />
-        <Route path="compliance" element={<SACompliance />} />
-        <Route path="integrations" element={<SAIntegrations />} />
-        <Route path="payouts" element={<SAPayouts />} />
-        <Route path="payouts/:id" element={<SAPayoutDetail />} />
-        <Route path="reconciliation" element={<SAReconciliation />} />
-        <Route path="settings" element={<SASettings />} />
-        <Route path="reports" element={<SAReports />} />
-        <Route path="assessments" element={<SA_Assessments />} />
-      </Route>
+        {/* Student dashboard (protected by Shell) */}
+        <Route
+          path="/dashboard"
+          element={
+            <Shell allowedRoles={["student", /^org/i]} requireMfaIf={(r) => r === "teacher"}>
+              <StudentDashboard />
+            </Shell>
+          }
+        />
 
-      {/* ---------- Org Admin area (guarded by Shell) ---------- */}
-      <Route
-        path="/admin"
-        element={
-          <Shell allowedRoles={["admin"]}>
-            <AdminLayout />
-          </Shell>
-        }
-      >
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<ADOverview />} />
-        <Route path="courses" element={<ADCourses />} />
-        <Route path="curriculum" element={<ADCurriculum />} />
-        <Route path="assessments" element={<ADAssessments />} />
-        <Route path="assessments/:id/questions" element={<ADAssessmentQuestions />} />
-        <Route path="assignments" element={<ADAssignments />} />
-        <Route path="assignments/:id/submissions" element={<ADAssignmentSubmissions />} />
-        <Route path="certificates" element={<ADCertificates />} />
-        <Route path="users" element={<ADUsers />} />
-        <Route path="students" element={<ADStudents />} />
-        <Route path="payments" element={<ADPayments />} />
-        <Route path="orders" element={<ADOrders />} />
-        <Route path="subscriptions" element={<ADSubscriptions />} />
-        <Route path="reviews" element={<ADReviews />} />
-        <Route path="media" element={<ADMedia />} />
-        <Route path="marketing" element={<ADMarketing />} />
-        <Route path="reports" element={<ADReports />} />
-        <Route path="community" element={<ADCommunity />} />
-        <Route path="settings" element={<ADSettings />} />
-        <Route path="notes" element={<ADNotes />} />
-      </Route>
+        <Route path="/enrolled" element={<EnrolledCoursesPage />} />
+        
+        {/* MFA route target */}
+        <Route path="/mfa" element={<Mfa />} />
 
-            {/* ---------- Teacher area (primary — guarded by Shell) ---------- */}
-      <Route
-        path="/teacher"
-        element={
-          <Shell allowedRoles={["teacher"]}>
-            <TeacherLayout />
-          </Shell>
-        }
-      >
-        <Route index element={<Navigate to="overview" replace />} />
-        <Route path="overview" element={<VEOverview />} />
-        <Route path="courses" element={<VECourses />} />
-        <Route path="reports" element={<VEReports />} />
-        <Route path="assessments" element={<VEAssessments />} />
-        <Route path="payments" element={<VEPayments />} />
-        <Route path="notes" element={<VENotes />} />
-        <Route path="students" element={<VEStudents />} />
-        <Route path="settings" element={<VESettings />} />
-      </Route>
+        {/* ---------- Superadmin area (guarded by Shell) ---------- */}
+        <Route
+          path="/superadmin"
+          element={
+            <Shell allowedRoles={["superadmin"]}>
+              <SuperadminLayout />
+            </Shell>
+          }
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<SAOverview />} />
+          <Route path="organizations" element={<SAOrganizations />} />
+          <Route path="users" element={<SAUsers />} />
+          <Route path="students" element={<SAStudents />} />
+          <Route path="courses" element={<SACourses />} />
+          <Route path="payments" element={<SAPayments />} />
+          <Route path="subscriptions" element={<SASubscriptions />} />
+          {/* <Route path="analytics" element={<SAAnalytics />} /> */}
+          <Route path="cms" element={<SACMS />} />
+          <Route path="audit" element={<SAAuditLogs />} />
+          <Route path="compliance" element={<SACompliance />} />
+          <Route path="integrations" element={<SAIntegrations />} />
+          <Route path="payouts" element={<SAPayouts />} />
+          <Route path="payouts/:id" element={<SAPayoutDetail />} />
+          <Route path="reconciliation" element={<SAReconciliation />} />
+          <Route path="settings" element={<SASettings />} />
+          <Route path="reports" element={<SAReports />} />
+          <Route path="assessments" element={<SA_Assessments />} />
+        </Route>
 
-      {/* Fallback - redirect to static HTML home */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
-    </Routes>
-        <ReminderPopup />
+        {/* ---------- Org Admin area (guarded by Shell) ---------- */}
+        <Route
+          path="/admin"
+          element={
+            <Shell allowedRoles={["admin"]}>
+              <AdminLayout />
+            </Shell>
+          }
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<ADOverview />} />
+          <Route path="courses" element={<ADCourses />} />
+          <Route path="curriculum" element={<ADCurriculum />} />
+          <Route path="assessments" element={<ADAssessments />} />
+          <Route path="assessments/:id/questions" element={<ADAssessmentQuestions />} />
+          <Route path="assignments" element={<ADAssignments />} />
+          <Route path="assignments/:id/submissions" element={<ADAssignmentSubmissions />} />
+          <Route path="certificates" element={<ADCertificates />} />
+          <Route path="users" element={<ADUsers />} />
+          <Route path="students" element={<ADStudents />} />
+          <Route path="payments" element={<ADPayments />} />
+          <Route path="orders" element={<ADOrders />} />
+          <Route path="subscriptions" element={<ADSubscriptions />} />
+          <Route path="reviews" element={<ADReviews />} />
+          <Route path="media" element={<ADMedia />} />
+          <Route path="marketing" element={<ADMarketing />} />
+          <Route path="reports" element={<ADReports />} />
+          <Route path="community" element={<ADCommunity />} />
+          <Route path="settings" element={<ADSettings />} />
+          <Route path="notes" element={<ADNotes />} />
+        </Route>
+
+        {/* ---------- Teacher area (primary — guarded by Shell) ---------- */}
+        <Route
+          path="/teacher"
+          element={
+            <Shell allowedRoles={["teacher"]}>
+              <TeacherLayout />
+            </Shell>
+          }
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<VEOverview />} />
+          <Route path="courses" element={<VECourses />} />
+          <Route path="reports" element={<VEReports />} />
+          <Route path="assessments" element={<VEAssessments />} />
+          <Route path="payments" element={<VEPayments />} />
+          <Route path="notes" element={<VENotes />} />
+          <Route path="students" element={<VEStudents />} />
+          <Route path="settings" element={<VESettings />} />
+        </Route>
+
+        {/* Fallback - redirect to static HTML home */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+      <ReminderPopup />
     </NotificationsProvider>
   );
 }

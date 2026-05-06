@@ -27,7 +27,7 @@ export default function CourseCard({
   const [imgLoaded, setImgLoaded] = React.useState(false);
   const [imgError, setImgError] = React.useState(false);
   const navigate = useNavigate();
-    // --- Price in paise (prefer precomputed from fetch) ---
+  // --- Price in paise (prefer precomputed from fetch) ---
   const mrpPaiseFromFetch = (course as any).mrpPaise as number | undefined;
   const salePaiseFromFetch = (course as any).salePaise as number | undefined;
 
@@ -35,10 +35,10 @@ export default function CourseCard({
     typeof mrpPaiseFromFetch === "number"
       ? mrpPaiseFromFetch
       : typeof course.pricePaise === "number"
-      ? course.pricePaise
-      : typeof (course as any).price === "number"
-      ? Math.round((course as any).price * 100)
-      : null;
+        ? course.pricePaise
+        : typeof (course as any).price === "number"
+          ? Math.round((course as any).price * 100)
+          : null;
 
   const discount = typeof course.discountPercent === "number" ? course.discountPercent : 0;
 
@@ -46,8 +46,8 @@ export default function CourseCard({
     typeof salePaiseFromFetch === "number"
       ? salePaiseFromFetch
       : pricePaise != null && discount > 0
-      ? Math.max(0, Math.round(pricePaise * (1 - discount / 100)))
-      : pricePaise;
+        ? Math.max(0, Math.round(pricePaise * (1 - discount / 100)))
+        : pricePaise;
 
   const hasPrice = typeof pricePaise === "number" && pricePaise > 0;
   const isFree = !hasPrice;
@@ -62,6 +62,8 @@ export default function CourseCard({
       onRequireEnroll?.(course);
     }
   };
+
+  const names = course.centerNames || [];
 
   return (
     <article
@@ -83,9 +85,8 @@ export default function CourseCard({
             loading="lazy"
             onLoad={() => setImgLoaded(true)}
             onError={() => setImgError(true)}
-            className={`h-full w-full object-cover transition-opacity duration-300 ${
-              imgLoaded && !imgError ? "opacity-100" : "opacity-0"
-            }`}
+            className={`h-full w-full object-cover transition-opacity duration-300 ${imgLoaded && !imgError ? "opacity-100" : "opacity-0"
+              }`}
           />
         )}
 
@@ -104,9 +105,8 @@ export default function CourseCard({
 
         {/* Wishlist */}
         <button
-          className={`absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center border backdrop-blur-sm transition-colors ${
-            isWishlisted ? "text-rose-600 border-rose-400 bg-white/60" : "text-white border-white/50 bg-white/25 hover:bg-white/35"
-          }`}
+          className={`absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center border backdrop-blur-sm transition-colors ${isWishlisted ? "text-rose-600 border-rose-400 bg-white/60" : "text-white border-white/50 bg-white/25 hover:bg-white/35"
+            }`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -143,7 +143,7 @@ export default function CourseCard({
         {(isPremium || isFree) && (
           <div className="pointer-events-none absolute left-3 bottom-3 z-20 inline-flex items-center gap-1 rounded-full bg-emerald-600/90 px-2 py-1 text-xs font-semibold text-white">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-              <path d="M20 6l-11 11-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20 6l-11 11-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Premium
           </div>
@@ -182,7 +182,7 @@ export default function CourseCard({
           <div className="mt-2">
             <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1 text-sm font-semibold text-emerald-700">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M20 6l-11 11-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M20 6l-11 11-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Get Certified
             </span>
@@ -204,37 +204,41 @@ export default function CourseCard({
         {/* org badge */}
         <div className="mt-2">
           <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
-            {course.orgName || "Platform"}
+            {names.length > 0
+              ? names.length > 2
+                ? `${names.slice(0, 2).join(", ")} +${names.length - 2}`
+                : names.join(", ")
+              : "Global"}
           </span>
         </div>
 
         {/* Footer actions */}
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-          <button
-            className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
-            aria-label={`Preview ${course.title}`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowPreview(true);
-            }}
-          >
-            Preview
-          </button>
+            <button
+              className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
+              aria-label={`Preview ${course.title}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowPreview(true);
+              }}
+            >
+              Preview
+            </button>
 
-          {/* NEW: View Detail button right after Preview */}
-<button
-  className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
-  aria-label={`View details for ${course.title}`}
-  onClick={(e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    navigate(`/course/${course.id}`);
-  }}
->
-  View Detail
-</button>
+            {/* NEW: View Detail button right after Preview */}
+            <button
+              className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2"
+              aria-label={`View details for ${course.title}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/course/${course.id}`);
+              }}
+            >
+              View Detail
+            </button>
           </div>
           <span className="text-xs text-slate-500">{course.durationHours}h</span>
         </div>

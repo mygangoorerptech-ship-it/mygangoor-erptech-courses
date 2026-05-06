@@ -100,3 +100,8 @@ export async function bulkUploadOrgsFile(file: File): Promise<BulkResp> {
   });
   return data;
 }
+
+export async function getOrgStats() {
+  const { data } = await api.get("/organizations/stats");
+  return data;
+}

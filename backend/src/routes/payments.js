@@ -12,6 +12,7 @@ const r = Router();
 // Teacher + admin: read and create
 r.get("/",            requireAuth, requireRole(["admin","teacher"]), ctrl.list);
 r.post("/offline",    requireAuth, requireRole(["admin","teacher"]), ctrl.createOffline);
+r.post("/claim", requireAuth, ctrl.claimReceipt);
 
 // Admin ONLY: verify, reject, refund
 r.post("/:id/verify", requireAuth, requireRole(["admin"]), ctrl.verify);

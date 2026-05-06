@@ -3,7 +3,7 @@ import { api } from "./client";
 
 export async function rzpCreateOrder(payload: {
   courseId: string;
-  orgId: string;
+  orgId?: string;
   discountKind?: "none" | "coupon" | "refer";
   couponCode?: string;
   mode?: "full" | "part";
@@ -18,7 +18,7 @@ export async function rzpVerifyPayment(payload: {
   razorpay_payment_id: string;
   razorpay_signature: string;
   courseId: string;
-  orgId: string;
+  orgId?: string;
   joinForm?: any; // persisted server-side into Payment.notes
 }) {
   // Extended timeout: verify path executes 6 sequential DB ops + external Razorpay API call.

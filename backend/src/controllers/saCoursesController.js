@@ -1,8 +1,87 @@
 // backend/src/controllers/saCoursesController.js
+import mongoose from "mongoose";
 import Course from "../models/Course.js";
 import { getPlatformFeePaise } from "../config/platform.js";
 import User from "../models/User.js";
-import mongoose from "mongoose"
+
+// ── Center assignment helpers (SA-scoped) ─────────────────────────────────────
+
+async function fetchCenterIdsForCourse(courseId) {
+  const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
+  const assignments = await CourseAssignment.find({ courseId }).select("centerId").lean();
+  return assignments.map((a) => a.centerId.toString());
+}
+
+async function fetchCenterMap(courseIds) {
+  if (!courseIds.length) return new Map();
+
+  const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
+  const Organization = (await import("../models/Organization.js")).default;
+
+  const assignments = await CourseAssignment.find({
+    courseId: { $in: courseIds }
+  }).lean();
+
+  const centerIds = [...new Set(assignments.map(a => a.centerId.toString()))];
+
+  const orgs = await Organization.find({
+    _id: { $in: centerIds }
+  }).select("_id name").lean();
+
+  const orgMap = new Map(orgs.map(o => [o._id.toString(), o.name]));
+
+  const map = new Map();
+
+  for (const a of assignments) {
+    const key = a.courseId.toString();
+
+    if (!map.has(key)) {
+      map.set(key, {
+        ids: [],
+        names: []
+      });
+    }
+
+    const centerId = a.centerId.toString();
+    map.get(key).ids.push(centerId);
+    map.get(key).names.push(orgMap.get(centerId) || "Unknown");
+  }
+
+  return map;
+}
+
+async function syncCenterAssignments(courseId, orgId, centerIds, actorId) {
+  const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
+  const Organization = (await import("../models/Organization.js")).default;
+
+  const existing = await CourseAssignment.find({ courseId }).lean();
+  const existingIds = new Set(existing.map((e) => e.centerId.toString()));
+  const newIds = new Set(
+    (Array.isArray(centerIds) ? centerIds : [])
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map(String)
+  );
+
+  const toDelete = [...existingIds].filter((id) => !newIds.has(id));
+  const toAdd = [...newIds].filter((id) => !existingIds.has(id));
+
+  if (toDelete.length > 0) {
+    await CourseAssignment.deleteMany({ courseId, centerId: { $in: toDelete } });
+  }
+  if (toAdd.length > 0) {
+    const validCenters = await Organization.find({
+      _id: { $in: toAdd },
+      deletedAt: null,
+      status: "active",
+    }).select("_id").lean();
+    const toInsert = validCenters.map((c) => ({
+      courseId, centerId: c._id, assignedBy: actorId, isActive: true,
+    }));
+    if (toInsert.length > 0) {
+      await CourseAssignment.insertMany(toInsert, { ordered: false });
+    }
+  }
+}
 
 const HEX24 = /^[0-9a-fA-F]{24}$/;
 
@@ -32,7 +111,7 @@ function clampDiscount(n) {
   return Math.round(x);
 }
 
-function sanitize(doc) {
+function sanitize(doc, centerIds = []) {
   if (!doc) return doc;
   const o = doc.toObject ? doc.toObject() : doc;
 
@@ -71,19 +150,23 @@ function sanitize(doc) {
     ownerName: o.ownerName || o.owner?.name || o.ownerId?.name || null,
     ownerEmail: o.ownerEmail || o.owner?.email || o.ownerId?.email || null,
 
-    // NEW fields already in your schema
+    // fields already in schema
     isBundled: !!o.isBundled,
     chapters: Array.isArray(o.chapters) ? o.chapters : [],
     demoVideoUrl: o.demoVideoUrl || null,
     createdById,
 
-    // NEW bundle-level fields + computed totals
+    // bundle-level fields + computed totals
     discountPercent: Number.isFinite(o.discountPercent) ? clampDiscount(o.discountPercent) : 0,
     level: o.level || "all",
     bundleCoverUrl: o.bundleCoverUrl || null,
     platformFee: Number.isFinite(o.platformFee) ? o.platformFee : 0,
     priceAfterDiscount,
     totalWithFees,
+
+    // center assignments (empty array for courses without assignments — backward compat)
+    centerIds: Array.isArray(centerIds) ? centerIds : [],
+    centerNames: [],
   };
 }
 
@@ -99,18 +182,33 @@ export async function list(req, res) {
   if (status !== "all") and.push({ status });
 
   // ✅ use tolerant normalization for org filter
-// Apply org filter ONLY if explicitly provided
-if (orgId !== undefined) {
-  const oid = normalizeOrgId(orgId);
+  // Apply org filter ONLY if explicitly provided
+  const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
 
-  if (oid === null) {
-    // explicit "global"
-    and.push({ orgId: null });
-  } else if (oid) {
-    // specific org
-    and.push({ orgId: oid });
+  if (orgId !== undefined) {
+    const oid = normalizeOrgId(orgId);
+
+    if (oid === null) {
+      // GLOBAL → no assignments
+      const allAssignedIds = await CourseAssignment.distinct("courseId");
+      and.push({ _id: { $nin: allAssignedIds } });
+
+    } else if (oid) {
+      // assigned to this org
+      const assigned = await CourseAssignment.find({
+        centerId: oid
+      }).select("courseId").lean();
+
+      const assignedIds = assigned.map(a => a.courseId);
+
+      and.push({
+        $or: [
+          { orgId: oid },              // owned
+          { _id: { $in: assignedIds } } // assigned
+        ]
+      });
+    }
   }
-}
 
   if (ownerEmail) {
     const owner = await User.findOne({ email: String(ownerEmail).toLowerCase() }).select("_id");
@@ -134,14 +232,20 @@ if (orgId !== undefined) {
       .populate("orgId", "name")
       .lean();
 
-    const items = docs.map((d) => ({
-      ...sanitize(d),
-      ownerName: d.ownerId?.name || null,
-      ownerEmail: d.ownerId?.email || null,
-      teacherName: d.teacherId?.name || null,
-      teacherEmail: d.teacherId?.email || null,
-      orgName: d.orgId?.name || null,
-    }));
+    const centerMap = await fetchCenterMap(docs.map((d) => d._id));
+const items = docs.map((d) => {
+  const cm = centerMap.get(d._id.toString()) || { ids: [], names: [] };
+
+  return {
+    ...sanitize(d, cm.ids),
+    centerNames: cm.names,
+    ownerName: d.ownerId?.name || null,
+    ownerEmail: d.ownerId?.email || null,
+    teacherName: d.teacherId?.name || null,
+    teacherEmail: d.teacherId?.email || null,
+    orgName: d.orgId?.name || null,
+  };
+});
     return res.json({ items, total, page: p, pageSize: sz });
   }
 
@@ -153,17 +257,20 @@ if (orgId !== undefined) {
     .sort({ createdAt: -1 })
     .lean();
 
-  const rows = [];
-  for (const d of docs) {
-    rows.push({
-      ...sanitize(d),
+  const centerMap = await fetchCenterMap(docs.map((d) => d._id));
+  const rows = docs.map((d) => {
+    const cm = centerMap.get(d._id.toString()) || { ids: [], names: [] };
+
+    return {
+      ...sanitize(d, cm.ids),
+      centerNames: cm.names,
       ownerName: d.ownerId?.name || null,
       ownerEmail: d.ownerId?.email || null,
       teacherName: d.teacherId?.name || null,
       teacherEmail: d.teacherId?.email || null,
       orgName: d.orgId?.name || null,
-    });
-  }
+    };
+  });
   return res.json(rows);
 }
 
@@ -172,11 +279,10 @@ export async function create(req, res) {
   const {
     title, slug, description, category, programType,
     price, visibility, status, orgId, ownerEmail, tags,
-    // NEW
     isBundled, chapters, demoVideoUrl,
     courseType, durationText, teacherId, teacherEmail,
-    // NEW bundle-level fields
     discountPercent, level, bundleCoverUrl, platformFee,
+    centerIds,
   } = req.body || {};
   if (!title) return res.status(400).json({ ok: false, message: "title required" });
   if (!programType) return res.status(400).json({ ok: false, message: "programType required" });
@@ -205,7 +311,8 @@ export async function create(req, res) {
   const numericPrice = Number(price);
   const pricePaise = Number.isFinite(numericPrice) ? Math.round(numericPrice) : 0;
 
-  const doc = await Course.create({
+  const resolvedOrgId = normalizeOrgId(orgId);
+  const payload = {
     title,
     slug,
     description,
@@ -217,26 +324,65 @@ export async function create(req, res) {
     price: pricePaise,
     visibility: visibility || "unlisted",
     status: status || "draft",
-    orgId: normalizeOrgId(orgId), // ✅ tolerant
+    orgId: resolvedOrgId,
     ownerId,
     tags: Array.isArray(tags)
       ? tags
       : (typeof tags === "string" ? String(tags).split(",").map((s) => s.trim()).filter(Boolean) : []),
     createdById: req.user?._id || req.user?.sub,
-
-    // NEW fields
     isBundled: !!isBundled,
     chapters: Array.isArray(chapters) ? chapters : [],
     demoVideoUrl: demoVideoUrl || null,
-
-    // NEW bundle-level
     discountPercent: Number.isFinite(discountPercent) ? clampDiscount(discountPercent) : 0,
     level: (level || "all").toLowerCase(),
     bundleCoverUrl: bundleCoverUrl || null,
     platformFee: Number.isFinite(platformFee) ? platformFee : getPlatformFeePaise(),
-  });
+  };
 
-  return res.json(sanitize(doc));
+  const session = await mongoose.startSession();
+  let doc;
+
+  try {
+    await session.withTransaction(async () => {
+      [doc] = await Course.create([payload], { session });
+
+      if (Array.isArray(centerIds) && centerIds.length > 0) {
+        const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
+        const Organization = (await import("../models/Organization.js")).default;
+
+        const centerIdsSafe = (Array.isArray(centerIds) ? centerIds : [])
+          .filter((id) => typeof id === "string" && mongoose.Types.ObjectId.isValid(id));
+
+        const validCenters = await Organization.find({
+          _id: { $in: centerIdsSafe },
+          deletedAt: null,
+          status: "active",
+        }).select("_id").lean().session(session);
+
+        const assignments = validCenters.map((c) => ({
+          courseId: doc._id,
+          centerId: c._id,
+          assignedBy: req.user?._id || req.user?.sub,
+          isActive: true,
+        }));
+
+        if (assignments.length > 0) {
+          await CourseAssignment.insertMany(assignments, { session, ordered: false });
+        }
+      }
+    });
+  } catch (err) {
+    console.error("❌ Course create failed:", err);
+    return res.status(500).json({
+      ok: false,
+      message: err.message || "Course creation failed"
+    });
+  } finally {
+    session.endSession();
+  }
+
+  const assignedCenterIds = await fetchCenterIdsForCourse(doc._id);
+  return res.json(sanitize(doc, assignedCenterIds));
 }
 
 // PATCH /sa/courses/:id
@@ -282,8 +428,8 @@ export async function patch(req, res) {
     p.tags = Array.isArray(p.tags)
       ? p.tags
       : (typeof p.tags === "string"
-          ? String(p.tags).split(",").map((s) => s.trim()).filter(Boolean)
-          : []);
+        ? String(p.tags).split(",").map((s) => s.trim()).filter(Boolean)
+        : []);
   }
   if ("chapters" in p && !Array.isArray(p.chapters)) {
     p.chapters = [];
@@ -316,7 +462,15 @@ export async function patch(req, res) {
     .populate("orgId", "name");
   if (!doc) return res.status(404).json({ ok: false });
 
-  const o = sanitize(doc);
+  // Diff-based center assignment sync (only when centerIds explicitly provided)
+  const { centerIds } = req.body || {};
+  if (Array.isArray(centerIds)) {
+    const resolvedOrgId = doc.orgId ? String(doc.orgId._id || doc.orgId) : null;
+    await syncCenterAssignments(doc._id, resolvedOrgId, centerIds, req.user?._id || req.user?.sub);
+  }
+
+  const assignedCenterIds = await fetchCenterIdsForCourse(doc._id);
+  const o = sanitize(doc, assignedCenterIds);
   o.ownerName = doc.ownerId?.name || null;
   o.ownerEmail = doc.ownerId?.email || null;
   o.teacherName = doc.teacherId?.name || null;
@@ -334,7 +488,8 @@ export async function setStatus(req, res) {
   }
   const doc = await Course.findByIdAndUpdate(id, { $set: { status } }, { new: true });
   if (!doc) return res.status(404).json({ ok: false });
-  return res.json(sanitize(doc));
+  const assignedCenterIds = await fetchCenterIdsForCourse(doc._id);
+  return res.json(sanitize(doc, assignedCenterIds));
 }
 
 // DELETE /sa/courses/:id
@@ -384,11 +539,11 @@ export async function bulkUpsert(req, res) {
         tags: Array.isArray(r.tags)
           ? r.tags
           : (typeof r.tags === "string"
-              ? String(r.tags)
-                .split(/[|;,]/)
-                .map((s) => s.trim())
-                .filter(Boolean)
-              : []),
+            ? String(r.tags)
+              .split(/[|;,]/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+            : []),
         orgId,
         ownerId,
 

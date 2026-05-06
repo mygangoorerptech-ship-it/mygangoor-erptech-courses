@@ -24,7 +24,12 @@ import BulkUploadModal from "./BulkUploadModal";
 import { PreviewButton } from "./CoursePreview";
 import { formatINRFromPaise } from "../../utils/currency";
 
-type Filters = { q: string; status: "all" | CourseStatus; orgId?: string; ownerEmail?: string };
+type Filters = {
+  q: string;
+  status: "all" | CourseStatus;
+  orgId?: string | "global" | "all";
+  ownerEmail?: string;
+};
 
 export default function CoursesUnified() {
   const qc = useQueryClient();
@@ -63,18 +68,29 @@ export default function CoursesUnified() {
         const params: CourseFilters = {
           q: filters.q || undefined,
           status: filters.status,
-          orgId: filters.orgId && filters.orgId !== "all" ? filters.orgId : undefined,
+          orgId:
+            filters.orgId === "all"
+              ? undefined
+              : filters.orgId === "global"
+                ? "global"
+                : filters.orgId || undefined,
           ownerEmail: filters.ownerEmail || undefined,
           page,
           limit: PAGE_SIZE,
         };
         return listSaCourses(params);
       }
-      return listAdCourses({ q: filters.q || undefined, status: filters.status, page, limit: PAGE_SIZE } as any);
+      return listAdCourses({
+        q: filters.q || undefined,
+        status: filters.status,
+        orgId: filters.orgId === "global" ? "global" : undefined,
+        page,
+        limit: PAGE_SIZE,
+      });
     },
   });
 
-    const paged = query.data ?? { items: [], total: 0, page: 1, pageSize: PAGE_SIZE };
+  const paged = query.data ?? { items: [], total: 0, page: 1, pageSize: PAGE_SIZE };
   const rows: Course[] = (paged as any).items ?? [];
   const total: number = (paged as any).total ?? rows.length;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -109,7 +125,7 @@ export default function CoursesUnified() {
     const arr = Array.isArray(orgsQ.data) ? orgsQ.data : [];
     const base = [
       { label: "All", value: "all" },
-      { label: "Global", value: "global" },
+      { label: "Global (No Center)", value: "global" },
       ...arr.map((o: any) => ({
         label: o.name,
         value: String(o._id ?? o.id ?? ""),
@@ -124,7 +140,7 @@ export default function CoursesUnified() {
   const orgFormOptions = useMemo(() => {
     const arr = Array.isArray(orgsQ.data) ? orgsQ.data : [];
     const list = [
-      { label: "Global", value: "global" },
+      { label: "Global (No Center)", value: "global" },
       ...arr.map((o: any) => ({
         label: o.name,
         value: String(o._id ?? o.id ?? ""),
@@ -140,14 +156,14 @@ export default function CoursesUnified() {
     const withCurrent = hasCurrent
       ? list
       : [
-          ...list,
-          {
-            label:
-              (open?.initial as any)?.orgName ||
-              (currentId === "global" ? "Global" : currentId),
-            value: currentId,
-          },
-        ];
+        ...list,
+        {
+          label:
+            (open?.initial as any)?.orgName ||
+            (currentId === "global" ? "Global" : currentId),
+          value: currentId,
+        },
+      ];
 
     // final de-dupe by value
     const seen = new Set<string>();
@@ -155,7 +171,9 @@ export default function CoursesUnified() {
   }, [orgsQ.data, open]);
 
   // Reset to page 1 whenever filters change
-  React.useEffect(() => { setPage(1); }, [filters.q, filters.status, filters.orgId, filters.ownerEmail]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [filters]);
 
   return (
     <div className="space-y-6">
@@ -221,42 +239,52 @@ export default function CoursesUnified() {
                 <td className="p-3">
                   <div className="font-medium">{c.title}</div>
                   {c.slug && <div className="text-xs text-slate-500">/{c.slug}</div>}
-                    {/* meta badges (tiny, unobtrusive) */}
-  <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
-    {/* Free/Paid */}
-    <span
-      className={
-        (c.courseType ?? "paid") === "free"
-          ? "rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700"
-          : "rounded px-1.5 py-0.5 bg-slate-100 text-slate-700"
-      }
-      title="Course type"
-    >
-      {(c.courseType ?? "paid") === "free" ? "Free" : "Paid"}
-    </span>
-    {/* Duration */}
-    {!!c.durationText && (
-      <span className="rounded px-1.5 py-0.5 bg-sky-50 text-sky-700" title="Duration">
-        {c.durationText}
-      </span>
-    )}
-    {/* Teacher */}
-    {(((c as any).teacherName) || ((c as any).teacherEmail)) && (
-      <span className="rounded px-1.5 py-0.5 bg-violet-50 text-violet-700" title="Teacher">
-        {((c as any).teacherName) || ((c as any).teacherEmail)}
-      </span>
-    )}
-  </div>
+                  {/* meta badges (tiny, unobtrusive) */}
+                  <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
+                    {/* Free/Paid */}
+                    <span
+                      className={
+                        (c.courseType ?? "paid") === "free"
+                          ? "rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700"
+                          : "rounded px-1.5 py-0.5 bg-slate-100 text-slate-700"
+                      }
+                      title="Course type"
+                    >
+                      {(c.courseType ?? "paid") === "free" ? "Free" : "Paid"}
+                    </span>
+                    {/* Duration */}
+                    {!!c.durationText && (
+                      <span className="rounded px-1.5 py-0.5 bg-sky-50 text-sky-700" title="Duration">
+                        {c.durationText}
+                      </span>
+                    )}
+                    {/* Teacher */}
+                    {(((c as any).teacherName) || ((c as any).teacherEmail)) && (
+                      <span className="rounded px-1.5 py-0.5 bg-violet-50 text-violet-700" title="Teacher">
+                        {((c as any).teacherName) || ((c as any).teacherEmail)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="p-3">{c.programType || "—"}</td>
                 <td className="p-3">{formatINRFromPaise(c.price)}</td>
                 {isSA && <td className="p-3">{(c as any).ownerName || (c as any).ownerEmail || "—"}</td>}
-                {isSA && <td className="p-3">{(c as any).orgName || (c.orgId ? c.orgId : "Global")}</td>}
+                {isSA && (
+                  <td className="p-3">
+                    {((c.centerIds?.length ?? 0) === 0)
+                      ? "Global"
+                      : ((c as any).centerNames?.length > 2
+                        ? `${(c as any).centerNames.slice(0, 2).join(", ")} +${(c.centerIds?.length ?? 0) - 2}`
+                        : ((c as any).centerNames?.join(", ") || "—")
+                      )
+                    }
+                  </td>
+                )}
                 <td className="p-3">{c.isBundled ? `Yes (${c.chapters?.length ?? 0})` : "No"}</td>
                 <td className="p-3">
                   <span className={c.status === "published" ? "text-emerald-700 bg-emerald-50 rounded px-2 py-0.5"
                     : c.status === "draft" ? "text-amber-700 bg-amber-50 rounded px-2 py-0.5"
-                    : "text-slate-700 bg-slate-100 rounded px-2 py-0.5"}>{c.status}</span>
+                      : "text-slate-700 bg-slate-100 rounded px-2 py-0.5"}>{c.status}</span>
                 </td>
                 <td className="p-3 whitespace-nowrap space-x-2">
                   {/* Preview from shared component (table action) */}
@@ -278,36 +306,36 @@ export default function CoursesUnified() {
         </table>
       </div>
 
-        {/* Pagination controls */} 
-      <div className="flex items-center justify-between gap-3"> 
-        <div className="text-xs text-slate-600"> 
-          Showing{" "} 
-          {total === 0 
-            ? "0" 
-            : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)}`}{" "} 
-          of {total} 
-        </div> 
-        <div className="flex items-center gap-2"> 
-          <Button 
-            variant="secondary" 
-            onClick={() => setPage((p) => Math.max(1, p - 1))} 
-            disabled={page <= 1 || query.isFetching} 
-            title="Previous page" 
-          > 
-            Prev 
-          </Button> 
-          <span className="text-sm text-slate-700"> 
-            Page {page} / {totalPages} 
-          </span> 
-          <Button 
-            variant="secondary" 
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
-            disabled={page >= totalPages || query.isFetching} 
-            title="Next page" 
-          > 
-            Next 
-          </Button> 
-        </div> 
+      {/* Pagination controls */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs text-slate-600">
+          Showing{" "}
+          {total === 0
+            ? "0"
+            : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)}`}{" "}
+          of {total}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || query.isFetching}
+            title="Previous page"
+          >
+            Prev
+          </Button>
+          <span className="text-sm text-slate-700">
+            Page {page} / {totalPages}
+          </span>
+          <Button
+            variant="secondary"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages || query.isFetching}
+            title="Next page"
+          >
+            Next
+          </Button>
+        </div>
       </div>
 
       {!!open && (
@@ -320,10 +348,11 @@ export default function CoursesUnified() {
           admins={owners}
           onClose={() => setOpen(null)}
           onSubmit={async (payload) => {
-            const toServer = { ...payload, price: payload.price, chapters: payload.isBundled ? payload.chapters ?? [] : [],
-                            description: (payload.description ?? "") || undefined,
+            const toServer = {
+              ...payload, price: payload.price, chapters: payload.isBundled ? payload.chapters ?? [] : [],
+              description: (payload.description ?? "") || undefined,
               tags: Array.isArray(payload.tags) ? payload.tags : [],
-             };
+            };
             if (open.mode === "create") await createMut.mutateAsync(toServer);
             else if (open.initial?.id) await updateMut.mutateAsync({ id: open.initial.id, patch: toServer });
           }}

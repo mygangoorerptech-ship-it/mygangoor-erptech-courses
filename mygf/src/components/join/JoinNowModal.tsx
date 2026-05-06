@@ -1,3 +1,4 @@
+//src/components/join/JoinNowModal.tsx
 import React from "react";
 import { X, ChevronRight, GraduationCap, Loader2, ShieldCheck } from "lucide-react";
 import Steps from "./ui/Steps";
@@ -24,10 +25,14 @@ const loadJsPDF = () => import("jspdf");
 
 export default function JoinNowModal({
   onClose,
-  selectedCourseId,                     // optional preselection: skips to step 2
+  selectedCourseId,
+  selectedOrgId,
+  selectedOrgName,
 }: {
   onClose: () => void;
   selectedCourseId?: string;
+  selectedOrgId?: string | null;
+  selectedOrgName?: string | null;
 }) {
   const [step, setStep] = React.useState<Step>(selectedCourseId ? 2 : 1);
   const [selectedCourse, setSelectedCourse] = React.useState<CourseOption | null>(null);
@@ -65,8 +70,8 @@ export default function JoinNowModal({
   const [partAmount, setPartAmount] = React.useState<number | "">("");
   const [isPaying, setIsPaying] = React.useState(false);
   const [paid, setPaid] = React.useState(false);
-   const [receiptNo, setReceiptNo] = React.useState<string>("");
- const [referenceId, setReferenceId] = React.useState<string>("");
+  const [receiptNo, setReceiptNo] = React.useState<string>("");
+  const [referenceId, setReferenceId] = React.useState<string>("");
   // Enrollment failure state: payment captured but enrollment not created
   const [payError, setPayError] = React.useState<string | null>(null);
 
@@ -102,85 +107,85 @@ export default function JoinNowModal({
     if (match) setSelectedCourse(match);
   }, [selectedCourseId, selectedCourse, typedCourses]);
 
-// ---------- Per-course user state (enrollment/payment) for Step 1 ----------
-type CourseState = {
-  enrollment?: string | null; // e.g. "premium"
-  payment?: { status?: string | null; amount?: number | null }; // status & amount (paise)
-};
-const [courseStates, setCourseStates] = React.useState<Record<string, CourseState>>({});
+  // ---------- Per-course user state (enrollment/payment) for Step 1 ----------
+  type CourseState = {
+    enrollment?: string | null; // e.g. "premium"
+    payment?: { status?: string | null; amount?: number | null }; // status & amount (paise)
+  };
+  const [courseStates, setCourseStates] = React.useState<Record<string, CourseState>>({});
 
-// NEW: one clear fetch to the dedicated endpoint
-React.useEffect(() => {
-  let cancel = false;
-  if (step !== 1 || status !== "ready" || !user) return;
-  if (!typedCourses.length) return;
+  // NEW: one clear fetch to the dedicated endpoint
+  React.useEffect(() => {
+    let cancel = false;
+    if (step !== 1 || status !== "ready" || !user) return;
+    if (!typedCourses.length) return;
 
-  (async () => {
-    try {
-      const { data } = await api.get("/student/join/state", { withCredentials: true });
-      const st = (data && data.states) || {};
-      const merged: Record<string, CourseState> = {};
-      for (const c of typedCourses) {
-        const s = st[c.id] || {};
-        merged[c.id] = {
-          enrollment: s.enrollment ?? null,
-          payment: s.payment
-            ? { status: s.payment.status || null, amount: Number(s.payment.amount) || null }
-            : undefined,
-        };
+    (async () => {
+      try {
+        const { data } = await api.get("/student/join/state", { withCredentials: true });
+        const st = (data && data.states) || {};
+        const merged: Record<string, CourseState> = {};
+        for (const c of typedCourses) {
+          const s = st[c.id] || {};
+          merged[c.id] = {
+            enrollment: s.enrollment ?? null,
+            payment: s.payment
+              ? { status: s.payment.status || null, amount: Number(s.payment.amount) || null }
+              : undefined,
+          };
+        }
+        if (!cancel) setCourseStates(merged);
+      } catch (e) {
+        console.warn("[join state] fetch failed", e);
+        if (!cancel) setCourseStates({});
       }
-      if (!cancel) setCourseStates(merged);
-    } catch (e) {
-      console.warn("[join state] fetch failed", e);
-      if (!cancel) setCourseStates({});
+    })();
+
+    return () => { cancel = true; };
+  }, [step, status, user?.orgId, typedCourses]);
+
+  // compute visible list (hide already-premium or captured/verified)
+  const visibleCourses = React.useMemo(() => {
+    return typedCourses.filter((c) => {
+      const st = courseStates[c.id];
+      if (!st) return true;
+
+      if ((st.enrollment || "").toLowerCase() === "premium") return false;
+
+      const ps = (st.payment?.status || "").toLowerCase();
+      if (ps === "captured") return false; // hide paid/verified
+
+      if (["refunded", "failed", "cancelled", "canceled", "rejected"].includes(ps)) return true;
+      return true; // pending/submitted → keep (badge shown)
+    });
+  }, [typedCourses, courseStates]);
+
+  // pending badge text (₹ from paise) — unchanged
+  const pendingMap = React.useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const [id, st] of Object.entries(courseStates)) {
+      const ps = (st.payment?.status || "").toLowerCase();
+      if (ps === "pending_verification") {
+        const amt = st.payment?.amount;
+        m[id] = amt ? `Pending • ${formatINRFromPaise(amt)}` : "Pending";
+      }
     }
-  })();
-
-  return () => { cancel = true; };
-}, [step, status, user?.orgId, typedCourses]);
-
-// compute visible list (hide already-premium or captured/verified)
-const visibleCourses = React.useMemo(() => {
-  return typedCourses.filter((c) => {
-    const st = courseStates[c.id];
-    if (!st) return true;
-
-    if ((st.enrollment || "").toLowerCase() === "premium") return false;
-
-    const ps = (st.payment?.status || "").toLowerCase();
-    if (ps === "captured" || ps === "verified") return false; // hide paid/verified
-
-    if (["refunded", "failed", "cancelled", "canceled", "rejected"].includes(ps)) return true;
-    return true; // pending/submitted → keep (badge shown)
-  });
-}, [typedCourses, courseStates]);
-
-// pending badge text (₹ from paise) — unchanged
-const pendingMap = React.useMemo(() => {
-  const m: Record<string, string> = {};
-  for (const [id, st] of Object.entries(courseStates)) {
-    const ps = (st.payment?.status || "").toLowerCase();
-    if (ps === "pending" || ps === "submitted") {
-      const amt = st.payment?.amount;
-      m[id] = amt ? `Pending • ${formatINRFromPaise(amt)}` : "Pending";
-    }
-  }
-  return m;
-}, [courseStates]);
+    return m;
+  }, [courseStates]);
 
   // price math
-const basePaise = (selectedCourse as any)?.pricePaise ?? 0; 
-const mrpPaise  = (selectedCourse as any)?.mrpPaise ?? basePaise; 
-const salePaise = (selectedCourse as any)?.salePaise ?? mrpPaise; 
-const base      = (salePaise ?? basePaise) / 100; // UI total uses sale price
-const discount = (() => {
-  if (!selectedCourse) return 0;
-  if (discountKind === "coupon" && couponCode.trim().toLowerCase() === "welcome10")
-    return Math.round(base * 0.1);
-  if (discountKind === "refer") return Math.round(base * 0.05);
-  return 0;
-})();
-const total = Math.max(0, base - discount);
+  const basePaise = (selectedCourse as any)?.pricePaise ?? 0;
+  const mrpPaise = (selectedCourse as any)?.mrpPaise ?? basePaise;
+  const salePaise = (selectedCourse as any)?.salePaise ?? mrpPaise;
+  const base = (salePaise ?? basePaise) / 100; // UI total uses sale price
+  const discount = (() => {
+    if (!selectedCourse) return 0;
+    if (discountKind === "coupon" && couponCode.trim().toLowerCase() === "welcome10")
+      return Math.round(base * 0.1);
+    if (discountKind === "refer") return Math.round(base * 0.05);
+    return 0;
+  })();
+  const total = Math.max(0, base - discount);
 
   // ---- payment flow
   async function handleOnlinePay() {
@@ -188,12 +193,16 @@ const total = Math.max(0, base - discount);
     setIsPaying(true);
     setPayError(null);
     if (import.meta.env.DEV) {
-      console.log("[PAYMENT REQUEST]", { courseId: selectedCourse.id, sentOrgId: user.orgId, method: "online" });
+      console.log("[PAYMENT REQUEST]", {
+        courseId: selectedCourse.id,
+        sentOrgId: String(selectedOrgId),
+        method: "online"
+      });
     }
     try {
       const order = await rzpCreateOrder({
         courseId: selectedCourse.id,
-        orgId: String(user.orgId),
+        orgId: selectedOrgId ?? user.orgId ?? undefined,
         discountKind,
         couponCode,
         mode,
@@ -211,7 +220,10 @@ const total = Math.max(0, base - discount);
         name: "MYGF",
         description: selectedCourse.title,
         prefill: { name: fullName, email, contact: mobile },
-        notes: { courseId: selectedCourse.id, orgId: String(user.orgId) },
+        notes: {
+          courseId: selectedCourse.id,
+          orgId: selectedOrgId ?? user.orgId ?? undefined
+        },
         method: { upi: true, netbanking: true, card: true, wallet: true, paylater: true },
         handler: async (resp: any) => {
           try {
@@ -220,8 +232,17 @@ const total = Math.max(0, base - discount);
               razorpay_payment_id: resp.razorpay_payment_id,
               razorpay_signature: resp.razorpay_signature,
               courseId: selectedCourse.id,
-              orgId: String(user.orgId),
-              joinForm: { fullName, age, gender, birth, address, mobile, email, photo: photoUrl },
+              orgId: selectedOrgId ?? user.orgId ?? undefined,
+              joinForm: {
+                fullName: fullName.trim(),
+                age: Number(age),
+                gender,
+                birth,
+                address: address.trim(),
+                mobile,
+                email,
+                photoUrl, // ✅ consistent naming
+              },
             });
             if (import.meta.env.DEV) {
               console.log("[PAYMENT RESPONSE]", verifyResp);
@@ -230,7 +251,7 @@ const total = Math.max(0, base - discount);
             if (!verifyResp.enrollment?.created) {
               setPayError(
                 "Your payment was received but enrollment setup failed. Please check your dashboard in a few minutes. If the issue persists, contact support with Order ID: " +
-                  resp.razorpay_order_id
+                resp.razorpay_order_id
               );
               return;
             }
@@ -255,11 +276,11 @@ const total = Math.max(0, base - discount);
             // 409 = already enrolled: treat as success, unlock course
             const status =
               e !== null &&
-              typeof e === "object" &&
-              "response" in e &&
-              e.response !== null &&
-              typeof e.response === "object" &&
-              "status" in e.response
+                typeof e === "object" &&
+                "response" in e &&
+                e.response !== null &&
+                typeof e.response === "object" &&
+                "status" in e.response
                 ? (e.response as { status: unknown }).status
                 : undefined;
             if (status === 409) {
@@ -284,77 +305,161 @@ const total = Math.max(0, base - discount);
     }
   }
 
-    // ---- offline (cash) flow
-async function handleCashClaim() {
-  if (!selectedCourse || !user) return;
-  if (Object.keys(errors).length) return;
 
-  setIsPaying(true);
-  try {
-    const rupees = mode === "part" ? Number(partAmount) || 0 : total;
-    const paise  = Math.round(rupees * 100);
+  // ---- offline (cash) flow
+  async function handleCashClaim() {
+    if (!selectedCourse || !user) return;
+    if (Object.keys(errors).length) return;
 
-    const notePayload = {
-      method: "cash",
-      discountKind,
-      couponCode,
-      mode,
-      partAmount: mode === "part" ? Number(partAmount) || 0 : null,
-      joinForm: {
-        fullName, age, gender, birth, address, mobile, email, photoUrl
-      },
-      courseId: selectedCourse.id,
-      orgId: user.orgId,
-    };
+    setIsPaying(true);
 
-    if (import.meta.env.DEV) {
-      console.log("[PAYMENT REQUEST]", { courseId: selectedCourse.id, sentOrgId: user.orgId, method: "cash", paise });
+    try {
+      const rupees =
+        mode === "part"
+          ? Number(partAmount) || 0
+          : total;
+
+      const paise = Math.round(rupees * 100);
+
+      const cleanReceiptNo =
+        receiptNo?.trim() || undefined;
+
+      const cleanReferenceId =
+        referenceId?.trim() || undefined;
+
+      // Require at least one identifier
+      if (!cleanReceiptNo && !cleanReferenceId) {
+        alert("Receipt number or reference ID is required.");
+        return;
+      }
+
+      const notePayload = {
+        method: "cash",
+        discountKind,
+        couponCode,
+        mode,
+        partAmount:
+          mode === "part"
+            ? Number(partAmount) || 0
+            : null,
+
+        joinForm: {
+          fullName: fullName.trim(),
+          age: Number(age),
+          gender,
+          birth,
+          address: address.trim(),
+          mobile,
+          email,
+          photoUrl,
+        },
+
+        courseId: selectedCourse.id,
+        orgId:
+          selectedOrgId ??
+          user.orgId ??
+          undefined,
+      };
+
+      if (import.meta.env.DEV) {
+        console.log("[PAYMENT REQUEST]", {
+          courseId: selectedCourse.id,
+          sentOrgId:
+            selectedOrgId ??
+            user.orgId ??
+            undefined,
+          method: "cash",
+          paise,
+        });
+      }
+
+      // Backend now handles:
+      // - duplicate claim protection
+      // - pending verification creation
+      // - future reconciliation
+      await claimReceipt({
+        orgId:
+          selectedOrgId ??
+          user.orgId ??
+          undefined,
+
+        courseId: selectedCourse.id,
+
+        amount: paise,
+
+        receiptNo: cleanReceiptNo,
+
+        referenceId: cleanReferenceId,
+
+        notes: JSON.stringify(notePayload),
+      });
+
+      if (import.meta.env.DEV) {
+        console.log("[PAYMENT RESPONSE]", {
+          method: "cash",
+          status: "pending_verification",
+        });
+      }
+
+      // Success receipt UI ONLY.
+      // IMPORTANT:
+      // NO optimistic enrollment unlock here.
+      // Enrollment happens ONLY after admin verification/capture.
+      setReceipt({
+        orderId: `CASH-${Date.now()}`,
+        paymentId: null,
+
+        status: "pending_verification",
+
+        createdSource: "student_claim",
+
+        method: "cash",
+
+        currency: "INR",
+
+        amount: paise,
+
+        dateISO: new Date().toISOString(),
+
+        student: {
+          name: fullName,
+        },
+
+        course: {
+          title: selectedCourse.title,
+        },
+
+        enrollment: {
+          present: false,
+          status: "pending_verification",
+        },
+      });
+
+      setPaid(true);
+      setStep(4);
+
+      // Clear optional fields
+      setReceiptNo("");
+      setReferenceId("");
+
+      // Optional:
+      // refresh catalog state so pending badge appears immediately
+      invalidateCatalog();
+
+    } catch (e: any) {
+      console.error("[cash claim] failed", e);
+
+      const msg =
+        e?.response?.data?.message ||
+        e?.message ||
+        "Could not submit your cash payment request.";
+
+      alert(msg);
+
+    } finally {
+      setIsPaying(false);
     }
-    await claimReceipt({
-      orgId: String(user.orgId),
-      courseId: selectedCourse.id,
-      amount: paise,
-      receiptNo: receiptNo?.trim() || undefined,
-      referenceId: referenceId?.trim() || undefined,
-      notes: JSON.stringify(notePayload),
-    });
-    if (import.meta.env.DEV) {
-      console.log("[PAYMENT RESPONSE]", { method: "cash", status: "submitted" });
-    }
-
-    // ... your existing success/receipt UI ...
-    setReceipt({
-      orderId: `CASH-${Date.now()}`,
-      paymentId: null,
-      status: "submitted",
-      verified: false,
-      method: "cash",
-      currency: "INR",
-      amount: paise,
-      dateISO: new Date().toISOString(),
-      student: { name: fullName },
-      course:  { title: selectedCourse.title },
-      enrollment: { present: false, status: "pending" },
-    });
-    setPaid(true);
-    setStep(4);
-
-    // Unlock the course immediately in the UI.
-    // Cash payments are pending admin verification, so no server re-fetch is
-    // scheduled — the course stays unlocked optimistically until next page load.
-    if (selectedCourse?.id) addOptimistic(selectedCourse.id);
-
-    // clear the optional fields
-    setReceiptNo("");
-    setReferenceId("");
-  } catch (e) {
-    console.error("[cash claim] failed", e);
-    alert("Could not submit your cash payment request. Please try again.");
-  } finally {
-    setIsPaying(false);
   }
-}
-
 
   // validators
   const errors: Record<string, string> = {};
@@ -381,7 +486,27 @@ async function handleCashClaim() {
   }
 
   function next() {
+    // 🚨 CRITICAL VALIDATION BEFORE STEP 3
+    if (step === 2) {
+
+      if (!selectedCourse?.id) {
+        alert("Invalid course selection.");
+        return;
+      }
+
+      // ✅ ONLY center-based courses require orgId
+      const requiresCenter =
+        Array.isArray((selectedCourse as any)?.centerIds) &&
+        (selectedCourse as any).centerIds.length > 0;
+
+      if (requiresCenter && !selectedOrgId) {
+        alert("Please select a center before continuing.");
+        return;
+      }
+    }
+
     if (Object.keys(errors).length) return;
+
     setStep((s) => (s + 1) as Step);
   }
   function prev() {
@@ -407,17 +532,17 @@ async function handleCashClaim() {
       status: receipt?.status || "-",
       amount: receipt ? (receipt.amount / 100).toLocaleString("en-IN", { style: "currency", currency: receipt.currency || "INR" }) : "-",
       enroll: receipt?.enrollment?.present ? "Enrollment: active" : `Enrollment: ${receipt?.enrollment?.status || "pending"}`,
-      organization: selectedCourse?.orgName || "Platform",
+      organization: selectedOrgName || selectedCourse?.orgName || "Platform",
     };
   }
 
   function drawRoundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r = 12) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y,     x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x,     y + h, r);
-    ctx.arcTo(x,     y + h, x,     y,     r);
-    ctx.arcTo(x,     y,     x + w, y,     r);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
 
@@ -431,9 +556,9 @@ async function handleCashClaim() {
     const M = 28;    // margin
 
     const canvas = document.createElement("canvas");
-    canvas.width  = Math.floor(W * DPR);
+    canvas.width = Math.floor(W * DPR);
     canvas.height = Math.floor(H * DPR);
-    canvas.style.width  = `${W}px`;
+    canvas.style.width = `${W}px`;
     canvas.style.height = `${H}px`;
 
     const ctx = canvas.getContext("2d")!;
@@ -444,7 +569,7 @@ async function handleCashClaim() {
     ctx.fillRect(0, 0, W, H);
 
     // Card
-    const cardX = M, cardY = M, cardW = W - M*2, cardH = H - M*2;
+    const cardX = M, cardY = M, cardW = W - M * 2, cardH = H - M * 2;
     drawRoundedRect(ctx, cardX, cardY, cardW, cardH, 18);
     ctx.fillStyle = "#ffffff";
     ctx.fill();
@@ -599,9 +724,28 @@ async function handleCashClaim() {
           <div className="flex items-center gap-3">
             <GraduationCap className="w-5 h-5 text-indigo-600" />
             <h3 className="text-lg font-semibold">Join a Course</h3>
+            {selectedOrgId != null && (
+              <div className="ml-2 flex items-center gap-3 px-4 py-2 rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-sm">
+
+                <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6l7-4z" />
+                  </svg>
+                </div>
+
+                <div className="flex flex-col leading-tight">
+                  <span className="text-[11px] text-slate-500">Enrolling in</span>
+                  <span className="text-sm font-semibold text-indigo-700">
+                    {selectedOrgName || "Selected Center"}
+                  </span>
+                </div>
+              </div>
+            )}
             {paid && receipt && (
               <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                {receipt.verified ? "Verified by provider" : "Awaiting verification"}
+                {receipt.status === "captured"
+                  ? "Payment successful"
+                  : "Awaiting verification"}
               </span>
             )}
           </div>
@@ -678,29 +822,29 @@ async function handleCashClaim() {
                 </div>
               )}
               <PaymentStep
-              course={selectedCourse}
-              total={total}
-              base={base}
-              discount={discount}
-              discountKind={discountKind}
-              setDiscountKind={setDiscountKind}
-              couponCode={couponCode}
-              setCouponCode={setCouponCode}
-              method={method}
-              setMethod={setMethod}
-              mode={mode}
-              setMode={setMode}
-              partAmount={partAmount}
-              setPartAmount={setPartAmount}
-              isPaying={isPaying}
-              onPay={method === "online" ? handleOnlinePay : undefined}
-              errors={errors}
-              receiptNo={receiptNo}
-              setReceiptNo={setReceiptNo}
-              referenceId={referenceId}
-              setReferenceId={setReferenceId}
-              orgName={selectedCourse?.orgName ?? null}
-            />
+                course={selectedCourse}
+                total={total}
+                base={base}
+                discount={discount}
+                discountKind={discountKind}
+                setDiscountKind={setDiscountKind}
+                couponCode={couponCode}
+                setCouponCode={setCouponCode}
+                method={method}
+                setMethod={setMethod}
+                mode={mode}
+                setMode={setMode}
+                partAmount={partAmount}
+                setPartAmount={setPartAmount}
+                isPaying={isPaying}
+                onPay={method === "online" ? handleOnlinePay : undefined}
+                errors={errors}
+                receiptNo={receiptNo}
+                setReceiptNo={setReceiptNo}
+                referenceId={referenceId}
+                setReferenceId={setReferenceId}
+                orgName={selectedOrgName || selectedCourse?.orgName || null}
+              />
             </>
           )}
 
@@ -718,7 +862,6 @@ async function handleCashClaim() {
                     orderId: receipt.orderId,
                     paymentId: receipt.paymentId,
                     status: receipt.status,
-                    verified: receipt.verified,
                     method: receipt.method,
                     currency: receipt.currency,
                     amount: receipt.amount,
@@ -726,7 +869,7 @@ async function handleCashClaim() {
                     student: { name: receipt.student?.name || fullName },
                     course: { title: receipt.course?.title || selectedCourse?.title || "" },
                     enrollment: { present: !!receipt.enrollment?.present, status: receipt.enrollment?.status || "pending" },
-                    organization: selectedCourse?.orgName || "Platform",
+                    organization: selectedOrgName || selectedCourse?.orgName || "Platform",
                   } : null}
                   onDownload={downloadReceipt}
                   onShare={shareReceipt}
@@ -761,29 +904,38 @@ async function handleCashClaim() {
                 </button>
               )}
               {step === 3 && (
-<button
-  onClick={method === "online" ? handleOnlinePay : handleCashClaim}
-  disabled={alreadyEnrolled || isPaying || Object.keys(errors).length > 0}
-  className={classNames(
-    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white",
-    isPaying ? "bg-indigo-400" : "bg-indigo-600 hover:bg-indigo-700",
-    "disabled:opacity-60 disabled:cursor-not-allowed"
-  )}
->
-  {isPaying ? (
-    <>
-      <Loader2 className="w-4 h-4 animate-spin" /> Processing…
-    </>
-  ) : method === "online" ? (
-    <>
-      Pay now <ChevronRight className="w-4 h-4" />
-    </>
-  ) : (
-    <>
-      Submit request <ChevronRight className="w-4 h-4" />
-    </>
-  )}
-</button>
+                <button
+                  onClick={method === "online" ? handleOnlinePay : handleCashClaim}
+                  disabled={
+                    alreadyEnrolled ||
+                    isPaying ||
+                    Object.keys(errors).length > 0 ||
+                    (
+                      Array.isArray(selectedCourse?.centerIds) &&
+                      selectedCourse.centerIds.length > 0 &&
+                      !selectedOrgId
+                    )
+                  }
+                  className={classNames(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white",
+                    isPaying ? "bg-indigo-400" : "bg-indigo-600 hover:bg-indigo-700",
+                    "disabled:opacity-60 disabled:cursor-not-allowed"
+                  )}
+                >
+                  {isPaying ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Processing…
+                    </>
+                  ) : method === "online" ? (
+                    <>
+                      Pay now <ChevronRight className="w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      Submit request <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </div>

@@ -3,13 +3,16 @@ import { Router } from "express";
 import { list, create, update, setStatus, suspend, destroy, bulkUpsert, bulkUploadFile, template, brief } from "../controllers/organizationsController.js";
 import { requireAuth, requireAnyRole } from "../middleware/authz.js";
 import multer from "multer";
+import { stats } from "../controllers/organizationStatsController.js";
 
 const r = Router();
-r.use(requireAuth);
-
-// ⬇️ NEW public (to any authed user) read-only route
+// ✅ PUBLIC ROUTES (NO AUTH)
+r.get("/", list);
 r.get("/:id/brief", brief);
+r.get("/stats", stats);
 
+// 🔐 PROTECTED ROUTES BELOW
+r.use(requireAuth);
 r.use(requireAnyRole(["superadmin"])); // protect all
 
 // file upload (memory)
@@ -18,7 +21,6 @@ const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-r.get("/", list);
 r.post("/", create);
 r.patch("/:id", update);
 r.patch("/:id/status", setStatus);

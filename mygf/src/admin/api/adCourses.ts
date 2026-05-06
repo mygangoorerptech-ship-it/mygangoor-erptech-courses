@@ -4,5 +4,8 @@ import type { Course, CourseFilters } from '../types/course'
 
 export async function listAdCourses(filters: CourseFilters) {
   const r = await api.get('/courses', { params: filters })
-  return r.data as Course[]
+  if (Array.isArray(r.data)) {
+    return { items: r.data as Course[], total: r.data.length, page: 1, pageSize: r.data.length };
+  }
+  return r.data;
 }

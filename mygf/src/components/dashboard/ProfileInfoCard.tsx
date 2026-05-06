@@ -78,10 +78,10 @@ export default function ProfileInfoCard({
   }
 
   return (
-    <Card className="p-8 mb-8">
+    <Card className="mb-6">
       <div className="flex items-center space-x-6 mb-8">
         <div className="relative">
-          <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 text-xl font-semibold">
             {initials}
           </div>
           <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full flex items-center justify-center">
@@ -90,13 +90,13 @@ export default function ProfileInfoCard({
         </div>
 
         <div>
-          <h3 className="text-2xl font-bold text-gray-900">{name}</h3>
-          <p className="text-gray-600">@{handle}</p>
+          <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+<p className="text-sm text-gray-500">@{handle}</p>
           <div className="flex items-center mt-2 gap-2">
             {statusBadges.map((b, idx) => (
               <span
                 key={idx}
-                className={`${b.bg} ${b.textColor} px-3 py-1 rounded-full text-sm font-medium`}
+                className={`${b.bg} ${b.textColor} px-2.5 py-0.5 rounded-md text-xs font-medium`}
               >
                 {b.text}
               </span>
@@ -129,17 +129,17 @@ export default function ProfileInfoCard({
       </div>
 
       {/* Courses Enrolled */}
-      <div className="mt-6 rounded-xl border border-blue-200 bg-blue-50/60 backdrop-blur p-4">
+      <div className="mt-6 border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-blue-900">Courses Enrolled</div>
-            <div className="text-xs text-blue-700">{subtitle}</div>
+            <div className="text-sm font-semibold text-gray-900">Courses Enrolled</div>
+            <div className="text-xs text-gray-700">{subtitle}</div>
           </div>
 
           {hasCourses && (
             <button
               onClick={toggleExpand}
-              className="inline-flex items-center gap-2 rounded-lg border border-blue-300 bg-white/70 px-3 py-1.5 text-sm text-blue-700 hover:bg-white transition"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
               aria-expanded={expanded}
               aria-controls="enrolled-courses"
               title={expanded ? "Hide courses" : "Show courses"}
@@ -153,9 +153,8 @@ export default function ProfileInfoCard({
         {/* Animated list container */}
         <div
           id="enrolled-courses"
-          className={`overflow-hidden transition-all duration-300 ease-out ${
-            expanded ? "max-h-[36rem] mt-4 opacity-100" : "max-h-0 opacity-0"
-          }`}
+          className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[36rem] mt-4 opacity-100" : "max-h-0 opacity-0"
+            }`}
         >
           <div className="grid gap-3">
             {/* Skeleton while catalog is loading */}
@@ -174,11 +173,11 @@ export default function ProfileInfoCard({
                   <a
                     key={String(course.id)}
                     href={href}
-                    className="group block rounded-xl border border-blue-200 bg-white/70 backdrop-blur-sm px-4 py-3 shadow-sm hover:shadow transition"
+                    className="group block rounded-lg border border-gray-200 bg-white px-4 py-3 hover:bg-gray-50 transition"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate font-medium text-slate-800 group-hover:text-blue-700">
+                        <div className="truncate font-medium text-gray-900 group-hover:text-indigo-600">
                           {course.title ||
                             (course as { name?: string }).name ||
                             "Untitled Course"}
@@ -189,7 +188,7 @@ export default function ProfileInfoCard({
                           </div>
                         )}
                       </div>
-                      <i className="fas fa-arrow-right-long text-slate-400 group-hover:text-blue-600 transition" />
+                      <i className="fas fa-arrow-right-long text-gray-400 group-hover:text-indigo-600 transition" />
                     </div>
                   </a>
                 );
@@ -222,7 +221,7 @@ function Detail({
   valueClass?: string;
 }) {
   return (
-    <div className="bg-gray-50 rounded-xl p-4">
+    <div className="border border-gray-200 rounded-lg p-4">
       <div className="flex items-center space-x-3">
         <div className={`${iconBg} p-2 rounded-lg`}>
           <i className={iconClass} />

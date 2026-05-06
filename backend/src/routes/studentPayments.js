@@ -4,6 +4,8 @@ import mongoose from "mongoose";              // ⬅️ add
 import { requireAuth } from "../middleware/authz.js";
 import Payment from "../models/Payment.js";
 import Course from "../models/Course.js";
+import Enrollment from "../models/Enrollment.js";
+import { claimReceipt } from "../controllers/paymentsController.js";
 
 const r = Router();
 r.use(requireAuth);
@@ -23,7 +25,7 @@ function extractDob(notes) {
     const kv = obj.find(
       (x) =>
         (x && typeof x === "object") &&
-        ["birth","dob","dateOfBirth"].includes(String(x.key || x.name || "").toLowerCase())
+        ["birth", "dob", "dateOfBirth"].includes(String(x.key || x.name || "").toLowerCase())
     );
     return kv?.value || kv?.val || null;
   }
@@ -38,29 +40,39 @@ r.get("/latest", async (req, res) => {
   const actor = req.user;
   if (!actor) return res.status(401).json({ ok: false });
 
-  // Accept any of the common id shapes the auth layer might place on req.user
-  const idCandidates = [actor._id, actor.id, actor.sub].filter(Boolean).map(String);
+  // Collect all possible ID shapes
+  const idCandidates = [actor._id, actor.id, actor.sub]
+    .filter(Boolean)
+    .map(String);
 
-  // Build a robust OR query:
-  //  - match studentId ObjectId (preferred)
-  //  - ALSO fall back to a regex search inside notes (Razorpay order notes often carry studentId)
   const or = [];
+
+  // Build query (ObjectId match first, then notes fallback)
   for (const id of idCandidates) {
-    if (isOid(id)) or.push({ studentId: new ObjectId(id) });
-    or.push({ notes: { $regex: new RegExp(escapeRx(id), "i") } });
+    if (isOid(id)) {
+      or.push({ studentId: new ObjectId(id) }); // ✅ primary fast match
+    }
+
+    // fallback: search inside notes (Razorpay notes)
+    or.push({
+      notes: { $regex: new RegExp(escapeRx(id), "i") },
+    });
   }
 
-  // If we somehow have no candidates, force a miss quickly
+  // Safe fallback
   const where = or.length ? { $or: or } : { _id: null };
 
-  const doc = await Payment.findOne(where).sort({ updatedAt: -1, createdAt: -1 }).lean();
+  const doc = await Payment.findOne(where)
+    .sort({ updatedAt: -1, createdAt: -1 })
+    .lean();
 
-  // 👇 IMPORTANT: return 200 with `payment: null` instead of 404 to avoid noisy console errors
+  // Always return 200 (clean frontend handling)
   if (!doc) {
     return res.json({ ok: true, payment: null });
   }
 
   const dob = extractDob(doc.notes);
+
   return res.json({
     ok: true,
     payment: {
@@ -76,52 +88,6 @@ r.get("/latest", async (req, res) => {
 });
 
 // POST /api/student/payments/claim
-r.post("/claim", async (req, res) => {
-  try {
-    const actor = req.user;
-    // 🔒 orgId is NEVER trusted from client — always derived from course record
-    const { courseId, amount, receiptNo, referenceId, notes } = req.body || {};
-    if (!courseId || !amount) {
-      return res.status(400).json({ ok: false, message: "courseId and amount are required" });
-    }
-
-    const course = await Course.findById(courseId).lean();
-    if (!course) {
-      return res.status(404).json({ ok: false, message: "Course not found" });
-    }
-
-    // orgId must come from course — never from the request body
-    const orgId = course.orgId ?? null;
-    if (!isOid(orgId)) {
-      return res.status(400).json({
-        ok: false,
-        message: "This course has no owning organization. Cash claims are not supported for global courses.",
-      });
-    }
-
-    const doc = await Payment.create({
-      type: "offline",
-      method: "upi",
-      status: "submitted",
-      amount: Math.floor(Number(amount)), // paise
-      currency: "INR",
-      orgId,
-      courseId,
-      studentId: actor._id || actor.id || actor.sub,
-      receiptNo: receiptNo || undefined,
-      referenceId: referenceId || undefined,
-      notes: typeof notes === "string" ? notes : JSON.stringify(notes || {}),
-    });
-    return res.status(201).json({ ok: true, payment: { id: String(doc._id) } });
-  } catch (e) {
-    console.error("[student.payments.claim] error", e);
-    // Surface validation errors (e.g. required field missing) as 400, not silent 500
-    if (e?.name === "ValidationError") {
-      const msg = Object.values(e.errors || {}).map((v) => v.message).join("; ");
-      return res.status(400).json({ ok: false, message: msg || "Payment validation failed" });
-    }
-    return res.status(500).json({ ok: false, message: "Could not submit payment claim. Please try again." });
-  }
-});
+r.post("/claim", claimReceipt);
 
 export default r;

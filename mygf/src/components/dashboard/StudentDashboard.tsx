@@ -13,6 +13,7 @@ import type { CertificateItem, QuickStat } from "./types";
 import Footer from "../common/Footer";
 import { useAuthHydration } from "../../hooks/useAuthHydration";
 import { api } from "../../api/client";
+import StudentSidebar from "./StudentSidebar";
 
 function formatDate(d?: string | Date | null) {
   if (!d) return "—";
@@ -43,7 +44,7 @@ export default function StudentDashboard() {
   // Cookie session → hydrated once, then reused from Zustand
   const { user } = useAuthHydration();
   const navigate = useNavigate();
-  
+
   // Check for pendingJoinModal flag (set from home.html "Join Now" button)
   useEffect(() => {
     if (user) {
@@ -66,7 +67,7 @@ export default function StudentDashboard() {
     orgId: uOrgId,
   } = (user as any) || {};
 
-    // Backend-fetched extras
+  // Backend-fetched extras
   const [orgName, setOrgName] = useState<string | null>(null);
   const [dobRaw, setDobRaw] = useState<string | null>(null);
 
@@ -85,23 +86,23 @@ export default function StudentDashboard() {
     })();
 
     // 2) Organization name (if student belongs to an org)
-(async () => {
-  if (!uOrgId) {
-    setOrgName(null);
-    return;
-  }
-  try {
-    // ⬇️ changed path to the brief endpoint (no role issue)
-    const res = await api.get(`/organizations/${uOrgId}/brief`, { withCredentials: true });
-    const name =
-      (res?.data?.organization && res.data.organization.name) ||
-      res?.data?.name ||
-      null;
-    setOrgName(name);
-  } catch {
-    setOrgName(null);
-  }
-})();
+    (async () => {
+      if (!uOrgId) {
+        setOrgName(null);
+        return;
+      }
+      try {
+        // ⬇️ changed path to the brief endpoint (no role issue)
+        const res = await api.get(`/organizations/${uOrgId}/brief`, { withCredentials: true });
+        const name =
+          (res?.data?.organization && res.data.organization.name) ||
+          res?.data?.name ||
+          null;
+        setOrgName(name);
+      } catch {
+        setOrgName(null);
+      }
+    })();
     return () => {
       aborted = true;
     };
@@ -132,7 +133,7 @@ export default function StudentDashboard() {
     const accountStatus: "Active" | "Suspended" =
       uStatus === "active" ? "Active" : "Suspended";
 
-        // DOB display: keep header, and show fallback if null
+    // DOB display: keep header, and show fallback if null
     const dobDisplay = dobRaw ? formatDate(dobRaw) : "-- / -- / ----";
 
     return {
@@ -160,19 +161,30 @@ export default function StudentDashboard() {
     { id: "cert3", title: "HTML & CSS", issued: "Oct 2024", iconColor: "text-green-600", bgGradient: "from-green-50 to-green-100", borderColor: "border-green-200" },
   ];
 
-  return (
-    <>
-      <div className="relative z-20">
-        <NavBar />
-      </div>
+return (
+  <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
 
-      <div className="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen font-sans pt-16 sm:pt-20">
+    {/* NAVBAR */}
+    <div className="relative z-20">
+      <NavBar />
+    </div>
+
+    {/* BODY */}
+    <div className="flex flex-1 pt-16 sm:pt-20">
+
+      {/* SIDEBAR */}
+      <StudentSidebar />
+
+      {/* MAIN CONTENT */}
+      <div className="flex-1 min-w-0 flex flex-col">
+
         <DashboardHeader />
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <WelcomeBanner name={profile.name} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
               <ProfileInfoCard
                 initials={profile.initials}
                 name={profile.name}
@@ -193,9 +205,12 @@ export default function StudentDashboard() {
             </div>
           </div>
         </main>
-      </div>
 
-      <Footer brandName="ECA Academy" tagline="Learn smarter. Build faster." />
-    </>
-  );
+      </div>
+    </div>
+            {/* FOOTER (now correctly placed) */}
+        <Footer />
+  </div>
+);
+
 }

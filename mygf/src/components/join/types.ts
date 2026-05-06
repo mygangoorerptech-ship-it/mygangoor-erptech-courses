@@ -2,16 +2,32 @@
 export type CourseOption = {
   id: string;
   title: string;
-  duration: string | null;
-  /** Authoritative price in paise (integer) */
-  pricePaise: number;
-  /** Optional list prices in paise */
+
+  // duration
+  duration?: string | null;
+  durationHours?: number | null;
+
+  // pricing (paise = source of truth)
+  pricePaise?: number | null;
   mrpPaise?: number | null;
   salePaise?: number | null;
-  /** Rupees fallback used by legacy consumers (prefer mrpPaise) */
+  discountPercent?: number | null;
+
+  // fallback (legacy UI)
   price?: number;
-  /** Organization name. null = global / platform course */
+
+  // visuals
+  cover?: string;
+  pill?: string;
+  track?: string;
+  level?: string;
+  rating?: number;
+  ratingCount?: number;
+
+  // org
   orgName?: string | null;
+  centerIds?: string[];
+  centerNames?: string[];
 };
 
 export type Step = 1 | 2 | 3 | 4;

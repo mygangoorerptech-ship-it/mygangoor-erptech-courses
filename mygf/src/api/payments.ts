@@ -37,7 +37,7 @@ export async function refundPayment(id: string): Promise<Payment> {
 
 // student self-claim
 export async function claimReceipt(payload: {
-  orgId: string;
+  orgId?: string;
   courseId: string;
   amount: number; // paise
   receiptNo?: string;

@@ -26,12 +26,12 @@ export default function OfflinePaymentModal({
   }) => Promise<void>;
 }) {
   const [studentId, setStudentId] = React.useState(defaultStudentId || "");
-  const [courseId, setCourseId]   = React.useState(defaultCourseId || "");
-  const [amount, setAmount]       = React.useState("0.00");
+  const [courseId, setCourseId] = React.useState(defaultCourseId || "");
+  const [amount, setAmount] = React.useState("0.00");
   const [receiptNo, setReceiptNo] = React.useState("");
   const [referenceId, setReferenceId] = React.useState("");
-  const [notes, setNotes]         = React.useState("");
-  const [saving, setSaving]       = React.useState(false);
+  const [notes, setNotes] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     setStudentId(defaultStudentId || "");
@@ -49,7 +49,7 @@ export default function OfflinePaymentModal({
   });
 
   const students = Array.isArray(studentsQ.data) ? studentsQ.data : [];
-  const courses  = Array.isArray(coursesQ.data) ? coursesQ.data : [];
+  const courses = Array.isArray(coursesQ.data) ? coursesQ.data : [];
 
   const canSave = studentId && courseId && Number(amount) > 0;
 
@@ -59,7 +59,7 @@ export default function OfflinePaymentModal({
         <div className="sm:col-span-1">
           <Label>
             <span className="inline-flex items-center gap-2">
-              <User size={14}/> Student (email)
+              <User size={14} /> Student (email)
             </span>
           </Label>
           <Select
@@ -79,7 +79,7 @@ export default function OfflinePaymentModal({
         <div className="sm:col-span-1">
           <Label>
             <span className="inline-flex items-center gap-2">
-              <BookOpen size={14}/> Course
+              <BookOpen size={14} /> Course
             </span>
           </Label>
           <Select
@@ -99,23 +99,27 @@ export default function OfflinePaymentModal({
         <div>
           <Label>
             <span className="inline-flex items-center gap-2">
-              <IndianRupee size={14}/> Amount (₹)
+              <IndianRupee size={14} /> Amount (₹)
             </span>
           </Label>
           <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
         </div>
 
+        <p className="text-xs text-slate-500">
+          At least one identifier is required.
+        </p>
+
         <div>
           <Label>
             <span className="inline-flex items-center gap-2">
-              <FileText size={14}/> Receipt No (optional)
+              <FileText size={14} /> Receipt No
             </span>
           </Label>
           <Input value={receiptNo} onChange={e => setReceiptNo(e.target.value)} placeholder="UPI receipt #" />
         </div>
 
         <div className="sm:col-span-2">
-          <Label>Reference / UTR (optional)</Label>
+          <Label>Reference / UTR</Label>
           <Input value={referenceId} onChange={e => setReferenceId(e.target.value)} placeholder="UPI transaction id / UTR" />
         </div>
 
@@ -146,7 +150,7 @@ export default function OfflinePaymentModal({
             disabled={!canSave || saving}
           >
             <span className="inline-flex items-center gap-2">
-              <BadgeCheck size={16}/>{saving ? "Saving…" : "Save"}
+              <BadgeCheck size={16} />{saving ? "Saving…" : "Save"}
             </span>
           </Button>
         </div>

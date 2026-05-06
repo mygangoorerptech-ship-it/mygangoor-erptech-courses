@@ -39,6 +39,12 @@ export function useCourses(opts?: { enabled?: boolean } = {}) {
   const prefetchNext  = useCatalogStore((s) => s.prefetchNext);
   const fetchNext     = useCatalogStore((s) => s.fetchNext);
 
+  const invalidate = useCatalogStore((s) => s.invalidate);
+
+useEffect(() => {
+  invalidate();
+}, [audience, orgId]);
+
   // Initial load for this audience
   useEffect(() => {
     if (!enabled) return;

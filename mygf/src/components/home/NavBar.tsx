@@ -32,10 +32,10 @@ function BrandLogo() {
 }
 export default function NavBar() {
   const navigate = useNavigate();
-const user = useAuth(s => s.user);
-const role = useAuth(s => s.user?.role);
-const isAuthenticated = useAuth(s => !!s.user);
-const isAuthed = isAuthenticated;
+  const user = useAuth(s => s.user);
+  const role = useAuth(s => s.user?.role);
+  const isAuthenticated = useAuth(s => !!s.user);
+  const isAuthed = isAuthenticated;
 
 
   const [joinOpen, setJoinOpen] = useState(false);
@@ -83,10 +83,10 @@ const isAuthed = isAuthenticated;
       }
       switch (role) {
         case "superadmin": navigate("/superadmin"); break;
-        case "admin":      navigate("/admin"); break;
-        case "teacher":    navigate("/teacher"); break;
-        case "student":    navigate("/dashboard"); break;
-        default:           navigate("/dashboard");
+        case "admin": navigate("/admin"); break;
+        case "teacher": navigate("/teacher"); break;
+        case "student": navigate("/dashboard"); break;
+        default: navigate("/dashboard");
       }
     } else {
       navigate("/login");
@@ -109,26 +109,33 @@ const isAuthed = isAuthenticated;
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Brand */}
-<div className="flex items-center gap-2 cursor-pointer">
-  <BrandLogo />
-</div>
+          <div className="flex items-center gap-2 cursor-pointer">
+            <BrandLogo />
+          </div>
 
-{/* Desktop links */}
-<div className="hidden md:flex items-center space-x-8">
+          {/* Desktop links */}
+          <div className="hidden md:flex items-center space-x-8">
 
-  {/* Courses (only if authenticated) */}
-  {/* {isAuthed && ( */}
-    <button
-    onClick={() => navigate("/tracks")}
-      className="text-gray-700 hover:text-pink-500 transition-colors"
-    >
-      Courses
-    </button>
-  {/* )} */}
+            {/* Courses (only if authenticated) */}
+            {/* {isAuthed && ( */}
+            <button
+              onClick={() => navigate("/tracks")}
+              className="text-gray-700 hover:text-pink-500 transition-colors"
+            >
+              Courses
+            </button>
+            {/* )} */}
 
-  {/* Notification bell */}
-  {isAuthed && <NotificationBell />}
-</div>
+            <button
+              onClick={() => navigate("/centers")}
+              className="text-gray-700 hover:text-pink-500 transition-colors"
+            >
+              Centers
+            </button>
+
+            {/* Notification bell */}
+            {isAuthed && <NotificationBell />}
+          </div>
 
           {/* CTAs */}
           <div className="flex items-center gap-3">
@@ -152,23 +159,23 @@ const isAuthed = isAuthenticated;
             </button>
 
             {/* Mobile menu button */}
-<button
-  type="button"
-  onClick={() => setMobileOpen(true)}
-  className="md:hidden ml-1 inline-flex items-center justify-center rounded-xl border border-pink-100 bg-white/70 px-3 py-2 shadow-sm hover:bg-white transition"
-  aria-label="Open menu"
->
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    className="h-5 w-5 text-gray-700"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth="2"
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-  </svg>
-</button>
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              className="md:hidden ml-1 inline-flex items-center justify-center rounded-xl border border-pink-100 bg-white/70 px-3 py-2 shadow-sm hover:bg-white transition"
+              aria-label="Open menu"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-gray-700"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -195,15 +202,15 @@ const isAuthed = isAuthenticated;
             className="inline-flex items-center justify-center rounded-lg border border-pink-100 bg-white/70 p-2 hover:bg-white transition"
           >
             <svg
-  xmlns="http://www.w3.org/2000/svg"
-  className="h-5 w-5 text-gray-700"
-  fill="none"
-  viewBox="0 0 24 24"
-  stroke="currentColor"
-  strokeWidth="2"
->
-  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
-</svg>
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 text-gray-700"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+            </svg>
           </button>
         </div>
 
@@ -212,18 +219,29 @@ const isAuthed = isAuthenticated;
           <div className="my-3 h-px bg-pink-100" />
 
           {/* Courses */}
-{/* {isAuthed && ( */}
-  <button
-    onClick={() => {
-      setMobileOpen(false);
-      navigate("/tracks");
-    }}
-    className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
-  >
-    <i className="fa-solid fa-book-open text-gray-600" />
-    <span>Courses</span>
-  </button>
-{/* )} */}
+          {/* {isAuthed && ( */}
+          <button
+            onClick={() => {
+              setMobileOpen(false);
+              navigate("/tracks");
+            }}
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+          >
+            <i className="fa-solid fa-book-open text-gray-600" />
+            <span>Courses</span>
+          </button>
+          {/* )} */}
+
+          <button
+            onClick={() => {
+              setMobileOpen(false);
+              navigate("/centers");
+            }}
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+          >
+            <i className="fa-solid fa-building-columns text-gray-600" />
+            <span>Centers</span>
+          </button>
 
           <button
             onClick={goDashOrLogin}
@@ -243,14 +261,14 @@ const isAuthed = isAuthenticated;
 
           {/* Keep bell in the mobile drawer */}
           {/* Mobile bell: aligned with the drawer content */}
-{isAuthed && (
-  <div className="mt-4">
-    <div className="w-full flex items-center gap-3 rounded-xl px-8 py-3 text-gray-800 hover:bg-pink-50">
-      <NotificationBell />
-      <span className="text-sm">Notifications</span>
-    </div>
-  </div>
-)}
+          {isAuthed && (
+            <div className="mt-4">
+              <div className="w-full flex items-center gap-3 rounded-xl px-8 py-3 text-gray-800 hover:bg-pink-50">
+                <NotificationBell />
+                <span className="text-sm">Notifications</span>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="mt-auto px-4 py-4 text-xs text-gray-500">

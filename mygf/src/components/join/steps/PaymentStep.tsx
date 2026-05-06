@@ -6,10 +6,10 @@ import { formatINRFromPaise } from "../../../admin/utils/currency";
 
 export default function PaymentStep(props: {
   course: CourseOption; base: number; discount: number; total: number;
-  discountKind: DiscountKind; setDiscountKind: (v: DiscountKind)=>void;
-  couponCode: string; setCouponCode: (v: string)=>void;
-  method: PayMethod; setMethod: (v: PayMethod)=>void;
-  mode: PayMode; setMode: (v: PayMode)=>void;
+  discountKind: DiscountKind; setDiscountKind: (v: DiscountKind) => void;
+  couponCode: string; setCouponCode: (v: string) => void;
+  method: PayMethod; setMethod: (v: PayMethod) => void;
+  mode: PayMode; setMode: (v: PayMode) => void;
   partAmount: number | ""; setPartAmount: (v: number | "") => void;
   isPaying: boolean; onPay?: () => void | Promise<void>;
   errors: Record<string, string>;
@@ -50,7 +50,10 @@ export default function PaymentStep(props: {
     <div className="space-y-5">
       {/* Org attribution — always shown; defaults to "Platform" for global courses */}
       <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-2.5 text-sm text-indigo-800">
-        Enrolling under: <span className="font-semibold">{props.orgName || "Platform"}</span>
+        Enrolling under:{" "}
+        <span className="font-semibold">
+          {props.orgName ?? "Unknown Center"}
+        </span>
       </div>
 
       <div className="rounded-xl border bg-white p-4">
@@ -169,7 +172,7 @@ export default function PaymentStep(props: {
           {method === "cash" && (
             <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg flex items-start gap-2">
               <AlertCircle className="w-4 h-4 mt-0.5" />
-              We’ll hold your seat for 48 hours. Please contact admin to confirm payment.
+              Your enrollment will activate after payment verification. Please contact admin to confirm payment.
             </div>
           )}
         </div>
@@ -215,39 +218,42 @@ export default function PaymentStep(props: {
                 {errors.partAmount && <InlineError msg={errors.partAmount} />}
               </>
             )}
-{props.method === "cash" && (
-  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-    <label className="block">
-      <span className="text-sm font-medium">Receipt No. (optional)</span>
-      <input
-        type="text"
-        value={receiptNo}
-        onChange={(e) => setReceiptNo(e.target.value)}
-        className="mt-1 w-full rounded-md border px-3 py-2 outline-none focus:ring"
-        placeholder="e.g., RCPT-12345"
-        autoComplete="off"
-        inputMode="text"
-      />
-    </label>
+            {props.method === "cash" && (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg flex items-start gap-2 md:col-span-2">
+                  At least one identifier is required.*
+                </p>
+                <label className="block">
+                  <span className="text-sm font-medium">Receipt No.</span>
+                  <input
+                    type="text"
+                    value={receiptNo}
+                    onChange={(e) => setReceiptNo(e.target.value)}
+                    className="mt-1 w-full rounded-md border px-3 py-2 outline-none focus:ring"
+                    placeholder="e.g., RCPT-12345"
+                    autoComplete="off"
+                    inputMode="text"
+                  />
+                </label>
 
-    <label className="block">
-      <span className="text-sm font-medium">Reference ID / UTR (optional)</span>
-      <input
-        type="text"
-        value={referenceId}
-        onChange={(e) => setReferenceId(e.target.value)}
-        className="mt-1 w-full rounded-md border px-3 py-2 outline-none focus:ring"
-        placeholder="e.g., UTR/Txn Ref"
-        autoComplete="off"
-        inputMode="text"
-      />
-    </label>
+                <label className="block">
+                  <span className="text-sm font-medium">Reference ID / UTR</span>
+                  <input
+                    type="text"
+                    value={referenceId}
+                    onChange={(e) => setReferenceId(e.target.value)}
+                    className="mt-1 w-full rounded-md border px-3 py-2 outline-none focus:ring"
+                    placeholder="e.g., UTR/Txn Ref"
+                    autoComplete="off"
+                    inputMode="text"
+                  />
+                </label>
 
-    <p className="text-xs text-muted-foreground md:col-span-2">
-      Adding these helps the admin verify your cash payment faster.
-    </p>
-  </div>
-)}
+                <p className="text-xs text-muted-foreground md:col-span-2">
+                  Adding these helps the admin verify your cash payment faster.
+                </p>
+              </div>
+            )}
 
           </div>
         </div>

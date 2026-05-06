@@ -3,6 +3,7 @@ import Course from "../models/Course.js";
 import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import mongoose from "mongoose";
+import CourseAssignment from "../models/CourseAssignment.js";
 
 // helper: parse simple "3h 20m" / "95m" → hours number
 function parseDurationTextToHours(input) {
@@ -29,24 +30,46 @@ export async function listCourses(req, res) {
           "roles:", req.user?.roles,
           "orgId(jwt):", req.user?.orgId
         );
-      } catch {}
+      } catch { }
     }
 
-    // All published public courses — visible to every authenticated user regardless of org membership
-    const query = { status: "published", visibility: "public" };
+    // All published courses — visible to everyone (public + org + global) regardless of org membership
+    const query = { status: { $in: ["published", "Published"] } };
 
     const docs = await Course.find(query)
       .select(
         [
-          "_id","title","slug","description","category","tags",
-          "coverUrl","bundleCoverUrl","demoVideoUrl",
-          "price","discountPercent","ratingAvg","ratingCount",
-          "level","orgId","ownerId","visibility","status",
-          "duration","durationHours","createdAt","updatedAt",
+          "_id", "title", "slug", "description", "category", "tags",
+          "coverUrl", "bundleCoverUrl", "demoVideoUrl",
+          "price", "discountPercent", "ratingAvg", "ratingCount",
+          "level", "orgId", "ownerId", "visibility", "status",
+          "duration", "durationHours", "createdAt", "updatedAt",
         ].join(" ")
       )
       .sort({ createdAt: -1 })
       .lean();
+
+    // ── fetch center assignments ─────────────────────────────
+    const courseIds = docs.map(c => c._id);
+
+    const assignments = courseIds.length
+      ? await CourseAssignment.find({ courseId: { $in: courseIds } }).lean()
+      : [];
+
+    const centerMap = new Map();
+
+    for (const a of assignments) {
+      const key = String(a.courseId);
+      if (!centerMap.has(key)) {
+        centerMap.set(key, { ids: [], names: [] });
+      }
+      const id = String(a.centerId);
+      const entry = centerMap.get(key);
+
+      if (!entry.ids.includes(id)) {
+        entry.ids.push(id);
+      }
+    }
 
     // Bulk-fetch org names for all courses that have an orgId
     const orgIds = [...new Set(docs.map(c => c.orgId).filter(Boolean).map(String))];
@@ -56,7 +79,30 @@ export async function listCourses(req, res) {
       for (const o of orgs) orgNameMap.set(String(o._id), o.name || null);
     }
 
+    // ── fetch center names ─────────────────────────────
+    const allCenterIds = assignments.length
+      ? [...new Set(assignments.map(a => String(a.centerId)))]
+      : [];
+
+    const centerNameMap = new Map();
+
+    if (allCenterIds.length) {
+      const orgs = await Organization.find({
+        _id: { $in: allCenterIds }
+      }).select("_id name").lean();
+
+      for (const o of orgs) {
+        centerNameMap.set(String(o._id), o.name);
+      }
+    }
+
+    // attach names
+    for (const [courseId, data] of centerMap.entries()) {
+      data.names = data.ids.map(id => centerNameMap.get(id) || "Unknown");
+    }
+
     const items = docs.map((c) => {
+      const cm = centerMap.get(String(c._id)) || { ids: [], names: [] };
       // ---- pricing in paise (authoritative) ----
       const pricePaiseRaw = Number.isFinite(c.price) ? Number(c.price) : 0;
       const discountPercent = Number.isFinite(c.discountPercent) ? Number(c.discountPercent) : 0;
@@ -99,6 +145,8 @@ export async function listCourses(req, res) {
 
         orgId: c.orgId ? String(c.orgId) : null,
         orgName: c.orgId ? (orgNameMap.get(String(c.orgId)) ?? null) : null,
+        centerIds: cm.ids,
+        centerNames: cm.names,
         ownerId: c.ownerId ? String(c.ownerId) : null,
 
         duration: c.duration || null,
@@ -125,7 +173,7 @@ export async function listCatalogCards(req, res) {
     const cursor = (req.query.cursor || "").toString().trim();
 
     // All published public courses — visible to every user regardless of org membership
-    const query = { status: "published", visibility: "public" };
+    const query = { status: { $in: ["published", "Published"] } };
     if (cursor && mongoose.isValidObjectId(cursor)) {
       // efficient keyset pagination by _id (newest first)
       Object.assign(query, { _id: { $lt: new mongoose.Types.ObjectId(cursor) } });
@@ -159,6 +207,28 @@ export async function listCatalogCards(req, res) {
       .limit(limit + 1)
       .lean();
 
+    // ── fetch center assignments ─────────────────────────────
+    const cardCourseIds = docs.map(c => c._id);
+
+    const cardAssignments = cardCourseIds.length
+      ? await CourseAssignment.find({ courseId: { $in: cardCourseIds } }).lean()
+      : [];
+
+    const cardCenterMap = new Map();
+
+    for (const a of cardAssignments) {
+      const key = String(a.courseId);
+      if (!cardCenterMap.has(key)) {
+        cardCenterMap.set(key, { ids: [], names: [] });
+      }
+      const id = String(a.centerId);
+      const entry = cardCenterMap.get(key);
+
+      if (!entry.ids.includes(id)) {
+        entry.ids.push(id);
+      }
+    }
+
     // Bulk-fetch org names
     const cardOrgIds = [...new Set(docs.map(c => c.orgId).filter(Boolean).map(String))];
     const cardOrgNameMap = new Map();
@@ -167,7 +237,31 @@ export async function listCatalogCards(req, res) {
       for (const o of orgs) cardOrgNameMap.set(String(o._id), o.name || null);
     }
 
+    // ── center names ─────────────────────────────
+    const cardCenterIds = cardAssignments.length
+      ? [...new Set(cardAssignments.map(a => String(a.centerId)))]
+      : [];
+
+    const cardCenterNameMap = new Map();
+
+    if (cardCenterIds.length) {
+      const orgs = await Organization.find({
+        _id: { $in: cardCenterIds }
+      }).select("_id name").lean();
+
+      for (const o of orgs) {
+        cardCenterNameMap.set(String(o._id), o.name);
+      }
+    }
+
+    for (const [courseId, data] of cardCenterMap.entries()) {
+      data.names = data.ids.length
+        ? data.ids.map(id => cardCenterNameMap.get(id) || "Unknown")
+        : [];
+    }
+
     const items = docs.slice(0, limit).map((c) => {
+      const cm = cardCenterMap.get(String(c._id)) || { ids: [], names: [] };
       // compute total seconds from chapters; fallback to durationText
       const chapters = Array.isArray(c.chapters) ? c.chapters : [];
       const totalSeconds = chapters.reduce((s, ch) => s + (Number(ch.durationSeconds) || 0), 0);
@@ -206,6 +300,8 @@ export async function listCatalogCards(req, res) {
         durationHours: Number.isFinite(durationHours) ? durationHours : 0,
         // (optional) also send durationText if you ever want to show it:
         durationText: c.durationText || null,
+        centerIds: cm.ids,
+        centerNames: cm.names,
       };
     });
 
@@ -233,23 +329,23 @@ export async function getCourseDetail(req, res) {
     }
 
     // allow any published public course — mirrors catalog-level visibility rule
-    const c = await Course.findOne({ _id: id, status: "published", visibility: "public" }).lean();
+    const c = await Course.findOne({ _id: id, status: { $in: ["published", "Published"] } }).lean();
     if (!c) return res.status(404).json({ ok: false, message: "Course not found" });
 
-        // 🔹 NEW: resolve instructor/owner names
+    // 🔹 NEW: resolve instructor/owner names
     const pickName = (u) =>
       u?.name || u?.fullName || [u?.firstName, u?.lastName].filter(Boolean).join(" ") || u?.displayName || null;
 
     let ownerName = null, teacherName = null;
     const ids = [];
-    if (c.ownerId)   ids.push(String(c.ownerId));
+    if (c.ownerId) ids.push(String(c.ownerId));
     if (c.teacherId) ids.push(String(c.teacherId));
     if (ids.length) {
       const users = await User.find({ _id: { $in: ids } })
         .select("name fullName firstName lastName displayName")
         .lean();
       const byId = new Map(users.map(u => [String(u._id), u]));
-      if (c.ownerId && byId.has(String(c.ownerId)))   ownerName   = pickName(byId.get(String(c.ownerId)));
+      if (c.ownerId && byId.has(String(c.ownerId))) ownerName = pickName(byId.get(String(c.ownerId)));
       if (c.teacherId && byId.has(String(c.teacherId))) teacherName = pickName(byId.get(String(c.teacherId)));
     }
 
@@ -264,6 +360,23 @@ export async function getCourseDetail(req, res) {
     const ratingAvg = Number(c.ratingAvg) || 0;
     const ratingCount = Number(c.ratingCount) || 0;
 
+    const assignments = await CourseAssignment.find({
+      courseId: c._id
+    }).select("centerId").lean();
+
+    const centerIds = assignments.map(a => String(a.centerId));
+
+    let centerNames = [];
+
+    if (centerIds.length) {
+      const orgs = await Organization.find({
+        _id: { $in: centerIds }
+      }).select("name").lean();
+
+      const nameMap = new Map(orgs.map(o => [String(o._id), o.name]));
+      centerNames = centerIds.map(id => nameMap.get(id) || "Unknown");
+    }
+
     return res.json({
       id: String(c._id),
       title: c.title,
@@ -276,12 +389,12 @@ export async function getCourseDetail(req, res) {
       cover: c.bundleCoverUrl || c.coverUrl || null,
       rating: ratingAvg,
       reviews: ratingCount,
-            // 🔹 NEW fields
+      // 🔹 NEW fields
       teacherId: c.teacherId ? String(c.teacherId) : null,
       teacherName: teacherName,
       ownerName: ownerName,
       chapters: chapters
-        .sort((a,b) => (Number(a.order)||0) - (Number(b.order)||0))
+        .sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0))
         .map(ch => ({
           id: ch._id ? String(ch._id) : undefined,
           title: ch.title,
@@ -291,9 +404,11 @@ export async function getCourseDetail(req, res) {
           youtubeUrl: ch.youtubeUrl || null,
           durationSeconds: Number(ch.durationSeconds) || 0,
         })),
+      centerIds,
+      centerNames,
     });
   } catch (e) {
     console.error("[studentCatalog.getCourseDetail] error:", e);
-    return res.status(500).json({ ok:false, message:"Internal error" });
+    return res.status(500).json({ ok: false, message: "Internal error" });
   }
 }

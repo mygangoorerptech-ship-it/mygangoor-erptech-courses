@@ -17,6 +17,7 @@ import { ensureCsrfToken, getCsrfToken } from "../../../config/csrf";
 import { API_ROOT } from "../../../config/env";
 import { listAdUsers } from "../../api/adUsers";
 import { listSaUsers } from "../../api/saUsers";
+import { listOrganizations } from "../../api/organizations";
 import { useAuth } from "../../auth/store";
 
 // ★ small helpers
@@ -117,6 +118,10 @@ export default function CourseFormModal({
 
   const [isSaving, setIsSaving] = useState(false);
 
+  // ── centers ──────────────────────────────────────────────────────────────────
+  const [centers, setCenters] = useState<Array<{ value: string; label: string }>>([]);
+  const [selectedCenterIds, setSelectedCenterIds] = useState<string[]>(initial?.centerIds || []);
+
   // ── new bundle-level fields ───────────────────────────────────────────────────
   const [discountPercent, setDiscountPercent] = useState<number>(
     Number.isFinite(initial?.discountPercent) ? (initial!.discountPercent as number) : 0
@@ -138,7 +143,6 @@ export default function CourseFormModal({
         const all = await listSaUsers({
           role: "admin",
           status: "all",
-          orgId: orgId === "global" ? undefined : orgId,
         } as any);
         let opts = (all || []).map((u: any) => ({
           value: u.email, // ownerEmail is email-based
@@ -166,8 +170,8 @@ export default function CourseFormModal({
     return () => {
       cancelled = true;
     };
-  // ★ keep deps minimal & stable; avoid re-running due to label changes
-  }, [isSA, orgId, initial?.ownerEmail]); // ★
+    // ★ keep deps minimal & stable; avoid re-running due to label changes
+  }, [isSA, initial?.ownerEmail]); // ★
 
   // ── Fetch teachers ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -178,7 +182,6 @@ export default function CourseFormModal({
           const all = await listSaUsers({
             role: "teacher",
             status: "all",
-            orgId: orgId === "global" ? undefined : orgId,
           } as any);
           let opts = (all || []).map((u: any) => ({
             value: u.id,
@@ -227,8 +230,8 @@ export default function CourseFormModal({
     return () => {
       cancelled = true;
     };
-  // ★ minimal deps; avoid oscillations that recreate duplicates
-  }, [isSA, orgId, initial?.teacherId]); // ★
+    // ★ minimal deps; avoid oscillations that recreate duplicates
+  }, [isSA, selectedCenterIds, initial?.teacherId]);// ★
 
   // fetch platform default only if not present on the course
   useEffect(() => {
@@ -242,7 +245,7 @@ export default function CourseFormModal({
         .then((d) => {
           if (typeof d?.platformFee === "number") setPlatformFeeRs(d.platformFee / 100);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
     return () => controller.abort();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -270,8 +273,32 @@ export default function CourseFormModal({
     setLevel(initial?.level || "all");
     setBundleCoverUrl(initial?.bundleCoverUrl || "");
     setPlatformFeeRs(initial?.platformFee ? (initial!.platformFee as number) / 100 : platformFeeRs);
+    // Sync center selections when switching between courses in edit mode
+    setSelectedCenterIds(initial?.centerIds || []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial]);
+
+  // Fetch centers for the selected org (admin/teacher always use their own org)
+  useEffect(() => {
+    let cancelled = false;
+    async function run() {
+      try {
+        setCenters([]);
+        const all = await listOrganizations({
+          status: "active",
+        });
+        const opts = all.items.map((o) => ({
+          value: o._id,
+          label: o.name,
+        }));
+        if (!cancelled) setCenters(opts);
+      } catch {
+        if (!cancelled) setCenters([]);
+      }
+    }
+    run();
+    return () => { cancelled = true; };
+  }, [isSA, orgId]);
 
   // derived UI math (₹)
   const priceAfterDiscountRs = Math.max(
@@ -375,7 +402,7 @@ export default function CourseFormModal({
     programType.trim().length > 0 &&
     (!isBundled || chapters.every((ch) => (ch.title || "").trim().length > 0));
 
-    const tagChips = useMemo(() => {
+  const tagChips = useMemo(() => {
     const arr = parseTags(tagsInput);
     return arr;
   }, [tagsInput]);
@@ -416,11 +443,12 @@ export default function CourseFormModal({
                 durationText,
                 teacherId: teacherId || undefined,
                 tags: tagChips,
+                centerIds: selectedCenterIds,
                 ...(isSA
                   ? {
-                      orgId: orgId === "global" ? null : asStr(orgId), // ★ ensure string/null
-                      ownerEmail: ownerEmail || undefined,
-                    }
+                    orgId: orgId === "global" ? null : asStr(orgId), // ★ ensure string/null
+                    ownerEmail: ownerEmail || undefined,
+                  }
                   : {}),
               });
               onClose();
@@ -448,7 +476,7 @@ export default function CourseFormModal({
                     <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g., Frontend" />
                   </Field>
 
-                                    {/* NEW: Description (max 250) */}
+                  {/* NEW: Description (max 250) */}
                   <div className="md:col-span-3">
                     <Field label="Description" help="Max 250 characters">
                       <Input
@@ -534,10 +562,10 @@ export default function CourseFormModal({
 
                   {/* NEW: Program Type (required) */}
                   <Field label="Program Type" required>
-                    <Input 
-                      value={programType} 
-                      onChange={(e) => setProgramType(e.target.value)} 
-                      placeholder="e.g., Reiki, Dowsing, Yoga, Meditation, etc." 
+                    <Input
+                      value={programType}
+                      onChange={(e) => setProgramType(e.target.value)}
+                      placeholder="e.g., Reiki, Dowsing, Yoga, Meditation, etc."
                     />
                   </Field>
 
@@ -589,24 +617,6 @@ export default function CourseFormModal({
 
                 {role === "superadmin" && (
                   <div className="grid gap-3 md:grid-cols-2 mt-3">
-                    <Field label="Organization">
-                      <Select
-                        value={orgId}
-                        onChange={(e) => {
-                          const v = asStr(e.target.value, "global"); // ★ normalize
-                          setOrgId(v);
-                          // Clear cross-org selections to avoid invalid combos
-                          setOwnerEmail("");
-                          setTeacherId("");
-                        }}
-                      >
-                        {orgs.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </Field>
                     <Field label="Owner (Admin)">
                       <Select
                         value={ownerEmail}
@@ -631,7 +641,7 @@ export default function CourseFormModal({
 
                 {/* NEW: Teacher (required) */}
                 <div className="grid gap-3 md:grid-cols-2 mt-3">
-                  <Field label="Teacher" required>
+                  <Field label="teacher must belong to ANY selected center" required>
                     <Select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
                       <option value="">Select…</option>
                       {/* seed current teacher if not in list (prevents appearing blank on edit) */}
@@ -648,6 +658,43 @@ export default function CourseFormModal({
                     </Select>
                   </Field>
                 </div>
+
+                {/* NEW: Centers Selection */}
+                {centers.length > 0 && (
+                  <div className="mt-3">
+                    <Field
+                      label="Assign to Centers"
+                      help="If none selected, this course will be available globally"
+                    >
+                      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto border rounded p-2">
+                        {centers.map((c) => (
+                          <label
+                            key={c.value}
+                            className="flex items-center gap-2 text-sm cursor-pointer"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedCenterIds.includes(c.value)}
+                              onChange={(e) => {
+                                setSelectedCenterIds((prev) =>
+                                  e.target.checked
+                                    ? prev.includes(c.value) ? prev : [...prev, c.value]
+                                    : prev.filter((id) => id !== c.value)
+                                );
+                              }}
+                            />
+                            {c.label}
+                          </label>
+                        ))}
+                      </div>
+                      {selectedCenterIds.length === 0 && (
+                        <div className="text-xs text-blue-600 mt-1">
+                          This course will be GLOBAL (available to all centers)
+                        </div>
+                      )}
+                    </Field>
+                  </div>
+                )}
               </SectionCard>
 
               {/* Bundle card */}

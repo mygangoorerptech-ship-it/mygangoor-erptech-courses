@@ -13,19 +13,36 @@ export default function WelcomeBanner({
   const { user } = useAuthHydration();
   const displayName = name || user?.name || user?.email || "Learner";
 
-  return (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 mb-8 text-white">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold mb-2">Welcome back, {displayName}!</h2>
-          <p className="text-blue-100 text-lg">{subtitle}</p>
-        </div>
-        <div className="hidden md:block">
-          <div className="bg-white/20 backdrop-blur-sm rounded-full p-4">
-            <i className="fas fa-user-graduate text-4xl" />
-          </div>
+return (
+  <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      
+      {/* LEFT CONTENT */}
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          Welcome back, {displayName} 👋
+        </h2>
+        <p className="text-sm text-gray-500">
+          {subtitle}
+        </p>
+
+        {/* CTA BUTTONS */}
+        <div className="flex gap-3 mt-4">
+          <button className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+            Browse Courses
+          </button>
+
+          <button className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+            View My Progress
+          </button>
         </div>
       </div>
+
+      {/* RIGHT ICON (SUBTLE) */}
+      <div className="hidden md:flex items-center justify-center w-16 h-16 rounded-lg bg-gray-100">
+        <i className="fas fa-graduation-cap text-gray-500 text-xl" />
+      </div>
     </div>
-  );
+  </div>
+);
 }

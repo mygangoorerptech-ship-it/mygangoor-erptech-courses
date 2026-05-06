@@ -38,18 +38,31 @@ export async function fetchCoursesPage({
 } = {}): Promise<{ items: Course[]; nextCursor: string | null }> {
   let payload: RawCardsResponse = { items: [], nextCursor: null };
   try {
-    const res = await api.get<RawCardsResponse>("/student-catalog/courses/cards", {
-      params: { limit, cursor: cursor ?? undefined },
-    });
-    payload = res.data || { items: [], nextCursor: null };
-  } catch (_err) {
-    try {
-      const alt = await api.get<any>("/public/catalog/by-program-type");
-      const list = Array.isArray(alt?.data?.courses) ? alt.data.courses : [];
-      payload = { items: list, nextCursor: null } as RawCardsResponse;
-    } catch {
-      payload = { items: [], nextCursor: null } as RawCardsResponse;
-    }
+    const res = await api.get<RawCardsResponse>(
+      "/student-catalog/courses/cards",
+      {
+        params: { limit, cursor: cursor ?? undefined },
+        withCredentials: false, // ✅ CRITICAL FIX
+      }
+    );
+    console.log("✅ CARDS API:", res.data?.items?.[0]);
+    const data = res.data;
+
+if (Array.isArray(data)) {
+  // fallback shape (old API)
+  payload = { items: data, nextCursor: null };
+} else {
+  // expected shape
+  payload = {
+    items: Array.isArray(data?.items) ? data.items : [],
+    nextCursor: data?.nextCursor ?? null,
+  };
+}
+  } catch (err: any) {
+    console.error("❌ PRIMARY API FAILED:", err?.response?.data || err.message);
+
+    // ❌ DO NOT fallback (breaks centers)
+    return { items: [], nextCursor: null };
   }
 
   const items = Array.isArray(payload.items) ? payload.items : [];
@@ -80,7 +93,7 @@ export async function fetchCoursesPage({
       title: String(it.title ?? "Untitled"),
       track: it.slug ?? null,
       pill: it.category ?? null,
-      
+
 
       cover: (it.cover ?? it.bundleCoverUrl ?? it.coverUrl) ?? undefined,
       previewUrl: it.previewUrl ?? it.demoVideoUrl ?? undefined,
@@ -108,6 +121,8 @@ export async function fetchCoursesPage({
 
       discountPercent: rawDiscount,
       orgName: it.orgName ?? null,
+      centerIds: Array.isArray(it.centerIds) ? it.centerIds : [],
+      centerNames: Array.isArray(it.centerNames) ? it.centerNames : [],
     };
 
     // attach computed fields without touching Course type

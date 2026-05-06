@@ -116,26 +116,46 @@ export default function LearningStreakCard({
   const showEmoji = loaded && days === 0;
 
   // === Restored OLD DESIGN (centered, gradient circle, same typography) ===
-  return (
-    <Card>
-      <h4 className="text-lg font-bold text-gray-900 mb-4">{label}</h4>
+return (
+  <Card>
+    {/* HEADER */}
+    <h4 className="text-sm font-semibold text-gray-900 mb-4">
+      {label}
+    </h4>
 
-      <div className="text-center">
-        <div className="bg-gradient-to-r from-orange-400 to-red-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-3">
+    {/* CONTENT */}
+    <div className="flex items-center justify-between">
+      
+      {/* LEFT */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 flex items-center justify-center rounded-md bg-gray-100">
           {showEmoji ? (
-            <span className="text-3xl leading-none" role="img" aria-label="smile">😊</span>
+            <span className="text-lg leading-none" role="img" aria-label="smile">
+              😊
+            </span>
           ) : (
-            <i className="fas fa-fire text-white text-2xl" />
+            <i className="fas fa-fire text-gray-500 text-sm" />
           )}
         </div>
 
-        <p className="text-3xl font-bold text-gray-900">{display}</p>
-        <p className="text-gray-600">Days in a row</p>
-
-        <div className="mt-4 bg-orange-100 rounded-lg p-3">
-          <p className="text-sm text-orange-800">{message}</p>
+        <div>
+          <p className="text-lg font-semibold text-gray-900">
+            {display}
+          </p>
+          <p className="text-xs text-gray-500">
+            Days in a row
+          </p>
         </div>
       </div>
-    </Card>
-  );
+
+      {/* RIGHT (OPTIONAL MESSAGE) */}
+      <div className="hidden sm:block text-right">
+        <p className="text-xs text-gray-500 max-w-[140px]">
+          {message}
+        </p>
+      </div>
+
+    </div>
+  </Card>
+);
 }

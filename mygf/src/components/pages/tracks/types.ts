@@ -26,6 +26,8 @@ export type Course = {
   description?: string;
   /** Organization name. null = global / platform course */
   orgName?: string | null;
+  centerIds?: string[];
+centerNames?: string[];
 };
 
 export const CHIP_OPTIONS = ["All", "Latest", "Design"] as const;

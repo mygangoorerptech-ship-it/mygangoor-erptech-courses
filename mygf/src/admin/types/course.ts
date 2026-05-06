@@ -27,6 +27,7 @@ export type CourseLevel = 'all' | 'beginner' | 'intermediate' | 'advanced'
 
 export interface Course {
   id: string
+  _id?: string
   title: string
   slug?: string
   description?: string
@@ -63,12 +64,15 @@ export interface Course {
   // server-computed helpers
   priceAfterDiscount?: number    // paise
   totalWithFees?: number         // paise
+
+  // center assignment IDs (empty array = no center assignments)
+  centerIds?: string[]
 }
 
 export type CourseFilters = {
   q?: string
   status?: 'all' | CourseStatus
-  orgId?: string
+  orgId?: string | null | "global"
   ownerEmail?: string
   page?: number
   limit?: number
