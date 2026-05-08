@@ -1,6 +1,7 @@
 // src/auth/store.ts
 import { create } from "zustand";
 import { checkSession, logout as apiLogout } from "../api/auth";
+import { clearTerminatedSeal } from "../api/refreshGate";
 
 export type Role = "superadmin" | "admin" | "teacher" | "student" | "orgadmin" | "orguser";
 export type MfaInfo = { required: boolean; method?: "otp" | "totp" };
@@ -59,6 +60,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
   hadRefreshHint: false,
 
   login: ({ user, tokens }) => {
+    // Clear the termination seal so a new authenticated session is never
+    // blocked by a stale logout record from a prior session.
+    clearTerminatedSeal();
     set(() => ({
       user,
       tokens: tokens ?? {},
@@ -156,6 +160,9 @@ export const useAuth = create<AuthState>()((set, get) => ({
     const res = await checkSession();
 
     if (res?.ok && res?.user) {
+      // Server confirmed a valid session — clear any stale termination seal
+      // so it doesn't block future refresh attempts after the user acts.
+      clearTerminatedSeal();
       set({
         user: res.user as User,
         tokens: {},

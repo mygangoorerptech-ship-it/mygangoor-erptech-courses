@@ -206,6 +206,26 @@ app.use("/api/auth/signup-student", signupLimiter);
 // NOTE: settingsLimiter and sessionLimiter are now applied at ROUTE level
 // in src/routes/auth.js (after requireAuth so req.user is populated).
 
+const checkLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: safeKeyGenerator,
+});
+app.use("/api/auth/check", checkLimiter);
+
+const invitePublicLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: safeKeyGenerator,
+  message: { ok: false, message: "Too many requests, please try again later." },
+});
+app.use("/api/invitations/accept", invitePublicLimiter);
+app.use("/api/invitations/verify", invitePublicLimiter);
+
 // Always enable trust proxy so req.secure correctly reflects the true protocol
 // when the server sits behind Nginx, Cloudflare, or any reverse proxy.
 // Required in production for stable __Host-* cookie name detection; safe in development too.
@@ -259,28 +279,13 @@ app.use((req, res, next) => {
   let ok = !!headerTok && !!cookieTok && headerTok === cookieTok;
 
   if (!ok) {
-    const origin = req.get("Origin") || "";
-    const referer = req.get("Referer") || "";
-
-    // Reconstruct browser origin when behind dev proxy
-    const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0].trim();
-    const xfHost = (req.get("x-forwarded-host") || "").split(",")[0].trim();
-    const xfOrigin = xfProto && xfHost ? `${xfProto}://${xfHost}` : "";
-
-    const refOrigin = (() => {
-      try { return new URL(referer).origin; } catch { return ""; }
-    })();
-
-    const allowedOrigins = allow; // already computed above
-    const fromAllowed = [origin, refOrigin, xfOrigin].some(
-      o => o && allowedOrigins.includes(o)
-    );
-
-    // If request is clearly same-origin (dev proxy or direct), accept header-only
-    if (headerTok && fromAllowed) ok = true;
-
-    // Optional debug (enable temporarily if needed):
-    if (!ok) console.warn('[csrf] reject', { path: req.originalUrl, origin, refOrigin, xfOrigin, hasHeader: !!headerTok, hasCookie: !!cookieTok });
+    // Double-submit validation requires BOTH the CSRF cookie and a matching
+    // header. The previous same-origin bypass (header-only from allowed origin)
+    // has been removed: it weakened double-submit protection by making the
+    // cookie half optional for same-origin requests. The frontend already
+    // sends both the cookie and header via ensureCsrfToken() — no exception
+    // is needed for legitimate browser traffic.
+    console.warn('[csrf] reject', { path: req.originalUrl, hasHeader: !!headerTok, hasCookie: !!cookieTok });
   }
 
   if (!ok) return res.status(403).json({ error: "CSRF token invalid" });
@@ -465,12 +470,46 @@ const PORT = process.env.PORT || 5004;
 
 // ── Startup safety checks ──────────────────────────────────────────────────
 // Fail fast in production if critical secrets are missing or using defaults.
+
+// Optional Guard 4: must run BEFORE the production block because it validates NODE_ENV itself.
+if (!process.env.NODE_ENV) {
+  console.error("[FATAL] NODE_ENV must be explicitly set.");
+  process.exit(1);
+}
+
 if (process.env.NODE_ENV === "production") {
-  const mfaSecret = process.env.JWT_MFA_SECRET;
-  if (!mfaSecret || mfaSecret === "your-strong-mfa-secret") {
-    console.error("[FATAL] JWT_MFA_SECRET is missing or using the placeholder value. Set a strong unique secret in your Render environment variables.");
+  // Guard 1: block debug modes in production
+  if (process.env.DEBUG_AUTH === "1") {
+    console.error("[FATAL] DEBUG_AUTH=1 is not allowed in production.");
     process.exit(1);
   }
+  if (process.env.DEBUG_MFA === "1") {
+    console.error("[FATAL] DEBUG_MFA=1 is not allowed in production.");
+    process.exit(1);
+  }
+
+  // Guard 2: fail fast if required JWT secrets are missing
+  const requiredSecrets = ["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "JWT_MFA_SECRET"];
+  for (const key of requiredSecrets) {
+    if (!process.env[key]) {
+      console.error(`[FATAL] Missing required env: ${key}`);
+      process.exit(1);
+    }
+  }
+
+  // Guard 3: access and refresh secrets must differ
+  if (process.env.JWT_ACCESS_SECRET === process.env.JWT_REFRESH_SECRET) {
+    console.error("[FATAL] JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must differ.");
+    process.exit(1);
+  }
+
+  // Legacy guard: kept for backward compatibility with existing check
+  const mfaSecret = process.env.JWT_MFA_SECRET;
+  if (mfaSecret === "your-strong-mfa-secret") {
+    console.error("[FATAL] JWT_MFA_SECRET is using the placeholder value. Set a strong unique secret in your Render environment variables.");
+    process.exit(1);
+  }
+
   if (process.env.CROSS_SITE !== "1") {
     console.warn("[warn] CROSS_SITE is not set to '1'. Auth cookies will use SameSite=Strict, which blocks all cross-site requests (Vercel → Render). Set CROSS_SITE=1 in Render environment variables.");
   }

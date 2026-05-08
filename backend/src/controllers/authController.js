@@ -6,7 +6,7 @@ import QRCode from "qrcode";
 import jwt from "jsonwebtoken";
 import { encryptTotpSecret, decryptTotpSecret } from "../utils/mfaCrypto.js";
 
-import { setAuthCookies, clearAuthCookies } from "../utils/cookies.js";
+import { setAuthCookies, clearAuthCookies, parseTtlMs } from "../utils/cookies.js";
 import User from "../models/User.js";
 import Invitation from "../models/Invitation.js";
 import { sendOtpEmail, sendInvitationEmail, sendPasswordResetEmail, sendEmailChangeVerification, sendSuspiciousLoginAlert } from "../utils/email.js";
@@ -21,8 +21,23 @@ const hash = (v) => crypto.createHash("sha256").update(String(v)).digest("hex");
 
 // RefreshToken model is now a standalone file — imported above.
 
-const ACCESS_TTL = process.env.ACCESS_TTL || "1h"; // Increased to 1 hour for better UX
-const REFRESH_TTL_SEC = parseInt(process.env.REFRESH_TTL_SEC || `${60 * 60 * 24 * 30}`, 10);
+const ACCESS_TTL = process.env.ACCESS_TTL || "1h";
+
+// REFRESH_TTL is the single source of truth for refresh-token lifetime.
+// It controls the JWT expiresIn, the DB expiry record, and the cookie maxAge.
+// Backward compat: if REFRESH_TTL is absent but the legacy REFRESH_TTL_SEC
+// env var exists, derive from it so deployments that haven't updated env vars
+// yet continue to work without disruption.
+const _refreshTtlMs = (() => {
+  if (process.env.REFRESH_TTL) return parseTtlMs(process.env.REFRESH_TTL);
+  if (process.env.REFRESH_TTL_SEC) {
+    const sec = parseInt(process.env.REFRESH_TTL_SEC, 10);
+    if (!isNaN(sec) && sec > 0) return sec * 1000;
+  }
+  return 30 * 24 * 60 * 60 * 1000; // default 30 days
+})();
+const REFRESH_TTL_SEC = Math.floor(_refreshTtlMs / 1000);
+
 const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
@@ -54,9 +69,11 @@ function isStrongPassword(password) {
 }
 
 function _totpReplayKey(uid, delta) {
-  // Bucket = current 30-second TOTP period. Ties the key to a specific time window.
-  const bucket = Math.floor(Date.now() / 30_000);
-  return `${uid}:${bucket}:${delta}`;
+  // Use the effective verified bucket (current bucket + delta)
+  // so replay tracking aligns with the actual accepted TOTP window.
+  const currentBucket = Math.floor(Date.now() / 30_000);
+  const effectiveBucket = currentBucket + Number(delta || 0);
+  return `${uid}:${effectiveBucket}`;
 }
 
 /** Returns true if this (uid, delta) combination was already consumed. */
@@ -165,8 +182,22 @@ function mintTokens(user, device) {
   return { access, refresh, jti, refreshExp, device };
 }
 
-// If a verified student belongs to an org, store them as 'orguser' for ACLs.
-function normalizeRoleWhenVerified(user) {
+// ---------------------------------------------------------------------------
+// LEGACY MIGRATION HELPER — DO NOT CALL FROM AUTH FLOWS.
+//
+// Authentication must never mutate authorization roles. This function was
+// previously called inside login() and verifyMfa() to silently upgrade a
+// student's role to 'orguser' upon first login after being added to an org.
+//
+// It has been removed from all auth call sites. Role assignment now happens
+// explicitly at account provisioning time (acceptInvite, org user management)
+// so the DB role is always authoritative before the user authenticates.
+//
+// This function is kept temporarily to support one-time migration scripts
+// that may need to back-fill existing student accounts that have an orgId.
+// It can be deleted once no migration scripts reference it.
+// ---------------------------------------------------------------------------
+export function normalizeRoleWhenVerified(user) {
   if (!user) return false;
   const shouldFlip = !!user.isVerified && user.role === "student" && !!user.orgId;
   if (shouldFlip) {
@@ -180,13 +211,13 @@ function normalizeRoleWhenVerified(user) {
 export async function login(req, res) {
   try {
     const {
-  email: rawEmail,
-  password: rawPassword,
-  as,
-} = req.body || {};
+      email: rawEmail,
+      password: rawPassword,
+      as,
+    } = req.body || {};
 
-const email = String(rawEmail || "").trim().toLowerCase();
-const password = String(rawPassword || "");
+    const email = String(rawEmail || "").trim().toLowerCase();
+    const password = String(rawPassword || "");
     const ua = req.get("User-Agent") || "unknown";
     const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
 
@@ -224,14 +255,13 @@ const password = String(rawPassword || "");
       return res.json({ ok: true, mfa: { required: true, method }, mfaTempToken });
     }
 
-    // ✅ No-MFA path: first successful password login marks the account verified
-    let changed = false;
+    // ✅ No-MFA path: first successful password login marks the account verified.
+    // Authentication must never mutate authorization roles — role assignment
+    // happens at account provisioning time (invite/signup), not at login.
     if (!user.isVerified) {
       user.isVerified = true;
-      changed = true;
+      await user.save();
     }
-    if (normalizeRoleWhenVerified(user)) changed = true;
-    if (changed) await user.save();
 
     const { access, refresh, jti, refreshExp } = mintTokens(user, ua);
     await saveRefresh(user.id, jti, refreshExp, ua, ip);
@@ -291,10 +321,8 @@ export async function verifyMfa(req, res) {
         return res.status(400).json({ ok: false, message: "Invalid code" });
       }
       user.mfa.emailOtp = null;
-      let changed = false;
-      if (!user.isVerified) { user.isVerified = true; changed = true; }
-      if (normalizeRoleWhenVerified(user)) changed = true;
-      if (changed) await user.save();
+      if (!user.isVerified) { user.isVerified = true; }
+      await user.save();
 
     } else if (method === "totp") {
       const secretEnc = user.mfa?.totpSecretEnc;
@@ -302,17 +330,22 @@ export async function verifyMfa(req, res) {
       if (!secretEnc && !legacySecret) {
         return res.status(400).json({ ok: false, message: "TOTP not set up" });
       }
-      const tokenValidates = speakeasy.totp.verify({
+      const totpResult = speakeasy.totp.verifyDelta({
         secret: secretEnc ? decryptTotpSecret(secretEnc) : legacySecret,
         encoding: "base32",
         token: code,
+        digits: 6,
+        step: 30,
         window: 1,
       });
-      if (!tokenValidates) return res.status(400).json({ ok: false, message: "Invalid code" });
-      let changed = false;
-      if (!user.isVerified) { user.isVerified = true; changed = true; }
-      if (normalizeRoleWhenVerified(user)) changed = true;
-      if (changed) await user.save();
+      if (!totpResult) return res.status(400).json({ ok: false, message: "Invalid code" });
+      if (_isTotpReplay(String(user._id), totpResult.delta)) {
+        return res.status(400).json({ ok: false, message: "Code already used" });
+      }
+      if (!user.isVerified) {
+        user.isVerified = true;
+        await user.save();
+      }
 
     } else {
       return res.status(400).json({ ok: false, message: "Invalid method" });
@@ -431,11 +464,10 @@ export async function totpVerify(req, res) {
       return res.status(400).json({ ok: false, message: "Code already used" });
     }
 
-    let changed = false;
-    if (!user.isVerified) { user.isVerified = true; changed = true; }
-    if (normalizeRoleWhenVerified(user)) changed = true;
-    if (changed) await user.save();
-
+    if (!user.isVerified) {
+      user.isVerified = true;
+      await user.save();
+    }
 
     const ua = req.get("User-Agent") || "unknown";
     const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
@@ -654,6 +686,11 @@ export async function refresh(req, res) {
   const ua = req.get("User-Agent") || "unknown";
   const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
 
+  const failRefresh = (reason = "unauthorized") => {
+    clearAuthCookies(res);
+    return res.status(401).json({ ok: false, reason });
+  };
+
   try {
     const rt = getActiveRefreshCookie(req);
     const allCookies = Object.keys(req.cookies || {});
@@ -669,7 +706,7 @@ export async function refresh(req, res) {
 
     if (!rt) {
       alog("[refresh:fail] no-cookie", { rid, availableCookies: allCookies });
-      return res.status(401).json({ ok: false });
+      return failRefresh();
     }
 
     let payload;
@@ -677,13 +714,13 @@ export async function refresh(req, res) {
       payload = jwt.verify(rt, JWT_REFRESH_SECRET);
     } catch (e) {
       alog("[refresh:jwt-verify-fail]", { rid, name: e?.name, msg: e?.message });
-      return res.status(401).json({ ok: false });
+      return failRefresh();
     }
 
     const { sub: userId, jti: oldJti, exp } = payload || {};
     if (!userId || !oldJti) {
       alog("[refresh:fail] bad-payload", { rid, userId: !!userId, oldJti: !!oldJti });
-      return res.status(401).json({ ok: false });
+      return failRefresh();
     }
 
     const expMs = exp ? exp * 1000 : null;
@@ -694,7 +731,7 @@ export async function refresh(req, res) {
     const dbTok = await findRefresh(oldJti);
     if (!dbTok) {
       alog("[refresh:fail] jti-not-found", { rid, oldJti });
-      return res.status(401).json({ ok: false, message: "Refresh reuse detected" });
+      return failRefresh("reuse-detected");
     }
     if (dbTok.revokedAt) {
       alog("[refresh:fail] jti-revoked", {
@@ -703,7 +740,7 @@ export async function refresh(req, res) {
         revokedAt: dbTok.revokedAt?.toISOString?.(),
         replacedBy: dbTok.replacedBy || null,
       });
-      return res.status(401).json({ ok: false, message: "Refresh reuse detected" });
+      return failRefresh("reuse-detected");
     }
 
     const device = req.get("User-Agent") || dbTok.device || "unknown";
@@ -714,7 +751,7 @@ export async function refresh(req, res) {
     const user = await User.findById(userId);
     if (!user) {
       alog("[refresh:fail] user-not-found", { rid, userId });
-      return res.status(401).json({ ok: false });
+      return failRefresh();
     }
 
     const { access, refresh, jti, refreshExp } = mintTokens(user, device);
@@ -740,7 +777,7 @@ export async function refresh(req, res) {
       msg: e?.message,
       ms: Date.now() - started,
     });
-    return res.status(401).json({ ok: false });
+    return failRefresh();
   }
 }
 
@@ -756,9 +793,9 @@ export async function logout(req, res) {
       } catch { }
     }
   } finally {
-    clearAuthCookies(res); // clears __Host-* and dev sid/sr with matching attributes
+    clearAuthCookies(res);
+    return res.json({ ok: true });
   }
-  return res.json({ ok: true });
 }
 
 export async function precheckEmail(req, res) {

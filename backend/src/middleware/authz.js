@@ -6,15 +6,17 @@ import User from "../models/User.js";
 export function requireAuth(req, res, next) {
   const auth = req.headers.authorization || "";
   const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-const cookieToken =
-  req.cookies?.["sid"] ||
-  req.cookies?.["access"] ||
-  req.cookies?.["accessToken"] ||
-  null;
+// Only read the canonical session cookie. Legacy cookie names ("access",
+// "accessToken") are no longer set by any code path — accepting them here
+// would silently authenticate stale orphan cookies from prior code versions.
+const cookieToken = req.cookies?.["sid"] || null;
 
   const token = bearer || cookieToken;
   if (!token) {
-    if (req.path.startsWith("/api/students")) {
+    if (
+  process.env.DEBUG_AUTH === "1" &&
+  req.path.startsWith("/api/students")
+) {
       console.warn("[requireAuth] Missing token for", req.method, req.originalUrl, {
         hasSid: !!req.cookies?.sid, hasSr: !!req.cookies?.sr, hasBearer: !!bearer
       });
@@ -23,21 +25,29 @@ const cookieToken =
   }
 
   try {
-    const secret = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET;
+    // Use only JWT_ACCESS_SECRET. The JWT_SECRET fallback has been removed:
+    // both keys held the same value historically, so no active token is affected.
+    const secret = process.env.JWT_ACCESS_SECRET;
     const payload = jwt.verify(token, secret); 
     // 🔧 normalize: always expose user id as _id for downstream code 
     const uid = payload._id || payload.id || payload.sub; 
     if (uid) payload._id = uid; 
     req.user = payload;
 
-    if (req.path.startsWith("/api/students")) {
+    if (
+  process.env.DEBUG_AUTH === "1" &&
+  req.path.startsWith("/api/students")
+) {
       console.log("[requireAuth] OK", req.method, req.originalUrl, {
         sub: payload.sub, role: payload.role, orgId: payload.orgId
       });
     }
     next();
   } catch (e) {
-    if (req.path.startsWith("/api/students")) {
+    if (
+  process.env.DEBUG_AUTH === "1" &&
+  req.path.startsWith("/api/students")
+) {
       console.warn("[requireAuth] Invalid token", e?.message);
     }
     return res.status(401).json({ error: "Invalid token" });

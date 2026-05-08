@@ -45,13 +45,39 @@ function clearKey(key: string) {
   try { localStorage.removeItem(key); } catch { /* ignore */ }
 }
 
+// ---------------------------------------------------------------------------
+// Termination seal: written on explicit logout, cleared on successful login
+// or successful session validation.
+//
+// WHY 24 hours (not permanent):
+//   A permanent seal can create an unrecoverable soft-lock if the login flow
+//   crashes before clearing it (e.g. mobile Safari, private-mode storage
+//   quirks). 24 hours provides strong stale-session restoration prevention
+//   while preserving an emergency recovery path after a full day.
+//
+// WHY not 5 minutes (prior value):
+//   A 5-minute window allowed a stale `sr` cookie to silently restore a
+//   session if clearCookie failed (e.g. SameSite attribute mismatch) and
+//   the user returned after just a few minutes.
+// ---------------------------------------------------------------------------
+const TERMINATED_TTL_MS = 24 * 60 * 60_000; // 24 hours
+
 function isTerminatedRecent(): boolean {
   const t = getJson<{ ts: number }>(TERMINATED_KEY);
-  return !!(t?.ts && now() - t.ts < 5 * 60_000);
+  return !!(t?.ts && now() - t.ts < TERMINATED_TTL_MS);
 }
 
 function markTerminated() {
   setJson(TERMINATED_KEY, { ts: now() });
+}
+
+/**
+ * Clear the termination seal.
+ * Call on successful login or successful session validation so a new
+ * authenticated session is never blocked by a stale logout record.
+ */
+export function clearTerminatedSeal() {
+  clearKey(TERMINATED_KEY);
 }
 
 function tryAcquireLock(ownerId: string): boolean {

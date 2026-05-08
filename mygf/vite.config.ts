@@ -17,13 +17,28 @@ export default defineConfig(({ command }) => {
   const isDev = command === 'serve';
 
   let httpsCfg: { key: Buffer; cert: Buffer } | undefined;
-  if (isDev) {
+
+  // Default localhost development to HTTP.
+  // HTTPS localhost should only be enabled explicitly when a secure-context
+  // browser API actually requires it (camera, service worker edge cases, etc).
+  //
+  // Enable manually with:
+  //   VITE_DEV_HTTPS=1 npm run dev
+  //
+  if (isDev && process.env.VITE_DEV_HTTPS === "1") {
     try {
-      const key = fs.readFileSync(path.resolve(__dirname, 'certs/localhost-key.pem'));
-      const cert = fs.readFileSync(path.resolve(__dirname, 'certs/localhost.pem'));
+      const key = fs.readFileSync(
+        path.resolve(__dirname, "certs/localhost-key.pem")
+      );
+      const cert = fs.readFileSync(
+        path.resolve(__dirname, "certs/localhost.pem")
+      );
       httpsCfg = { key, cert };
     } catch {
-      httpsCfg = undefined; // fallback to HTTP if certs missing
+      console.warn(
+        "[vite] HTTPS requested but localhost certs were not found. Falling back to HTTP."
+      );
+      httpsCfg = undefined;
     }
   }
 
@@ -61,13 +76,13 @@ export default defineConfig(({ command }) => {
 
   return {
     plugins: [
-      tailwindcss(), 
+      tailwindcss(),
       react(),
       // {
       //   name: 'serve-html-pages',
       //   configureServer(server) {
       //     if (!htmlPagesExists) return;
-          
+
       //     // Serve HTML files from html-pages folder
       //     server.middlewares.use((req, res, next) => {
       //       // Serve /home route
@@ -79,7 +94,7 @@ export default defineConfig(({ command }) => {
       //           return;
       //         }
       //       }
-            
+
       //       // Serve /login.html route
       //       if (req.url === '/login.html' || req.url === '/login.html/') {
       //         const loginFile = path.join(htmlPagesDir, 'login.html');
@@ -97,7 +112,7 @@ export default defineConfig(({ command }) => {
       //         res.end();
       //         return;
       //       }
-            
+
       //       // Serve other HTML files from html-pages
       //       if (req.url && req.url.endsWith('.html') && !req.url.startsWith('/static/')) {
       //         const htmlFile = path.join(htmlPagesDir, req.url);
@@ -107,7 +122,7 @@ export default defineConfig(({ command }) => {
       //           return;
       //         }
       //       }
-            
+
       //       // Serve assets from html-pages/assets (both /html-assets and /static/assets)
       //       // IMPORTANT: Strip querystrings (e.g. ionicons.ttf?v=2.0.0) so fonts/icons load correctly.
       //       if (req.url && (req.url.startsWith('/html-assets/') || req.url.startsWith('/static/assets/'))) {
@@ -135,7 +150,7 @@ export default defineConfig(({ command }) => {
       //           return;
       //         }
       //       }
-            
+
       //       // Serve other static files from html-pages root (like notification-bell-standalone.js)
       //       if (req.url && req.url.startsWith('/static/') && !req.url.startsWith('/static/assets/')) {
       //         const url = new URL(req.url, 'http://localhost');
@@ -153,7 +168,7 @@ export default defineConfig(({ command }) => {
       //           return;
       //         }
       //       }
-            
+
       //       next();
       //     });
       //   }
