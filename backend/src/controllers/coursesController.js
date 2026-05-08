@@ -142,27 +142,42 @@ function sanitize(doc, centerIds = [], centerNames = []) {
 // GET /courses  (admin + teacher + student read within org)
 export async function list(req, res) {
   const actor = req.user;
-  if (!actor?.orgId) return res.status(403).json({ ok: false, message: "No org" });
+  if (!actor?.orgId && actor?.role !== "superadmin") {
+  return res.status(403).json({
+    ok: false,
+    message: "No org"
+  });
+}
 
   const { q, status = "all", page, limit } = req.query || {};
   const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
 
   // 1. find courses assigned to this org (center)
+let and = [];
+
+if (actor.role === "superadmin") {
+
+  and = [{}];
+
+} else {
+
   const assigned = await CourseAssignment.find({
     centerId: actor.orgId
   }).select("courseId").lean();
 
   const assignedIds = assigned.map(a => a.courseId);
 
-  const allAssignedCourseIds = await CourseAssignment.distinct("courseId");
+  const allAssignedCourseIds =
+    await CourseAssignment.distinct("courseId");
 
-  const and = [{
+  and = [{
     $or: [
       { orgId: actor.orgId },
       { _id: { $in: assignedIds } },
       { _id: { $nin: allAssignedCourseIds } }
     ]
   }];
+}
 
   if (q) {
     // H-4 fix: escape metacharacters to prevent ReDoS

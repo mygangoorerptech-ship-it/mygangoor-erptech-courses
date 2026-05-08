@@ -7,7 +7,7 @@ import { IndianRupee, FileText, BadgeCheck, User, BookOpen } from "lucide-react"
 import { useQuery } from "@tanstack/react-query";
 import { listStudents } from "../../../api/students";
 import { listCourses as listOrgCourses } from "../../api/courses";
-import type { Course } from "../../types/course";
+import type { Course, Paged } from "../../types/course";
 
 export default function OfflinePaymentModal({
   open, onClose, defaultCourseId, defaultStudentId, onSubmit
@@ -43,13 +43,15 @@ export default function OfflinePaymentModal({
     queryFn: () => listStudents({ limit: 200, lite: 1 }),
   });
 
-  const coursesQ = useQuery<Course[]>({
+  const coursesQ = useQuery<Paged<Course> | Course[]>({
     queryKey: ["courses:org-lite"],
     queryFn: () => listOrgCourses({ status: "all" }),
   });
 
   const students = Array.isArray(studentsQ.data) ? studentsQ.data : [];
-  const courses = Array.isArray(coursesQ.data) ? coursesQ.data : [];
+  const courses = Array.isArray(coursesQ.data)
+    ? coursesQ.data
+    : coursesQ.data?.items ?? [];
 
   const canSave = studentId && courseId && Number(amount) > 0;
 
