@@ -9,7 +9,9 @@ export async function list(req, res) {
   }
 
   const { q, limit = 200, lite = 1 } = req.query || {};
-  const and = [{ role: "student" }];
+  const and = [{
+    role: { $in: ["student", "orguser"] }
+  }];
 
   // scope: SA can query any org with ?orgId; admin/teacher are scoped to their own org
   if (actor.role !== "superadmin") and.push({ orgId: actor.orgId });
