@@ -181,7 +181,11 @@ export default function ADPayments() {
                 )
               }
 
-              const f = form?.joinForm || {};
+              const f =
+  form?.joinForm &&
+  typeof form.joinForm === "object"
+    ? form.joinForm
+    : form || {};
 
               const fields: [string, any][] = [
                 ['Full Name', f.fullName],

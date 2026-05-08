@@ -126,14 +126,38 @@ export async function list(req, res) {
     const { q, status, type } = req.query || {};
     let orgId = toId(actor.orgId);
 
-    const and = [
+const studentIds = await User.find({
+  orgId,
+})
+  .distinct("_id");
+
+const courseIds = await Course.find({
+  orgId,
+})
+  .distinct("_id");
+
+const and = [
+  {
+    $or: [
+      // payments belonging to org
+      { orgId },
+
+      // student of org purchased elsewhere
       {
-        $or: [
-          { orgId },        // org-based payments
-          { orgId: null },  // global course payments
-        ],
+        studentId: {
+          $in: studentIds
+        }
       },
-    ];
+
+      // course owned by org
+      {
+        courseId: {
+          $in: courseIds
+        }
+      }
+    ],
+  },
+];
     if (status && String(status).toLowerCase() !== "all") {
       and.push({ status: String(status).toLowerCase() });
     }
@@ -259,7 +283,24 @@ export async function createOffline(req, res) {
 
     await reconcileOfflinePayment(doc);
 
-    return res.status(201).json(sanitize(doc));
+    const latest = await Payment.findById(doc._id)
+
+      .populate("studentId", "email name")
+
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+
+      .populate("orgId", "name")
+
+      .lean();
+
+    return res.status(201).json(sanitize(latest));
   } catch (e) {
     console.error("[payments.createOffline] error", e);
     return res.status(500).json({ ok: false, message: "create offline payment failed" });
@@ -392,7 +433,20 @@ export async function claimReceipt(req, res) {
     await reconcileOfflinePayment(doc);
 
     const latest = await Payment.findById(doc._id)
+
       .populate("studentId", "email name")
+
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+
+      .populate("orgId", "name")
+
       .lean();
 
     return res.status(201).json({
