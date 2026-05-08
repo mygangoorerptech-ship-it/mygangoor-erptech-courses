@@ -34,28 +34,50 @@ const SignIn: React.FC = () => {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
 
   const validateForm = () => {
     let valid = true;
-    const newErrors = { email: '', password: '' };
+
+    const next = {
+      email: '',
+      password: '',
+    };
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(email)) {
-      newErrors.email = 'Please enter a valid email address.';
+
+    if (!normalizedEmail) {
+      next.email = 'Email address is required.';
+      valid = false;
+    } else if (normalizedEmail.length > 254) {
+      next.email = 'Email address is too long.';
+      valid = false;
+    } else if (!emailPattern.test(normalizedEmail)) {
+      next.email = 'Please enter a valid email address.';
       valid = false;
     }
 
-    if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters.';
+    if (!normalizedPassword) {
+      next.password = 'Password is required.';
+      valid = false;
+    } else if (normalizedPassword.length > 128) {
+      next.password = 'Password is too long.';
       valid = false;
     }
 
-    setErrors(newErrors);
+    setErrors(next);
     return valid;
   };
 
   const handleSubmit = async () => {
-    if (!validateForm() || submitting) return;
+    if (submitting) return;
+
+    setFormError('');
+
+    if (!validateForm()) return;
     setSubmitting(true);
     try {
       // Ensure CSRF cookie & header
@@ -63,9 +85,14 @@ const SignIn: React.FC = () => {
       const csrf = getCsrfToken();
 
       // Cookie-only login request (no Authorization header)
+      const normalizedEmail = email.trim().toLowerCase();
+
       const { data: res } = await api.post(
         '/auth/login',
-        { email, password }, // don't force role; backend will infer
+        {
+          email: normalizedEmail,
+          password,
+        }, // don't force role; backend will infer
         { headers: { 'X-CSRF-Token': csrf }, withCredentials: true }
       );
 
@@ -88,10 +115,21 @@ const SignIn: React.FC = () => {
         const from = state?.from && String(state.from).startsWith(base) ? state.from : base;
         navigate(from, { replace: true });
       } else {
-        alert(res?.message || 'Sign-in failed');
+        setFormError(res?.message || 'Unable to sign in. Please try again.');
       }
     } catch (error: any) {
-      alert(error?.response?.data?.message || 'Sign-in failed');
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message;
+
+      if (status === 401) {
+        setFormError('Incorrect email or password.');
+      } else if (status === 403) {
+        setFormError(message || 'Your account access is restricted.');
+      } else if (status === 429) {
+        setFormError('Too many attempts. Please wait and try again.');
+      } else {
+        setFormError(message || 'Unable to sign in right now. Please try again later.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -103,8 +141,8 @@ const SignIn: React.FC = () => {
 
   return (
     <>
-        <NavBar />
-            <div
+      <NavBar />
+      <div
         className="relative flex items-center justify-center min-h-screen px-4
                    pt-24 md:pt-28
                    bg-gradient-to-b from-slate-50 via-sky-50 to-slate-100"
@@ -115,6 +153,12 @@ const SignIn: React.FC = () => {
         <div className="relative w-full max-w-md rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
           <h1 className="text-2xl font-semibold text-slate-900">Welcome back</h1>
           <p className="text-sm text-slate-600 mt-1">Sign in to continue your learning journey.</p>
+
+          {formError && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {formError}
+            </div>
+          )}
 
           <div className="mt-6 space-y-5">
             {/* Email */}
@@ -135,6 +179,7 @@ const SignIn: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   autoComplete="email"
+                  maxLength={254}
                 />
                 <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
               </div>
@@ -159,6 +204,7 @@ const SignIn: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  maxLength={128}
                 />
                 <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
               </div>

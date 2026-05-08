@@ -36,11 +36,17 @@ mfaSchema.set("toJSON", {
 
 const userSchema = new mongoose.Schema({
   name: String,
-  email: { type: String, unique: true, index: true },
+  email: {
+    type: String,
+    unique: true,
+    index: true,
+    lowercase: true,
+    trim: true,
+  },
   // C-1 fix: select:false forces explicit opt-in via .select("+passwordHash")
   passwordHash: { type: String, select: false },
-  role: { type: String, enum: ["superadmin","admin","teacher","student","orgadmin","orguser"], default: "student" },
-  status: { type: String, enum: ["active","disabled"], default: "active" },
+  role: { type: String, enum: ["superadmin", "admin", "teacher", "student", "orgadmin", "orguser"], default: "student" },
+  status: { type: String, enum: ["active", "disabled"], default: "active" },
   orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", default: null },
   mfa: { type: mfaSchema, default: () => ({ required: false }) },
   invitedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
@@ -53,8 +59,8 @@ const userSchema = new mongoose.Schema({
   passwordResetExpires: { type: Date, default: null, select: false },
   // Email change fields — pending new email awaiting verification
   emailChangePending: { type: String, default: null, select: false },
-  emailChangeToken:   { type: String, default: null, select: false },
-  emailChangeExpires: { type: Date,   default: null, select: false },
+  emailChangeToken: { type: String, default: null, select: false },
+  emailChangeExpires: { type: Date, default: null, select: false },
   // 2FA backup codes — stored as SHA-256 hashes
   backupCodes: { type: [String], default: [], select: false },
 }, { timestamps: true });

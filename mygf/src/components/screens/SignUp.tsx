@@ -48,18 +48,69 @@ const SignUp: React.FC = () => {
 
   // NEW: precheck + gating
   const [checking, setChecking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [precheck, setPrecheck] = useState<PrecheckResp>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const validateForm = () => {
-    const next = { username: '', email: '', password: '', confirmPassword: '' };
+    const next = {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    };
+
     let ok = true;
 
-    if (!username.trim()) { next.username = 'Please enter a username.'; ok = false; }
+    const normalizedUsername = username.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+
     const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRx.test(email)) { next.email = 'Enter a valid email.'; ok = false; }
-    if (password.length < 6) { next.password = 'Password must be at least 6 chars.'; ok = false; }
-    if (password !== confirmPassword) { next.confirmPassword = 'Passwords do not match.'; ok = false; }
+
+    if (!normalizedUsername) {
+      next.username = 'Full name is required.';
+      ok = false;
+    } else if (normalizedUsername.length < 2) {
+      next.username = 'Name must contain at least 2 characters.';
+      ok = false;
+    } else if (normalizedUsername.length > 80) {
+      next.username = 'Name is too long.';
+      ok = false;
+    }
+
+    if (!normalizedEmail) {
+      next.email = 'Email address is required.';
+      ok = false;
+    } else if (!emailRx.test(normalizedEmail)) {
+      next.email = 'Please enter a valid email address.';
+      ok = false;
+    }
+
+    if (!normalizedPassword) {
+      next.password = 'Password is required.';
+      ok = false;
+    } else if (normalizedPassword.length < 8) {
+      next.password = 'Password must contain at least 8 characters.';
+      ok = false;
+    } else if (!/[A-Z]/.test(normalizedPassword)) {
+      next.password = 'Password must contain at least one uppercase letter.';
+      ok = false;
+    } else if (!/[a-z]/.test(normalizedPassword)) {
+      next.password = 'Password must contain at least one lowercase letter.';
+      ok = false;
+    } else if (!/\d/.test(normalizedPassword)) {
+      next.password = 'Password must contain at least one number.';
+      ok = false;
+    }
+
+    if (!confirmPassword.trim()) {
+      next.confirmPassword = 'Please confirm your password.';
+      ok = false;
+    } else if (password !== confirmPassword) {
+      next.confirmPassword = 'Passwords do not match.';
+      ok = false;
+    }
 
     setErrors(next);
     return ok;
@@ -77,20 +128,30 @@ const SignUp: React.FC = () => {
       return data as PrecheckResp;         // <-- return the value so caller can decide immediately
     } catch (err: any) {
       // If precheck is unavailable, allow signup flow to proceed
-      const fallback = { mode: 'signup' } as PrecheckResp;
-      setPrecheck(fallback);
-      return fallback;
+      setFormError(
+        'Unable to verify account availability right now. Please try again shortly.'
+      );
+
+      return null;
     } finally {
       setChecking(false);
     }
   }
 
   const handleSubmit = async () => {
+    if (submitting) return;
+
     setFormError(null);
+
     if (!validateForm()) return;
+
+    setSubmitting(true);
 
     // Always verify the email status before signup (use the return to avoid state-race)
     const pc = await runPrecheck(email);
+    if (!pc) {
+      return;
+    }
     if (pc?.mode === 'signin') {
       // Go to Sign In instead of attempting signup
       navigate('/login', { state: { email } });
@@ -99,7 +160,11 @@ const SignUp: React.FC = () => {
 
     try {
       // Only call the student signup endpoint; no legacy fallback that causes 404s
-      const { data } = await api.post('/auth/signup-student', { name: username, email, password });
+      const { data } = await api.post('/auth/signup-student', {
+        name: username.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
       // If backend returns user + tokens, persist and route by role
       if (data?.user && data?.tokens) {
@@ -119,18 +184,29 @@ const SignUp: React.FC = () => {
         setPrecheck({ mode: 'signin', reason: 'Account already exists' });
         return;
       }
-      alert(error?.response?.data?.message || 'Sign-up failed');
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message;
+
+      if (status === 409) {
+        setFormError('An account with this email already exists.');
+      } else if (status === 429) {
+        setFormError('Too many attempts. Please wait before trying again.');
+      } else {
+        setFormError(message || 'Unable to create account right now.');
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <>
-        <NavBar />
+      <NavBar />
       <div
-  className="relative flex items-center justify-center min-h-screen px-4
+        className="relative flex items-center justify-center min-h-screen px-4
              pt-24 md:pt-28
              bg-gradient-to-b from-slate-50 via-sky-50 to-slate-100"
->
+      >
         <AuthBackdrop />
 
         <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
@@ -180,6 +256,7 @@ const SignUp: React.FC = () => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"
+                    maxLength={80}
                   />
                   <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
                 </div>
@@ -204,6 +281,7 @@ const SignUp: React.FC = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     onBlur={() => runPrecheck(email)}
                     autoComplete="email"
+                    maxLength={254}
                   />
                   <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
                 </div>
@@ -230,6 +308,7 @@ const SignUp: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="new-password"
+                    maxLength={128}
                   />
                   <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
                 </div>
@@ -262,6 +341,7 @@ const SignUp: React.FC = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
+                    maxLength={128}
                   />
                   <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
                 </div>
@@ -326,7 +406,7 @@ const SignUp: React.FC = () => {
         </div>
       </div>
 
-      <Footer/>
+      <Footer />
     </>
   );
 };

@@ -40,6 +40,19 @@ const DEBUG_AUTH = process.env.DEBUG_AUTH === "1";
 // Safe for single-process deployments; for multi-instance, replace with Redis SET NX.
 const _totpUsedKeys = new Map();
 
+const PASSWORD_MIN_LENGTH = 8;
+
+function isStrongPassword(password) {
+  const value = String(password || "");
+
+  return (
+    value.length >= PASSWORD_MIN_LENGTH &&
+    /[A-Z]/.test(value) &&
+    /[a-z]/.test(value) &&
+    /\d/.test(value)
+  );
+}
+
 function _totpReplayKey(uid, delta) {
   // Bucket = current 30-second TOTP period. Ties the key to a specific time window.
   const bucket = Math.floor(Date.now() / 30_000);
@@ -59,29 +72,14 @@ const alog = (...args) => {
   if (DEBUG_AUTH) console.log(new Date().toISOString(), "[auth]", ...args);
 };
 
-// ---------------------------------------------------------------------------
-// PHASE 1: Deterministic refresh-cookie reader.
-//
-// The root cause of "jti-revoked" failures in production logs:
-//   req.cookies["__Host-refresh"] || req.cookies.sr
-// reads whichever name the browser sends first. If the browser holds BOTH
-// (e.g., user moved between HTTP dev and HTTPS prod, or a previous session
-// left a stale cookie), the WRONG — possibly already-rotated — token is
-// used, its JTI is revoked in the DB, and the refresh fails.
-//
-// This helper mirrors the exact HTTPS detection in setAuthCookies() so that
-// the cookie we READ is always the same cookie we WROTE.
-// ---------------------------------------------------------------------------
-function getActiveRefreshCookie(req) {
 /**
- * Production-safe refresh cookie reader
- *
- * Always read standard refresh cookie.
- * No __Host-* switching.
+ * Production-safe refresh cookie reader.
+ * Always read the canonical refresh cookie only.
  */
 function getActiveRefreshCookie(req) {
-  return req.cookies?.sr || null;
-}
+  return typeof req.cookies?.sr === "string"
+    ? req.cookies.sr
+    : null;
 }
 
 // Lightweight UA parser — no external dependency needed.
@@ -89,22 +87,22 @@ function getActiveRefreshCookie(req) {
 function parseUA(ua) {
   const s = String(ua || "");
   let browser = "Unknown";
-  let os      = "Unknown";
+  let os = "Unknown";
 
   // Browser detection (order matters — Edge must come before Chrome)
-  if (/Edg\//i.test(s))            browser = "Edge";
-  else if (/OPR\//i.test(s))       browser = "Opera";
-  else if (/Chrome\//i.test(s))    browser = "Chrome";
-  else if (/Firefox\//i.test(s))   browser = "Firefox";
-  else if (/Safari\//i.test(s))    browser = "Safari";
+  if (/Edg\//i.test(s)) browser = "Edge";
+  else if (/OPR\//i.test(s)) browser = "Opera";
+  else if (/Chrome\//i.test(s)) browser = "Chrome";
+  else if (/Firefox\//i.test(s)) browser = "Firefox";
+  else if (/Safari\//i.test(s)) browser = "Safari";
   else if (/MSIE|Trident/i.test(s)) browser = "IE";
 
   // OS detection
-  if (/Windows NT/i.test(s))       os = "Windows";
-  else if (/Android/i.test(s))     os = "Android";
+  if (/Windows NT/i.test(s)) os = "Windows";
+  else if (/Android/i.test(s)) os = "Android";
   else if (/iPhone|iPad/i.test(s)) os = "iOS";
-  else if (/Mac OS X/i.test(s))    os = "macOS";
-  else if (/Linux/i.test(s))       os = "Linux";
+  else if (/Mac OS X/i.test(s)) os = "macOS";
+  else if (/Linux/i.test(s)) os = "Linux";
 
   return { browser, os, userAgent: s };
 }
@@ -115,7 +113,7 @@ async function saveRefresh(userId, jti, exp, ua, ip) {
     jti,
     exp,
     device: ua,          // raw UA string kept in device for backward compat
-    ip:    ip || null,
+    ip: ip || null,
     lastUsedAt: new Date(),
   });
 }
@@ -181,9 +179,16 @@ function normalizeRoleWhenVerified(user) {
 // ===== Controllers =====
 export async function login(req, res) {
   try {
-    const { email, password, as } = req.body;
-    const ua  = req.get("User-Agent") || "unknown";
-    const ip  = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+    const {
+  email: rawEmail,
+  password: rawPassword,
+  as,
+} = req.body || {};
+
+const email = String(rawEmail || "").trim().toLowerCase();
+const password = String(rawPassword || "");
+    const ua = req.get("User-Agent") || "unknown";
+    const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
 
     const user = await User.findOne({ email }).select("+passwordHash");
     if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" });
@@ -285,11 +290,11 @@ export async function verifyMfa(req, res) {
         await user.save();
         return res.status(400).json({ ok: false, message: "Invalid code" });
       }
-user.mfa.emailOtp = null;
-let changed = false;
-if (!user.isVerified) { user.isVerified = true; changed = true; }
-if (normalizeRoleWhenVerified(user)) changed = true;
-if (changed) await user.save();
+      user.mfa.emailOtp = null;
+      let changed = false;
+      if (!user.isVerified) { user.isVerified = true; changed = true; }
+      if (normalizeRoleWhenVerified(user)) changed = true;
+      if (changed) await user.save();
 
     } else if (method === "totp") {
       const secretEnc = user.mfa?.totpSecretEnc;
@@ -304,17 +309,17 @@ if (changed) await user.save();
         window: 1,
       });
       if (!tokenValidates) return res.status(400).json({ ok: false, message: "Invalid code" });
-let changed = false;
-if (!user.isVerified) { user.isVerified = true; changed = true; }
-if (normalizeRoleWhenVerified(user)) changed = true;
-if (changed) await user.save();
+      let changed = false;
+      if (!user.isVerified) { user.isVerified = true; changed = true; }
+      if (normalizeRoleWhenVerified(user)) changed = true;
+      if (changed) await user.save();
 
     } else {
       return res.status(400).json({ ok: false, message: "Invalid method" });
     }
 
-    const ua  = req.get("User-Agent") || "unknown";
-    const ip  = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+    const ua = req.get("User-Agent") || "unknown";
+    const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     const { access, refresh, jti, refreshExp } = mintTokens(user, ua);
     await saveRefresh(user.id, jti, refreshExp, ua, ip);
     setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
@@ -342,8 +347,8 @@ export async function totpSetup(req, res) {
     const enc = user.mfa.totpSecretEnc;
     const hasValidEnc =
       !!(enc && typeof enc.iv === "string" && enc.iv &&
-               typeof enc.ct === "string" && enc.ct &&
-               typeof enc.tag === "string" && enc.tag);
+        typeof enc.ct === "string" && enc.ct &&
+        typeof enc.tag === "string" && enc.tag);
     const hasHash = !!user.mfa.totpSecretHash;
 
     let base32Secret;
@@ -426,14 +431,14 @@ export async function totpVerify(req, res) {
       return res.status(400).json({ ok: false, message: "Code already used" });
     }
 
-let changed = false;
-if (!user.isVerified) { user.isVerified = true; changed = true; }
-if (normalizeRoleWhenVerified(user)) changed = true;
-if (changed) await user.save();
+    let changed = false;
+    if (!user.isVerified) { user.isVerified = true; changed = true; }
+    if (normalizeRoleWhenVerified(user)) changed = true;
+    if (changed) await user.save();
 
 
-    const ua  = req.get("User-Agent") || "unknown";
-    const ip  = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
+    const ua = req.get("User-Agent") || "unknown";
+    const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
     const { access, refresh, jti, refreshExp } = mintTokens(user, ua);
     await saveRefresh(user.id, jti, refreshExp, ua, ip);
     setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
@@ -496,7 +501,7 @@ export async function acceptInvite(req, res) {
 
   const mfaPolicy = effMfaRequired
     ? { required: true, method: effMfaMethod || "otp", totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null }
-    : { required: false, method: null,               totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
+    : { required: false, method: null, totpSecretHash: null, totpSecretEnc: undefined, emailOtp: null };
 
   // Students: verified after successful first login/MFA. If no MFA is required, verify now.
   const verifiedNow = !mfaPolicy.required;
@@ -537,8 +542,8 @@ export async function acceptInvite(req, res) {
 
   // Don't auto-login - redirect to login page instead
   // The user should log in manually after setting their password
-  return res.json({ 
-    ok: true, 
+  return res.json({
+    ok: true,
     message: "Account created successfully. Please log in with your credentials.",
     user: {
       id: String(user._id),
@@ -557,43 +562,43 @@ export async function verifyInvitation(req, res) {
   if (!token) {
     return res.status(400).json({ ok: false, message: "Invitation token is required" });
   }
-  
+
   const tokenHash = hash(token);
-  
+
   try {
     const inv = await Invitation.findOne({
       tokenHash,
       accepted: false,
       expiresAt: { $gt: new Date() },
     });
-    
+
     if (!inv) {
       // Check if it's expired or already accepted
       const invExpired = await Invitation.findOne({ tokenHash });
       if (invExpired) {
         if (invExpired.accepted) {
-          return res.status(400).json({ 
-            ok: false, 
+          return res.status(400).json({
+            ok: false,
             message: "This invitation has already been used.",
             error: "INVITATION_ALREADY_USED",
           });
         }
         if (invExpired.expiresAt <= new Date()) {
-          return res.status(400).json({ 
-            ok: false, 
+          return res.status(400).json({
+            ok: false,
             message: "This invitation has expired. Please request a new invitation.",
             error: "INVITATION_EXPIRED",
             expiredAt: invExpired.expiresAt.toISOString(),
           });
         }
       }
-      return res.status(400).json({ 
-        ok: false, 
+      return res.status(400).json({
+        ok: false,
         message: "Invalid or expired invitation token.",
         error: "INVITATION_INVALID",
       });
     }
-    
+
     // Return invitation details (without sensitive info)
     return res.json({
       ok: true,
@@ -607,8 +612,8 @@ export async function verifyInvitation(req, res) {
     });
   } catch (error) {
     console.error("[verifyInvitation] Error:", error);
-    return res.status(500).json({ 
-      ok: false, 
+    return res.status(500).json({
+      ok: false,
       message: "An error occurred while verifying the invitation.",
       error: "VERIFICATION_ERROR",
     });
@@ -652,10 +657,10 @@ export async function refresh(req, res) {
   try {
     const rt = getActiveRefreshCookie(req);
     const allCookies = Object.keys(req.cookies || {});
-    alog("[refresh:start]", { 
-      rid, 
-      hasCookie: !!rt, 
-      ip, 
+    alog("[refresh:start]", {
+      rid,
+      hasCookie: !!rt,
+      ip,
       ua,
       cookieNames: allCookies,
       hostRefresh: !!req.cookies?.["__Host-refresh"],
@@ -748,7 +753,7 @@ export async function logout(req, res) {
         const { jti, sub } = jwt.verify(rt, JWT_REFRESH_SECRET);
         if (jti) await revokeRefresh(jti, undefined);
         if (sub) writeAudit(sub, "logout", req);
-      } catch {}
+      } catch { }
     }
   } finally {
     clearAuthCookies(res); // clears __Host-* and dev sid/sr with matching attributes
@@ -776,15 +781,46 @@ export async function precheckEmail(req, res) {
 
 export async function signupStudent(req, res) {
   const { name, email, password } = req.body || {};
-  if (!email || !password) return res.status(400).json({ message: 'email and password required' });
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  const normalizedName = String(name || "").trim();
+  const normalizedPassword = String(password || "");
 
-  const existing = await User.findOne({ email: String(email).toLowerCase() });
+  if (!normalizedName || normalizedName.length < 2) {
+    return res.status(400).json({
+      ok: false,
+      message: "Please enter a valid full name",
+    });
+  }
+
+  if (!normalizedEmail) {
+    return res.status(400).json({
+      ok: false,
+      message: "Email address is required",
+    });
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    return res.status(400).json({
+      ok: false,
+      message: "Invalid email address",
+    });
+  }
+
+  if (!isStrongPassword(normalizedPassword)) {
+    return res.status(400).json({
+      ok: false,
+      message:
+        "Password must contain at least 8 characters, including uppercase, lowercase, and a number",
+    });
+  }
+
+  const existing = await User.findOne({ email: normalizedEmail });
   if (existing) return res.status(409).json({ message: 'Email already in use' });
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(normalizedPassword, 12);
   await User.create({
-    name: name || null,
-    email: String(email).toLowerCase(),
+    name: normalizedName || null,
+    email: normalizedEmail,
     role: 'student',
     status: 'active',
     isVerified: true,
@@ -799,29 +835,29 @@ export async function resetPassword(req, res) {
   const rid = crypto.randomUUID();
   const ua = req.get("User-Agent") || "unknown";
   const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
-  
+
   alog("[resetPassword:start]", { rid, ip, ua });
 
   try {
     const { token, password, newPassword, email } = req.body || {};
-    
+
     // Support both frontend formats: {token, password} or {token, newPassword, email}
     const resetToken = token;
     const resetPassword = password || newPassword;
-    
+
     // Validate inputs
     if (!resetToken || typeof resetToken !== 'string' || !resetToken.trim()) {
       alog("[resetPassword:fail] missing-token", { rid, token: !!resetToken });
       return res.status(400).json({ ok: false, message: 'Reset token is required' });
     }
 
-    if (!resetPassword || typeof resetPassword !== 'string' || resetPassword.length < 6) {
+    if (!resetPassword || typeof resetPassword !== 'string' || !isStrongPassword(resetPassword)) {
       alog("[resetPassword:fail] invalid-password", { rid, passwordLength: resetPassword?.length || 0 });
-      return res.status(400).json({ ok: false, message: 'Password must be at least 6 characters long' });
+      return res.status(400).json({ ok: false, message: 'Password must be at least 8 characters long and include uppercase, lowercase, and a number' });
     }
 
     const tokenHash = hash(resetToken.trim());
-    
+
     // Find user with valid reset token
     const user = await User.findOne({
       passwordResetToken: tokenHash,
@@ -851,9 +887,9 @@ export async function resetPassword(req, res) {
     // Revoke all refresh tokens — force logout from all devices after password reset
     await RefreshToken.deleteMany({ userId: user._id });
 
-    alog("[resetPassword:success]", { 
-      rid, 
-      email: user.email, 
+    alog("[resetPassword:success]", {
+      rid,
+      email: user.email,
       userId: user._id,
       ms: Date.now() - started
     });
@@ -868,7 +904,7 @@ export async function resetPassword(req, res) {
       stack: error?.stack?.split('\n')[0],
       ms: Date.now() - started
     });
-    
+
     return res.status(500).json({ ok: false, message: 'Something went wrong. Please try again later.' });
   }
 }
@@ -878,12 +914,12 @@ export async function forgotPassword(req, res) {
   const rid = crypto.randomUUID();
   const ua = req.get("User-Agent") || "unknown";
   const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
-  
+
   alog("[forgotPassword:start]", { rid, ip, ua });
 
   try {
     const { email } = req.body || {};
-    
+
     // Validate email
     if (!email || typeof email !== 'string' || !email.trim()) {
       alog("[forgotPassword:fail] missing-email", { rid, email: !!email });
@@ -891,7 +927,7 @@ export async function forgotPassword(req, res) {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim();
-    
+
     // Check if user exists
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
@@ -918,10 +954,10 @@ export async function forgotPassword(req, res) {
 
     // Generate reset link
     const resetLink = `${process.env.PUBLIC_APP_URL?.split(",")[0] || "http://localhost:5173"}/reset-password?token=${resetToken}`;
-    
-    alog("[forgotPassword:token-generated]", { 
-      rid, 
-      email: normalizedEmail, 
+
+    alog("[forgotPassword:token-generated]", {
+      rid,
+      email: normalizedEmail,
       userId: user._id,
       expiresAt: resetExpires.toISOString(),
       resetLink: resetLink.substring(0, 50) + '...' // Log partial link for debugging
@@ -930,30 +966,30 @@ export async function forgotPassword(req, res) {
     // Send email with reset link
     try {
       await sendPasswordResetEmail(normalizedEmail, resetLink);
-      alog("[forgotPassword:email-sent]", { 
-        rid, 
-        email: normalizedEmail, 
+      alog("[forgotPassword:email-sent]", {
+        rid,
+        email: normalizedEmail,
         resetLink: resetLink.substring(0, 50) + '...',
         success: true
       });
     } catch (emailError) {
-      alog("[forgotPassword:email-failed]", { 
-        rid, 
-        email: normalizedEmail, 
+      alog("[forgotPassword:email-failed]", {
+        rid,
+        email: normalizedEmail,
         error: emailError?.message || 'Unknown email error',
         stack: emailError?.stack?.split('\n')[0]
       });
-      
+
       // Log reset link only in non-production environments (never log tokens in production)
       if (process.env.NODE_ENV !== 'production') console.log(`[DEV] Password reset link for ${normalizedEmail}: ${resetLink}`);
-      
+
       // Don't fail the request if email fails - user still gets success message
       // This prevents revealing if email exists when SMTP is down
     }
 
-    alog("[forgotPassword:success]", { 
-      rid, 
-      email: normalizedEmail, 
+    alog("[forgotPassword:success]", {
+      rid,
+      email: normalizedEmail,
       userId: user._id,
       ms: Date.now() - started
     });
@@ -1055,7 +1091,7 @@ export async function requestEmailChange(req, res) {
 
   const token = crypto.randomBytes(32).toString("hex");
   user.emailChangePending = normalized;
-  user.emailChangeToken   = hash(token);
+  user.emailChangeToken = hash(token);
   user.emailChangeExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
   await user.save();
 
@@ -1096,15 +1132,15 @@ export async function verifyEmailChange(req, res) {
   const conflict = await User.findOne({ email: newEmail, _id: { $ne: user._id } });
   if (conflict) {
     user.emailChangePending = null;
-    user.emailChangeToken   = null;
+    user.emailChangeToken = null;
     user.emailChangeExpires = null;
     await user.save();
     return res.status(409).json({ ok: false, message: "Email is already in use by another account" });
   }
 
-  user.email              = newEmail;
+  user.email = newEmail;
   user.emailChangePending = null;
-  user.emailChangeToken   = null;
+  user.emailChangeToken = null;
   user.emailChangeExpires = null;
   await user.save();
 
@@ -1126,7 +1162,7 @@ export async function selfTotpSetup(req, res) {
     length: 20,
     name: `${process.env.TOTP_ISSUER || "ECA"}:${user.email}`,
   });
-  user.mfa.totpSecretEnc  = encryptTotpSecret(secret.base32);
+  user.mfa.totpSecretEnc = encryptTotpSecret(secret.base32);
   user.mfa.totpSecretHash = null; // clear legacy
   await user.save();
 
@@ -1185,8 +1221,8 @@ export async function selfTotpEnable(req, res) {
   const { plain: backupPlain, hashed: backupHashed } = generateBackupCodes(8);
 
   user.mfa.required = true;
-  user.mfa.method   = "totp";
-  user.backupCodes  = backupHashed;
+  user.mfa.method = "totp";
+  user.backupCodes = backupHashed;
   await user.save();
 
   writeAudit(user._id, "2FA_ENABLE", req, { method: "totp" });
@@ -1210,12 +1246,12 @@ export async function selfTotpDisable(req, res) {
     return res.status(403).json({ ok: false, message: "Superadmin must keep 2FA enabled at all times" });
   }
 
-  user.mfa.required       = false;
-  user.mfa.method         = null;
+  user.mfa.required = false;
+  user.mfa.method = null;
   user.mfa.totpSecretHash = null;
-  user.mfa.totpSecretEnc  = { iv: null, ct: null, tag: null };
-  user.mfa.emailOtp       = null;
-  user.backupCodes        = [];
+  user.mfa.totpSecretEnc = { iv: null, ct: null, tag: null };
+  user.mfa.emailOtp = null;
+  user.backupCodes = [];
   await user.save();
 
   writeAudit(user._id, "2FA_DISABLE", req);
@@ -1278,11 +1314,11 @@ export async function listSessions(req, res) {
   const result = sessions.map((s) => {
     const parsed = parseUA(s.device || "");
     return {
-      id:          String(s._id),
-      device:      parsed,
-      ip:          s.ip || null,
-      lastUsedAt:  s.lastUsedAt ?? s.createdAt,
-      current:     currentJti ? s.jti === currentJti : false,
+      id: String(s._id),
+      device: parsed,
+      ip: s.ip || null,
+      lastUsedAt: s.lastUsedAt ?? s.createdAt,
+      current: currentJti ? s.jti === currentJti : false,
     };
   });
 
@@ -1296,7 +1332,7 @@ export async function listSessions(req, res) {
 // ------------------------------------------------------------------
 export async function revokeSession(req, res) {
   const userId = req.user?._id;
-  const { id }  = req.params;
+  const { id } = req.params;
 
   const session = await RefreshToken.findOne({ _id: id, userId });
   if (!session) return res.status(404).json({ ok: false, message: "Session not found" });
@@ -1320,7 +1356,7 @@ export async function revokeSession(req, res) {
 // Revokes all sessions except the current one (identified by jti).
 // ------------------------------------------------------------------
 export async function revokeOtherSessions(req, res) {
-  const userId     = req.user?._id;
+  const userId = req.user?._id;
   const currentJti = req.user?.jti ?? null;
 
   if (!currentJti) {

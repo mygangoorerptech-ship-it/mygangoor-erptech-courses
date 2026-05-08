@@ -66,9 +66,6 @@ return (req, res, next) => {
   }
   userRole = (userRole || '').toString().trim().toLowerCase();
 
-  // Debug: log every call to see which roles are coming in
-  console.log(`[requireRole] path=${req.originalUrl}, userRole=${userRole}, allowed=${allowed.join(',')}`);
-
   if (!userRole) {
     return res.status(401).json({ ok: false, message: 'Unauthenticated (no role)' });
   }

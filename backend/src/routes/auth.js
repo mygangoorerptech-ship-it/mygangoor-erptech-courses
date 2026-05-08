@@ -45,9 +45,12 @@ function authz(req, _res, next) {
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;
   if (token) {
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const payload = jwt.verify(
+        token,
+        process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET
+      );
       req.user = payload;
-    } catch {}
+    } catch { }
   }
   next();
 }
@@ -80,14 +83,14 @@ r.post('/auth/me/email/request', requireAuth, settingsLimiter, requireRecentAuth
 r.get('/auth/me/email/verify', ctrl.verifyEmailChange);
 
 // 2FA self-service
-r.get('/auth/me/2fa/setup',    requireAuth, ctrl.selfTotpSetup);
-r.post('/auth/me/2fa/enable',  requireAuth, settingsLimiter, ctrl.selfTotpEnable);
+r.get('/auth/me/2fa/setup', requireAuth, ctrl.selfTotpSetup);
+r.post('/auth/me/2fa/enable', requireAuth, settingsLimiter, ctrl.selfTotpEnable);
 r.post('/auth/me/2fa/disable', requireAuth, settingsLimiter, requireRecentAuth, ctrl.selfTotpDisable);
 
 // ── Session management endpoints (authenticated) ─────────────────
 // sessionLimiter runs AFTER requireAuth for the same reason as settingsLimiter.
-r.get('/auth/me/sessions',                requireAuth, sessionLimiter, ctrl.listSessions);
-r.delete('/auth/me/sessions/:id',         requireAuth, sessionLimiter, ctrl.revokeSession);
+r.get('/auth/me/sessions', requireAuth, sessionLimiter, ctrl.listSessions);
+r.delete('/auth/me/sessions/:id', requireAuth, sessionLimiter, ctrl.revokeSession);
 r.post('/auth/me/sessions/revoke-others', requireAuth, sessionLimiter, ctrl.revokeOtherSessions);
 
 export default r;

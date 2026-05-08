@@ -21,10 +21,10 @@ import assessmentGroupRoutes from "./src/routes/assessmentGroups.js";
 import saCoursesRoutes from "./src/routes/saCourses.js";
 import coursesRoutes from "./src/routes/courses.js";
 import enrollmentsRouter from "./src/routes/enrollments.js";
-import saAuditRouter  from "./src/routes/saAudit.js";
+import saAuditRouter from "./src/routes/saAudit.js";
 import paymentsRouter from "./src/routes/payments.js";
 import studentsRouter from "./src/routes/students.js";
-import auditRouter    from "./src/routes/audit.js";
+import auditRouter from "./src/routes/audit.js";
 import debugRoutes from "./src/routes/debug.js";
 import { requireAuthNoRole, requireAuth } from "./src/middleware/authz.js";
 import studentCatalogRouter from "./src/routes/studentCatalog.js";
@@ -36,7 +36,7 @@ import studentEnrollmentsRouter from "./src/routes/studentEnrollments.js";
 import ordersRouter from "./src/routes/orders.js";
 import subscriptionsRouter from "./src/routes/subscriptions.js";
 import saPaymentsRouter from "./src/routes/saPayments.js";
-import saReconciliationRouter from "./src/routes/saReconciliation.js"; 
+import saReconciliationRouter from "./src/routes/saReconciliation.js";
 import saPayoutsRouter from "./src/routes/saPayouts.js";
 import uploadsRouter from "./src/routes/uploads.js";
 import joinStateRouter from "./src/routes/joinState.js";
@@ -79,37 +79,37 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const corsOptions = {
-origin(origin, cb) {
-  /**
-   * Allow requests without Origin header.
-   *
-   * Needed for:
-   * - browser-managed credential flows
-   * - EventSource / SSE
-   * - same-origin internal requests
-   * - health checks
-   * - Render internal probes
-   * - curl / server-to-server requests
-   *
-   * Rejecting these causes missing CORS headers and
-   * breaks cookie persistence in production.
-   */
-  if (!origin) {
-    return cb(null, true);
-  }
+  origin(origin, cb) {
+    /**
+     * Allow requests without Origin header.
+     *
+     * Needed for:
+     * - browser-managed credential flows
+     * - EventSource / SSE
+     * - same-origin internal requests
+     * - health checks
+     * - Render internal probes
+     * - curl / server-to-server requests
+     *
+     * Rejecting these causes missing CORS headers and
+     * breaks cookie persistence in production.
+     */
+    if (!origin) {
+      return cb(null, true);
+    }
 
-  const isAllowed = allow.includes(origin);
+    const isAllowed = allow.includes(origin);
 
-  if (!isAllowed && process.env.NODE_ENV === "production" && process.env.DEBUG_CORS === "1") {
-    console.warn(
-      `[cors] Origin "${origin}" not in allowlist. Allowed: [${allow.join(", ")}]`
-    );
-  }
+    if (!isAllowed && process.env.NODE_ENV === "production" && process.env.DEBUG_CORS === "1") {
+      console.warn(
+        `[cors] Origin "${origin}" not in allowlist. Allowed: [${allow.join(", ")}]`
+      );
+    }
 
-  return cb(null, isAllowed);
-},
+    return cb(null, isAllowed);
+  },
   credentials: true,
-  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Requested-With", "If-None-Match", "Cache-Control"],
   exposedHeaders: ["ETag", "X-Data-Version"],
   maxAge: 86400, // cache preflight for 24 h — reduces OPTIONS round-trips on every nav
@@ -200,9 +200,9 @@ const signupLimiter = rateLimit({
   message: { ok: false, message: "Too many requests, please try again later." },
 });
 app.use("/api/auth/forgot-password", forgotLimiter);
-app.use("/api/auth/precheck",        forgotLimiter);
-app.use("/api/auth/signup",          signupLimiter);
-app.use("/api/auth/signup-student",  signupLimiter);
+app.use("/api/auth/precheck", forgotLimiter);
+app.use("/api/auth/signup", signupLimiter);
+app.use("/api/auth/signup-student", signupLimiter);
 // NOTE: settingsLimiter and sessionLimiter are now applied at ROUTE level
 // in src/routes/auth.js (after requireAuth so req.user is populated).
 
@@ -248,7 +248,11 @@ app.use((req, res, next) => {
   const fullPath = (req.originalUrl || req.path || "").split("?")[0];
   const localPath = (req.path || "").split("?")[0];
   const candidates = [fullPath, localPath].filter(Boolean);
-  if (candidates.some((c) => CSRF_EXEMPT.some((p) => c === p || c.startsWith(p)))) return next();
+  const csrfExempt = candidates.some((candidate) =>
+    CSRF_EXEMPT.includes(candidate)
+  );
+
+  if (csrfExempt) return next();
 
   const headerTok = req.get("X-CSRF-Token") || "";
   const cookieTok = req.cookies?.["__Host-csrf"] || req.cookies?.["csrf"] || "";
@@ -260,7 +264,7 @@ app.use((req, res, next) => {
 
     // Reconstruct browser origin when behind dev proxy
     const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0].trim();
-    const xfHost  = (req.get("x-forwarded-host")  || "").split(",")[0].trim();
+    const xfHost = (req.get("x-forwarded-host") || "").split(",")[0].trim();
     const xfOrigin = xfProto && xfHost ? `${xfProto}://${xfHost}` : "";
 
     const refOrigin = (() => {
@@ -382,7 +386,7 @@ app.use("/api/teacher", teacherRouter);
 //   // Serve from both /html-assets and /static/assets to maintain compatibility
 //   app.use("/html-assets", express.static(path.join(htmlPagesDir, "assets")));
 //   app.use("/static/assets", express.static(path.join(htmlPagesDir, "assets")));
-  
+
 //   // Serve other static files from html-pages root (like notification-bell-standalone.js)
 //   app.use("/static", express.static(htmlPagesDir, {
 //     // Only serve non-HTML files from root
@@ -392,12 +396,12 @@ app.use("/api/teacher", teacherRouter);
 //       }
 //     }
 //   }));
-  
+
 //   // Serve HTML files directly
 //   app.get("/home", (req, res) => {
 //     res.sendFile(path.join(htmlPagesDir, "home.html"));
 //   });
-  
+
 //   app.get("/login.html", (req, res) => {
 //     res.sendFile(path.join(htmlPagesDir, "login.html"));
 //   });
@@ -409,7 +413,7 @@ app.use("/api/teacher", teacherRouter);
 //       : "";
 //     return res.redirect(302, `/login.html${qs}`);
 //   });
-  
+
 //   // Serve any other HTML files from html-pages
 //   app.get("/*.html", (req, res, next) => {
 //     const htmlFile = path.join(htmlPagesDir, req.path);
@@ -474,8 +478,8 @@ if (process.env.NODE_ENV === "production") {
 
 connectMongo()
   .then(() => {
-    app.listen(PORT, () => { 
-      console.log("Server running on", PORT); 
+    app.listen(PORT, () => {
+      console.log("Server running on", PORT);
       startScheduler();
       // Verify email service configuration on startup (non-blocking)
       // Don't await - let server start even if email verification fails
