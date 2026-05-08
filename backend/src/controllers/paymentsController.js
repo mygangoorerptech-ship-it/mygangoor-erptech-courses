@@ -74,6 +74,28 @@ function sanitize(p) {
     currency: o.currency,
     orgId: o.orgId ? String(toId(o.orgId)) : null,
     courseId: o.courseId ? String(toId(o.courseId)) : null,
+
+    courseTitle:
+      o?.courseId &&
+        typeof o.courseId === "object" &&
+        "title" in o.courseId
+        ? o.courseId.title || null
+        : null,
+
+    orgName:
+      o?.orgId &&
+        typeof o.orgId === "object" &&
+        "name" in o.orgId
+        ? o.orgId.name || null
+        : (
+          o?.courseId &&
+          typeof o.courseId === "object" &&
+          o.courseId?.orgId &&
+          typeof o.courseId.orgId === "object" &&
+          "name" in o.courseId.orgId
+        )
+          ? o.courseId.orgId.name || null
+          : null,
     studentId,
     studentEmail,
     receiptNo: o.receiptNo || null,
@@ -132,8 +154,22 @@ export async function list(req, res) {
       });
     }
 
-    const docs = await Payment.find(and.length ? { $and: and } : {})
+    const docs = await Payment.find(
+      and.length ? { $and: and } : {}
+    )
       .populate("studentId", "email name")
+
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+
+      .populate("orgId", "name")
+
       .sort({ createdAt: -1 })
       .lean();
 
@@ -429,6 +465,17 @@ export async function verify(req, res) {
       { new: true }
     )
       .populate("studentId", "email")
+
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+
+      .populate("orgId", "name")
       .lean();
 
     if (!doc) {
@@ -497,6 +544,17 @@ export async function reject(req, res) {
       { new: true }
     )
       .populate("studentId", "email")
+
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+
+      .populate("orgId", "name")
       .lean();
 
     if (!doc) return res.status(404).json({ ok: false });
@@ -522,6 +580,17 @@ export async function refund(req, res) {
       { new: true }
     )
       .populate("studentId", "email")
+
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+
+      .populate("orgId", "name")
       .lean();
 
     if (!doc) return res.status(404).json({ ok: false });
@@ -556,6 +625,15 @@ export async function listAll(req, res) {
     }
     const docs = await Payment.find(and.length ? { $and: and } : {})
       .populate("studentId", "email name")
+      .populate({
+        path: "courseId",
+        select: "title orgId",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+      .populate("orgId", "name")
       .sort({ createdAt: -1 })
       .lean();
     return res.json((docs || []).map(sanitize));

@@ -142,6 +142,25 @@ export default function ADPayments() {
               <div><div className="text-xs text-slate-500">Method</div><div className="text-sm">{target.method || '—'}</div></div>
               <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.orderId || target.subscriptionId || '—'}</div></div>
               <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
+                            <div>
+                <div className="text-xs text-slate-500">
+                  Course
+                </div>
+
+                <div className="text-sm">
+                  {target.courseTitle || '—'}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs text-slate-500">
+                  Organization / Center
+                </div>
+
+                <div className="text-sm">
+                  {target.orgName || '—'}
+                </div>
+              </div>
             </div>
             {(() => {
               let form = null
