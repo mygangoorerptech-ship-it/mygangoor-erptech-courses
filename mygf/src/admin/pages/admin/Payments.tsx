@@ -142,7 +142,7 @@ export default function ADPayments() {
               <div><div className="text-xs text-slate-500">Method</div><div className="text-sm">{target.method || '—'}</div></div>
               <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.orderId || target.subscriptionId || '—'}</div></div>
               <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
-                            <div>
+              <div>
                 <div className="text-xs text-slate-500">
                   Course
                 </div>
@@ -181,11 +181,12 @@ export default function ADPayments() {
                 )
               }
 
+              //edited 0000
               const f =
-  form?.joinForm &&
-  typeof form.joinForm === "object"
-    ? form.joinForm
-    : form || {};
+                form?.joinForm &&
+                  typeof form.joinForm === "object"
+                  ? form.joinForm
+                  : form || {};
 
               const fields: [string, any][] = [
                 ['Full Name', f.fullName],
