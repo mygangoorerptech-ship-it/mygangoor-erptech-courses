@@ -259,6 +259,7 @@ export async function createOffline(req, res) {
     // Prevent duplicate pending/captured offline payments
     const existingPayment = await Payment.findOne({
       studentId: toId(studentId),
+
       courseId: toId(courseId),
 
       status: {
@@ -267,6 +268,14 @@ export async function createOffline(req, res) {
 
       reconciliationStatus: {
         $ne: "matched",
+      },
+
+      createdSource: {
+        $in: [
+          "admin_manual",
+          "teacher_manual",
+          "superadmin_manual",
+        ],
       },
     }).lean();
 
@@ -400,6 +409,7 @@ export async function claimReceipt(req, res) {
     // Prevent duplicate active claims/purchases
     const existingPayment = await Payment.findOne({
       studentId: toId(studentId),
+
       courseId: toId(courseId),
 
       status: {
@@ -412,6 +422,8 @@ export async function claimReceipt(req, res) {
       reconciliationStatus: {
         $ne: "matched",
       },
+
+      createdSource: "student_claim",
     }).lean();
 
     if (existingPayment) {
@@ -665,7 +677,7 @@ export async function reject(req, res) {
 
     const filter = {
       _id: id,
-      status: { $ne: "captured" },
+      status: "pending_verification",
     };
 
     if (!isSuperadmin) {
@@ -725,6 +737,7 @@ export async function refund(req, res) {
     const filter = {
       _id: id,
       status: "captured",
+      reconciliationStatus: "none",
     };
 
     if (!isSuperadmin) {
