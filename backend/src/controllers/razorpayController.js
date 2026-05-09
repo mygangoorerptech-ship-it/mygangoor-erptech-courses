@@ -6,6 +6,7 @@ import Course from "../models/Course.js";
 import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import { ensureEnrollment } from "../services/enrollmentService.js";
+import { upsertFormProfileInternal } from "./studentFormProfileController.js";
 
 const isOid = (v) => mongoose.isValidObjectId(v);
 
@@ -248,7 +249,7 @@ export async function verifyPayment(req, res) {
           providerSignature: razorpay_signature,
           notes: JSON.stringify({
             ...(doc0.notes ? JSON.parse(doc0.notes || "{}") : {}),
-            ...(joinForm || {}),
+            joinForm: joinForm || null,
           }),
         }
       }
@@ -304,6 +305,11 @@ export async function verifyPayment(req, res) {
       });
     }
 
+    // Persist student form data for future enrollment reuse (fire-and-forget)
+    if (joinForm && sId) {
+      upsertFormProfileInternal(sId, joinForm);
+    }
+
     return res.json({ ok: true, trusted, enrollment: { created: enrollOk !== false } });
   } catch (e) {
     console.error("[rzp.verify]", e);
@@ -356,7 +362,6 @@ export async function webhook(req, res) {
             providerMethod: pay.method || undefined,   // 'upi', 'card', ... 
           }
         },
-        { new: true }
       ).lean();
 
       if (doc) {

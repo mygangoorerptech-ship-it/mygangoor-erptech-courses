@@ -12,7 +12,14 @@ const PaymentSchema = new mongoose.Schema({
   // pending -> captured -> refunded/failed
   //
   // offline:
-  // pending_verification -> captured -> refunded/rejected
+  //
+  // pending_verification
+  //   -> captured
+  //   -> refunded/rejected
+  //
+  // duplicate reconciled record:
+  // pending_verification
+  //   -> reconciled
   status: {
     type: String,
     enum: [
@@ -21,7 +28,8 @@ const PaymentSchema = new mongoose.Schema({
       "captured",
       "failed",
       "refunded",
-      "rejected"
+      "rejected",
+      "reconciled"
     ],
     default: "pending_verification",
     index: true,
@@ -33,6 +41,7 @@ const PaymentSchema = new mongoose.Schema({
       "student_claim",
       "admin_manual",
       "teacher_manual",
+      "superadmin_manual",
       "online_gateway",
     ],
     default: "student_claim",
@@ -133,6 +142,17 @@ PaymentSchema.index({
   amount: 1,
   courseId: 1,
   studentId: 1,
+});
+
+PaymentSchema.index({
+  type: 1,
+  status: 1,
+  reconciliationStatus: 1,
+  createdSource: 1,
+  studentId: 1,
+  courseId: 1,
+  orgId: 1,
+  amount: 1,
 });
 
 export default mongoose.models.Payment ?? mongoose.model("Payment", PaymentSchema);

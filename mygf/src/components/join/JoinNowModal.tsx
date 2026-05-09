@@ -19,6 +19,7 @@ import { useJoinCatalog, type CatalogState } from "./store/useJoinCatalog";
 import { useShallow } from "zustand/react/shallow";
 import { claimReceipt } from "../../api/payments";
 import { useEnrollmentStore } from "../../store/enrollmentStore";
+import { fetchFormProfile, isProfileComplete, type SavedFormProfile } from "../../api/formProfile";
 
 // lazy imports to keep bundle small
 const loadJsPDF = () => import("jspdf");
@@ -50,6 +51,10 @@ export default function JoinNowModal({
 
   // ✨ Ensure array element type for inference in .find callbacks
   const typedCourses: CourseOption[] = courses as CourseOption[];
+
+  // saved profile for form reuse
+  const [savedProfile, setSavedProfile] = React.useState<SavedFormProfile | null>(null);
+  const [usingExisting, setUsingExisting] = React.useState(false);
 
   // form state
   const [fullName, setFullName] = React.useState("");
@@ -84,6 +89,24 @@ export default function JoinNowModal({
   // auth (Zustand)
   const { user, status, hydrate } = useAuth();
   React.useEffect(() => { if (status === "idle") hydrate(); }, [status, hydrate]);
+
+  // Fetch saved profile on mount; auto-fill and enable reuse if complete
+  React.useEffect(() => {
+    fetchFormProfile()
+      .then((profile) => {
+        if (!isProfileComplete(profile)) return;
+        setSavedProfile(profile);
+        setUsingExisting(true);
+        setFullName(profile.fullName ?? "");
+        setAge(profile.age ?? "");
+        setGender((profile.gender as Gender) ?? "");
+        setBirth(profile.birth ?? "");
+        setAddress(profile.address ?? "");
+        setMobile(profile.mobile ?? "");
+        setEmail(profile.email ?? "");
+      })
+      .catch(() => { });
+  }, []);
 
   // enrollment store — single source of truth
   const { addOptimistic, refresh, premiumIds } = useEnrollmentStore();
@@ -474,7 +497,7 @@ export default function JoinNowModal({
     if (!address.trim()) errors.address = "Address is required.";
     if (!/^\d{10}$/.test(mobile)) errors.mobile = "Enter a valid 10-digit mobile number.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
-    if (!photo) errors.photo = "Please upload a profile photo.";
+    if (!savedProfile && !photo) errors.photo = "Please upload a profile photo.";
   }
   if (step === 3) {
     if (mode === "part") {
@@ -803,6 +826,17 @@ export default function JoinNowModal({
                   photo: onPhotoChange
                 }}
                 errors={errors}
+                savedProfile={savedProfile}
+                usingExisting={usingExisting}
+                onProfileModeChange={(useExisting) => {
+                  setUsingExisting(useExisting);
+
+                  // Clear temporary photo preview when switching back to reuse mode
+                  if (useExisting) {
+                    setPhoto(null);
+                    setPhotoUrl(null);
+                  }
+                }}
               />
             )
           )}

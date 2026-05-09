@@ -7,6 +7,7 @@ import Course from "../models/Course.js";
 import { safeRegex } from "../utils/safeRegex.js";
 import { ensureEnrollment } from "../services/enrollmentService.js";
 import { reconcileOfflinePayment } from "../services/paymentReconciliationService.js";
+import { upsertFormProfileInternal } from "./studentFormProfileController.js";
 
 // ---- monitoring alert (non-blocking, non-throwing) ----
 function sendAlert(label, data) {
@@ -126,38 +127,38 @@ export async function list(req, res) {
     const { q, status, type } = req.query || {};
     let orgId = toId(actor.orgId);
 
-const studentIds = await User.find({
-  orgId,
-})
-  .distinct("_id");
+    const studentIds = await User.find({
+      orgId,
+    })
+      .distinct("_id");
 
-const courseIds = await Course.find({
-  orgId,
-})
-  .distinct("_id");
+    const courseIds = await Course.find({
+      orgId,
+    })
+      .distinct("_id");
 
-const and = [
-  {
-    $or: [
-      // payments belonging to org
-      { orgId },
-
-      // student of org purchased elsewhere
+    const and = [
       {
-        studentId: {
-          $in: studentIds
-        }
+        $or: [
+          // payments belonging to org
+          { orgId },
+
+          // student of org purchased elsewhere
+          {
+            studentId: {
+              $in: studentIds
+            }
+          },
+
+          // course owned by org
+          {
+            courseId: {
+              $in: courseIds
+            }
+          }
+        ],
       },
-
-      // course owned by org
-      {
-        courseId: {
-          $in: courseIds
-        }
-      }
-    ],
-  },
-];
+    ];
     if (status && String(status).toLowerCase() !== "all") {
       and.push({ status: String(status).toLowerCase() });
     }
@@ -178,9 +179,12 @@ const and = [
       });
     }
 
-    const docs = await Payment.find(
-      and.length ? { $and: and } : {}
-    )
+    const docs = await Payment.find({
+      ...(and.length ? { $and: and } : {}),
+      reconciliationStatus: {
+        $ne: "matched",
+      },
+    })
       .populate("studentId", "email name")
 
       .populate({
@@ -208,8 +212,17 @@ const and = [
 export async function createOffline(req, res) {
   try {
     const actor = req.user;
-    if (!actor?.orgId || !isOid(toId(actor.orgId))) {
-      return res.status(403).json({ ok: false, message: "No org" });
+    const isSuperadmin =
+      String(actor?.role).toLowerCase() === "superadmin";
+
+    if (
+      !isSuperadmin &&
+      (!actor?.orgId || !isOid(toId(actor.orgId)))
+    ) {
+      return res.status(403).json({
+        ok: false,
+        message: "No org",
+      });
     }
 
     const { studentId, courseId, amount, receiptNo, referenceId, notes } = req.body || {};
@@ -221,7 +234,18 @@ export async function createOffline(req, res) {
     }
 
     // Ensure student belongs to admin's org
-    const student = await User.findOne({ _id: studentId, orgId: toId(actor.orgId) }).select("_id email");
+    const studentQuery = {
+      _id: studentId,
+    };
+
+    if (
+      String(actor?.role).toLowerCase() !== "superadmin"
+    ) {
+      studentQuery.orgId = toId(actor.orgId);
+    }
+
+    const student = await User.findOne(studentQuery)
+      .select("_id email");
     if (!student) return res.status(404).json({ ok: false, message: "student not found in org" });
 
     // Fetch course — marketplace model: admin may create payments for any published course.
@@ -241,8 +265,8 @@ export async function createOffline(req, res) {
         $in: ["pending_verification", "captured"],
       },
 
-      createdSource: {
-        $in: ["admin_manual", "teacher_manual"],
+      reconciliationStatus: {
+        $ne: "matched",
       },
     }).lean();
 
@@ -278,7 +302,9 @@ export async function createOffline(req, res) {
       createdSource:
         actor.role === "teacher"
           ? "teacher_manual"
-          : "admin_manual"
+          : actor.role === "superadmin"
+            ? "superadmin_manual"
+            : "admin_manual"
     });
 
     await reconcileOfflinePayment(doc);
@@ -383,7 +409,9 @@ export async function claimReceipt(req, res) {
         ],
       },
 
-      createdSource: "student_claim",
+      reconciliationStatus: {
+        $ne: "matched",
+      },
     }).lean();
 
     if (existingPayment) {
@@ -429,6 +457,14 @@ export async function claimReceipt(req, res) {
           : JSON.stringify(notes || {}),
     });
 
+    // Persist student form data for future enrollment reuse (fire-and-forget)
+    try {
+      const parsed = JSON.parse(typeof notes === "string" ? notes : JSON.stringify(notes || "{}"));
+      if (parsed.joinForm && studentId) {
+        upsertFormProfileInternal(toId(studentId), parsed.joinForm);
+      }
+    } catch (_) { }
+
     // Attempt automatic reconciliation
     await reconcileOfflinePayment(doc);
 
@@ -472,8 +508,20 @@ export async function claimReceipt(req, res) {
 export async function verify(req, res) {
   try {
     const actor = req.user;
-    const orgId = actor?.orgId && toId(actor.orgId);
-    if (!orgId || !isOid(orgId)) return res.status(403).json({ ok: false });
+    const isSuperadmin =
+      String(actor?.role).toLowerCase() === "superadmin";
+
+    const orgId =
+      actor?.orgId && toId(actor.orgId);
+
+    if (
+      !isSuperadmin &&
+      (!orgId || !isOid(orgId))
+    ) {
+      return res.status(403).json({
+        ok: false,
+      });
+    }
 
     const { id } = req.params;
     if (!isOid(id)) return res.status(400).json({ ok: false, message: "invalid id" });
@@ -495,16 +543,25 @@ export async function verify(req, res) {
       const studentInOrg = await User.findOne({ _id: candidate.studentId, orgId }).select("_id").lean();
       authorized = !!studentInOrg;
     }
-    if (!authorized) {
-      return res.status(403).json({ ok: false, message: "not authorized to verify this payment" });
+    if (!authorized && !isSuperadmin) {
+      return res.status(403).json({
+        ok: false,
+        message:
+          "not authorized to verify this payment",
+      });
     }
 
     // Idempotent: already captured
-    if (
-      candidate.status === "captured" ||
-      candidate.reconciliationStatus === "matched"
-    ) {
+    if (candidate.status === "captured") {
       return res.json(sanitize(candidate));
+    }
+
+    if (candidate.reconciliationStatus === "matched") {
+      return res.status(409).json({
+        ok: false,
+        message:
+          "Payment already reconciled with another payment.",
+      });
     }
 
     // Status guard
@@ -587,13 +644,36 @@ export async function verify(req, res) {
 export async function reject(req, res) {
   try {
     const actor = req.user;
-    if (!actor?.orgId || !isOid(toId(actor.orgId))) return res.status(403).json({ ok: false });
+
+    const isSuperadmin =
+      String(actor?.role).toLowerCase() === "superadmin";
+
+    const orgId =
+      actor?.orgId && toId(actor.orgId);
+
+    if (
+      !isSuperadmin &&
+      (!orgId || !isOid(orgId))
+    ) {
+      return res.status(403).json({
+        ok: false,
+      });
+    }
 
     const { id } = req.params;
     if (!isOid(id)) return res.status(400).json({ ok: false, message: "invalid id" });
 
+    const filter = {
+      _id: id,
+      status: { $ne: "captured" },
+    };
+
+    if (!isSuperadmin) {
+      filter.orgId = orgId;
+    }
+
     const doc = await Payment.findOneAndUpdate(
-      { _id: id, orgId: toId(actor.orgId), status: { $ne: "captured" } },
+      filter,
       { $set: { status: "rejected" } },
       { new: true }
     )
@@ -623,13 +703,36 @@ export async function reject(req, res) {
 export async function refund(req, res) {
   try {
     const actor = req.user;
-    if (!actor?.orgId || !isOid(toId(actor.orgId))) return res.status(403).json({ ok: false });
+
+    const isSuperadmin =
+      String(actor?.role).toLowerCase() === "superadmin";
+
+    const orgId =
+      actor?.orgId && toId(actor.orgId);
+
+    if (
+      !isSuperadmin &&
+      (!orgId || !isOid(orgId))
+    ) {
+      return res.status(403).json({
+        ok: false,
+      });
+    }
 
     const { id } = req.params;
     if (!isOid(id)) return res.status(400).json({ ok: false, message: "invalid id" });
 
+    const filter = {
+      _id: id,
+      status: "captured",
+    };
+
+    if (!isSuperadmin) {
+      filter.orgId = orgId;
+    }
+
     const doc = await Payment.findOneAndUpdate(
-      { _id: id, orgId: toId(actor.orgId), status: "captured" },
+      filter,
       { $set: { status: "refunded" } },
       { new: true }
     )
@@ -677,7 +780,12 @@ export async function listAll(req, res) {
         ],
       });
     }
-    const docs = await Payment.find(and.length ? { $and: and } : {})
+    const docs = await Payment.find({
+      ...(and.length ? { $and: and } : {}),
+      reconciliationStatus: {
+        $ne: "matched",
+      },
+    })
       .populate("studentId", "email name")
       .populate({
         path: "courseId",

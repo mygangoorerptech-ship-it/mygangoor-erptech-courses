@@ -40,6 +40,7 @@ import saReconciliationRouter from "./src/routes/saReconciliation.js";
 import saPayoutsRouter from "./src/routes/saPayouts.js";
 import uploadsRouter from "./src/routes/uploads.js";
 import joinStateRouter from "./src/routes/joinState.js";
+import studentFormProfileRouter from "./src/routes/studentFormProfile.js";
 import studentWishlistRouter from "./src/routes/studentWishlist.js";
 import configRouter from "./src/routes/config.js";
 import reportsRouter from "./src/routes/reports.js";
@@ -366,6 +367,7 @@ app.use("/api/sa/reconciliation", saReconciliationRouter);
 app.use("/api/sa/payouts", saPayoutsRouter);
 app.use("/api/uploads", uploadsRouter);
 app.use("/api/student/join", joinStateRouter);
+app.use("/api/student/profile/form", studentFormProfileRouter);
 app.use("/api/student/wishlist", studentWishlistRouter);
 // ❌ DEPRECATED: replaced by organizations
 // app.use("/api/centers", centersRouter);

@@ -36,12 +36,52 @@ export async function reconcileOfflinePayment(paymentDoc) {
 
     const baseQuery = {
       _id: { $ne: paymentId },
+
       type: "offline",
+
       status: "pending_verification",
+
       reconciliationStatus: "none",
+
       studentId: paymentDoc.studentId,
+
       courseId: paymentDoc.courseId,
+
+      amount: paymentDoc.amount,
     };
+
+    // ---------------------------------------------------
+    // ORG SAFETY
+    // ---------------------------------------------------
+
+    if (paymentDoc.orgId) {
+
+      baseQuery.orgId = paymentDoc.orgId;
+
+    } else {
+
+      // superadmin/global payment
+      baseQuery.orgId = null;
+    }
+
+    // ---------------------------------------------------
+    // VALID SOURCE PAIRS ONLY
+    // ---------------------------------------------------
+
+    if (paymentDoc.createdSource === "student_claim") {
+
+      baseQuery.createdSource = {
+        $in: [
+          "admin_manual",
+          "teacher_manual",
+          "superadmin_manual",
+        ],
+      };
+
+    } else {
+
+      baseQuery.createdSource = "student_claim";
+    }
 
     let match = null;
 
@@ -89,26 +129,6 @@ export async function reconcileOfflinePayment(paymentDoc) {
       }
     }
 
-    // ---------------------------------------------------
-    // LEVEL-3 MATCH
-    // amount + course + student
-    // ---------------------------------------------------
-
-    if (!match) {
-
-      const matches = await Payment.find({
-        ...baseQuery,
-        amount: paymentDoc.amount,
-      })
-        .sort({ createdAt: 1 })
-        .limit(2)
-        .lean();
-
-      if (matches.length === 1) {
-        match = matches[0];
-      }
-    }
-
     // No safe match found
     if (!match) {
       return false;
@@ -117,40 +137,73 @@ export async function reconcileOfflinePayment(paymentDoc) {
     const now = new Date();
 
     // ---------------------------------------------------
-    // Mark BOTH payments reconciled
+    // Select PRIMARY payment
+    // oldest payment survives as authoritative
     // ---------------------------------------------------
 
-    await Payment.updateMany(
+    const priorityMap = {
+      admin_manual: 1,
+      teacher_manual: 2,
+      superadmin_manual: 3,
+      student_claim: 4,
+    };
+
+    const paymentPriority =
+      priorityMap[paymentDoc.createdSource] || 999;
+
+    const matchPriority =
+      priorityMap[match.createdSource] || 999;
+
+    const primaryPayment =
+      paymentPriority <= matchPriority
+        ? paymentDoc
+        : match;
+
+    const secondaryPayment =
+      String(primaryPayment._id) === String(paymentDoc._id)
+        ? match
+        : paymentDoc;
+
+    // ---------------------------------------------------
+    // Capture ONLY primary payment
+    // ---------------------------------------------------
+
+    await Payment.updateOne(
       {
-        _id: {
-          $in: [paymentDoc._id, match._id],
-        },
+        _id: primaryPayment._id,
+        status: "pending_verification",
       },
       {
         $set: {
           status: "captured",
-          reconciliationStatus: "matched",
+
+          // authoritative visible payment
+          reconciliationStatus: "none",
+
+          matchedPaymentId: secondaryPayment._id,
+
           matchedAt: now,
+
+          verifiedAt: now,
         },
       }
     );
 
-    // Link payment A -> B
-    await Payment.updateOne(
-      { _id: paymentDoc._id },
-      {
-        $set: {
-          matchedPaymentId: match._id,
-        },
-      }
-    );
+    // ---------------------------------------------------
+    // Mark secondary payment as matched only
+    // DO NOT capture duplicate
+    // ---------------------------------------------------
 
-    // Link payment B -> A
     await Payment.updateOne(
-      { _id: match._id },
+      {
+        _id: secondaryPayment._id,
+      },
       {
         $set: {
-          matchedPaymentId: paymentDoc._id,
+          status: "reconciled",
+          reconciliationStatus: "matched",
+          matchedPaymentId: primaryPayment._id,
+          matchedAt: now,
         },
       }
     );
@@ -160,12 +213,12 @@ export async function reconcileOfflinePayment(paymentDoc) {
     // ---------------------------------------------------
 
     const enrollOk = await ensureEnrollment({
-      studentId: paymentDoc.studentId,
-      courseId: paymentDoc.courseId,
-      orgId: paymentDoc.orgId || null,
-      paymentId: paymentDoc._id,
+      studentId: primaryPayment.studentId,
+      courseId: primaryPayment.courseId,
+      orgId: primaryPayment.orgId || null,
+      paymentId: primaryPayment._id,
       source: "offline",
-      managerId: paymentDoc.managerId || null,
+      managerId: primaryPayment.managerId || null,
     });
 
     // Recovery fallback
