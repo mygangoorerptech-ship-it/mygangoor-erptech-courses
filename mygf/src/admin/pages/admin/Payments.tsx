@@ -166,9 +166,26 @@ export default function ADPayments() {
               let form = null
 
               try {
-                form = target.notes ? JSON.parse(target.notes) : null
+
+                if (!target.notes) {
+
+                  form = null;
+
+                } else {
+
+                  const parsed =
+                    JSON.parse(target.notes);
+
+                  form =
+                    typeof parsed === "object"
+                      ? parsed
+                      : null;
+                }
+
               } catch {
-                form = { error: 'Invalid data' }
+
+                // plain text note
+                form = null;
               }
 
               if (!form) return null

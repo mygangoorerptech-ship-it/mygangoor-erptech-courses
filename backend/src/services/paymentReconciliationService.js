@@ -168,6 +168,70 @@ export async function reconcileOfflinePayment(paymentDoc) {
     // Capture ONLY primary payment
     // ---------------------------------------------------
 
+    // ---------------------------------------------------
+    // Preserve structured joinForm notes
+    // ---------------------------------------------------
+
+    let mergedNotes = primaryPayment.notes || null;
+
+    // helper
+    const extractJoinForm = (raw) => {
+
+      if (!raw) return null;
+
+      try {
+
+        const parsed =
+          typeof raw === "string"
+            ? JSON.parse(raw)
+            : raw;
+
+        if (
+          parsed &&
+          typeof parsed === "object"
+        ) {
+
+          // already wrapped
+          if (
+            parsed.joinForm &&
+            typeof parsed.joinForm === "object"
+          ) {
+            return parsed;
+          }
+
+          // raw form object
+          return {
+            joinForm: parsed,
+          };
+        }
+
+      } catch { }
+
+      return null;
+    };
+
+    // Prefer existing primary structured notes
+    const primaryForm =
+      extractJoinForm(primaryPayment.notes);
+
+    if (primaryForm) {
+
+      mergedNotes =
+        JSON.stringify(primaryForm);
+
+    } else {
+
+      // fallback from secondary payment
+      const secondaryForm =
+        extractJoinForm(secondaryPayment.notes);
+
+      if (secondaryForm) {
+
+        mergedNotes =
+          JSON.stringify(secondaryForm);
+      }
+    }
+
     await Payment.updateOne(
       {
         _id: primaryPayment._id,
@@ -177,7 +241,6 @@ export async function reconcileOfflinePayment(paymentDoc) {
         $set: {
           status: "captured",
 
-          // authoritative visible payment
           reconciliationStatus: "none",
 
           matchedPaymentId: secondaryPayment._id,
@@ -185,6 +248,8 @@ export async function reconcileOfflinePayment(paymentDoc) {
           matchedAt: now,
 
           verifiedAt: now,
+
+          notes: mergedNotes,
         },
       }
     );
