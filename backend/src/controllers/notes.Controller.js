@@ -7,17 +7,21 @@ import crypto from "node:crypto";
 import https from "node:https";
 import http from "node:http";
 import { sendErr } from '../utils/http.js';
-import {   NOTES_ACCESS,
+import {
+  NOTES_ACCESS,
   buildAuthenticatedPdfUrl,
-  buildPublicPdfUrl, } from "../utils/cloudinary.js";
+  buildPublicPdfUrl,
+} from "../utils/cloudinary.js";
+import CourseAssignment from "../models/CourseAssignment.js";
+import Enrollment from "../models/Enrollment.js";
 
 const allowTags = [
-  "p","b","i","em","strong","u","s","blockquote","ul","ol","li","br","hr",
-  "h1","h2","h3","h4","h5","h6","a","img","pre","code","table","thead","tbody","tr","th","td","span","div"
+  "p", "b", "i", "em", "strong", "u", "s", "blockquote", "ul", "ol", "li", "br", "hr",
+  "h1", "h2", "h3", "h4", "h5", "h6", "a", "img", "pre", "code", "table", "thead", "tbody", "tr", "th", "td", "span", "div"
 ];
 const allowAttrs = {
-  a: ["href","title","target","rel"],
-  img: ["src","alt","title","width","height","style"],
+  a: ["href", "title", "target", "rel"],
+  img: ["src", "alt", "title", "width", "height", "style"],
   "*": ["style"]
 };
 
@@ -27,7 +31,7 @@ const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // escape r
 
 // ---------- Debug helpers (enable with note_bug=1 | true | yes | on) ----------
 const NOTE_BUG_RAW = (process.env.note_bug ?? process.env.NOTE_BUG ?? "").toString().toLowerCase();
-const NOTE_BUG = ["1","true","yes","on","debug"].includes(NOTE_BUG_RAW);
+const NOTE_BUG = ["1", "true", "yes", "on", "debug"].includes(NOTE_BUG_RAW);
 
 const redactUrl = (u) => {
   if (!u || typeof u !== "string") return u;
@@ -45,10 +49,17 @@ const redactUrl = (u) => {
 const sjson = (o) => {
   try { return JSON.stringify(o); } catch { return String(o); }
 };
-const ridOf = (req) => req?.id || crypto.randomUUID();
+const ridOf = (req) => {
+  if (!req._noteRid) {
+    req._noteRid =
+      req.id || crypto.randomUUID();
+  }
+
+  return req._noteRid;
+};
 const dlog = (req, ...args) => { if (NOTE_BUG) console.log(`[notes][${ridOf(req)}]`, ...args); };
 const dwarn = (req, ...args) => { if (NOTE_BUG) console.warn(`[notes][${ridOf(req)}]`, ...args); };
-const derr = (req, label, err, extra={}) => {
+const derr = (req, label, err, extra = {}) => {
   const base = {
     label,
     name: err?.name,
@@ -60,20 +71,60 @@ const derr = (req, label, err, extra={}) => {
 };
 
 // ---------- Access helpers ----------
-function canManageCourse(actor, course) {
-  if (!course) return false;
-  if (actor?.role === "superadmin") return true;
-
-  const isSameOrg = String(course.orgId) === String(actor.orgId);
-  if (!isSameOrg) return false;
-
-  if (actor.role === "admin") return true;
-
-  if (actor.role === "teacher") {
-    const ownerOk = course.ownerId && String(course.ownerId) === String(actor.sub);
-    const mgrOk   = course.managerId && String(course.managerId) === String(actor.sub);
-    return ownerOk || mgrOk;
+async function canManageCourse(actor, course) {
+  if (!course || !actor) {
+    return false;
   }
+
+  /**
+   * Superadmin bypass
+   */
+  if (actor.role === "superadmin") {
+    return true;
+  }
+
+  /**
+   * Direct owner org
+   */
+  const sameOrg =
+    course.orgId &&
+    actor.orgId &&
+    String(course.orgId) === String(actor.orgId);
+
+  if (sameOrg) {
+    if (actor.role === "admin") {
+      return true;
+    }
+
+    if (actor.role === "teacher") {
+      const ownerOk =
+        course.ownerId &&
+        String(course.ownerId) === String(actor.sub);
+
+      const mgrOk =
+        course.managerId &&
+        String(course.managerId) === String(actor.sub);
+
+      return ownerOk || mgrOk;
+    }
+  }
+
+  /**
+   * Marketplace/global course assignment
+   */
+  if (actor.orgId) {
+    const assigned =
+      await CourseAssignment.exists({
+        courseId: course._id,
+        centerId: actor.orgId,
+        isActive: true,
+      });
+
+    if (assigned) {
+      return actor.role === "admin";
+    }
+  }
+
   return false;
 }
 
@@ -108,9 +159,12 @@ export async function list(req, res) {
   try {
     const and = [];
     // Scope by org for non-superadmin roles
-    if (actor?.role !== "superadmin") {
-      and.push({ orgId: actor.orgId });
-    }
+    /**
+     * Notes are course-scoped.
+     * Access control must follow
+     * course assignment semantics,
+     * not note ownership org.
+     */
 
     dlog(req, "list: incoming", {
       rawCourseId,
@@ -151,14 +205,56 @@ export async function list(req, res) {
       }
     }
 
+    /**
+ * Course-level authorization.
+ * Notes are course scoped,
+ * not org scoped.
+ */
+    const resolvedCourseId =
+      and.find((x) => x.courseId)
+        ?.courseId;
+
+    if (resolvedCourseId) {
+      const courseDoc =
+        await Course.findById(
+          resolvedCourseId,
+          {
+            _id: 1,
+            orgId: 1,
+            ownerId: 1,
+            managerId: 1,
+          }
+        ).lean();
+
+      if (
+        !courseDoc ||
+        !(await canManageCourse(
+          actor,
+          courseDoc
+        ))
+      ) {
+        return res.status(403).json({
+          ok: false,
+          message: "Forbidden",
+        });
+      }
+    }
+
     if (status && status !== "all") and.push({ status });
 
     const where = and.length ? { $and: and } : {};
     dlog(req, "list: where", where);
 
-    console.time(`[notes][${ridOf(req)}] list:query`);
-    const docs = await Note.find(where).sort({ createdAt: -1 });
-    console.timeEnd(`[notes][${ridOf(req)}] list:query`);
+    const tLabel =
+      `[notes][${ridOf(req)}] list:query`;
+
+    console.time(tLabel);
+
+    const docs =
+      await Note.find(where)
+        .sort({ createdAt: -1 });
+
+    console.timeEnd(tLabel);
 
     dlog(req, "list: result count", { count: docs.length });
     return res.json(docs.map(sanitize));
@@ -187,7 +283,7 @@ export async function create(req, res) {
   });
 
   if (!rawCourseId || !title || !kind) return res.status(400).json({ ok: false, message: "courseId,title,kind required" });
-  if (!["rich","pdf"].includes(kind)) return res.status(400).json({ ok: false, message: "invalid kind" });
+  if (!["rich", "pdf"].includes(kind)) return res.status(400).json({ ok: false, message: "invalid kind" });
 
   const pick = { _id: 1, orgId: 1, ownerId: 1, managerId: 1 };
 
@@ -204,7 +300,7 @@ export async function create(req, res) {
 
   if (!courseDoc?._id) return res.status(400).json({ ok: false, message: "invalid-courseId" });
 
-  if (!canManageCourse(actor, courseDoc)) {
+  if (!(await canManageCourse(actor, courseDoc))) {
     dwarn(req, "create: forbidden", {
       actorRole: actor.role, actorOrg: String(actor.orgId),
       courseOrg: String(courseDoc.orgId), rawCourseId
@@ -231,9 +327,16 @@ export async function create(req, res) {
       title: String(title).trim().slice(0, 200),
       kind,
       html: htmlSafe,
-      pdfUrl:      kind === "pdf" ? String(pdfUrl || "")      : "",
-      pdfPublicId: kind === "pdf" ? String(pdfPublicId || "") : "",
-      status: status && ["draft","published","archived"].includes(status) ? status : "published",
+      pdfUrl: kind === "pdf" ? String(pdfUrl || "") : "",
+      pdfPublicId:
+        kind === "pdf"
+          ? String(pdfPublicId || "")
+            .replace(/^raw\/authenticated\//, "")
+            .replace(/^raw\/upload\//, "")
+            .replace(/^raw\/private\//, "")
+            .replace(/\.pdf$/i, "")
+          : "",
+      status: status && ["draft", "published", "archived"].includes(status) ? status : "published",
       createdById: actor.sub,
     });
     dlog(req, "create: saved", { id: doc._id, kind, status: doc.status });
@@ -255,11 +358,11 @@ export async function patch(req, res) {
     if (!doc) return res.status(404).json({ ok: false, message: "Not found" });
 
     const course = await Course.findById(doc.courseId);
-    if (!canManageCourse(actor, course)) return res.status(403).json({ ok: false, message: "Forbidden" });
+    if (!(await canManageCourse(actor, course))) return res.status(403).json({ ok: false, message: "Forbidden" });
 
     const { title, status, html } = req.body || {};
-    if (title != null) doc.title = String(title).trim().slice(0,200);
-    if (status && ["draft","published","archived"].includes(status)) doc.status = status;
+    if (title != null) doc.title = String(title).trim().slice(0, 200);
+    if (status && ["draft", "published", "archived"].includes(status)) doc.status = status;
     if (html != null && doc.kind === "rich") {
       doc.html = sanitizeHtml(String(html), { allowedTags: allowTags, allowedAttributes: allowAttrs });
     }
@@ -280,14 +383,14 @@ export async function setStatus(req, res) {
   const { status } = req.body || {};
   dlog(req, "setStatus: incoming", { id, status });
 
-  if (!["draft","published","archived"].includes(status)) return res.status(400).json({ ok: false, message: "invalid status" });
+  if (!["draft", "published", "archived"].includes(status)) return res.status(400).json({ ok: false, message: "invalid status" });
 
   try {
     const doc = await Note.findById(id);
     if (!doc) return res.status(404).json({ ok: false, message: "Not found" });
 
     const course = await Course.findById(doc.courseId);
-    if (!canManageCourse(actor, course)) return res.status(403).json({ ok: false, message: "Forbidden" });
+    if (!(await canManageCourse(actor, course))) return res.status(403).json({ ok: false, message: "Forbidden" });
 
     doc.status = status;
     doc.updatedById = actor.sub;
@@ -311,7 +414,7 @@ export async function remove(req, res) {
     if (!doc) return res.status(404).json({ ok: false, message: "Not found" });
 
     const course = await Course.findById(doc.courseId);
-    if (!canManageCourse(actor, course)) return res.status(403).json({ ok: false, message: "Forbidden" });
+    if (!(await canManageCourse(actor, course))) return res.status(403).json({ ok: false, message: "Forbidden" });
 
     await Note.deleteOne({ _id: id });
     dlog(req, "remove: deleted", { id });
@@ -323,6 +426,42 @@ export async function remove(req, res) {
 }
 
 // ---------- Student read-only ----------
+
+async function canStudentAccessCourse(actor, courseId) {
+  if (!actor || !courseId) {
+    return false;
+  }
+
+  /**
+   * Direct enrollment access
+   */
+  const enr = await Enrollment.exists({
+    studentId: actor.sub,
+    courseId,
+  });
+
+  if (enr) {
+    return true;
+  }
+
+  /**
+   * Center-assigned access
+   */
+  if (actor.orgId) {
+    const assigned =
+      await CourseAssignment.exists({
+        courseId,
+        centerId: actor.orgId,
+        isActive: true,
+      });
+
+    if (assigned) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 // ------------------ listForStudent (fix timer label) ------------------
 export async function listForStudent(req, res) {
@@ -337,7 +476,7 @@ export async function listForStudent(req, res) {
 
   if (!rawCourseId) {
     dwarn(req, "listForStudent: missing courseId");
-    return res.status(400).json({ ok:false, message:"courseId required" });
+    return res.status(400).json({ ok: false, message: "courseId required" });
   }
 
   // Phase 3 fix: students without an orgId are not in any organisation, so
@@ -356,23 +495,47 @@ export async function listForStudent(req, res) {
       dlog(req, "listForStudent: OID courseId", { courseIdFilter });
     } else {
       const bySlug = await Course.findOne(
-        { orgId: actor.orgId, slug: rawCourseId },
+        { slug: rawCourseId },
         { _id: 1 }
       ).lean();
-      const byTitle = bySlug || await Course.findOne(
-        { orgId: actor.orgId, title: new RegExp(`^${esc(rawCourseId)}$`, "i") },
-        { _id: 1 }
-      ).lean();
+
+      const byTitle =
+        bySlug ||
+        await Course.findOne(
+          {
+            title: new RegExp(
+              `^${esc(rawCourseId)}$`,
+              "i"
+            )
+          },
+          { _id: 1 }
+        ).lean();
 
       dlog(req, "listForStudent: course resolution", { bySlug: bySlug?._id, byTitle: byTitle?._id });
       if (!byTitle?._id) {
         dwarn(req, "listForStudent: invalid-courseId", { rawCourseId });
-        return res.status(400).json({ ok:false, message:"invalid-courseId" });
+        return res.status(400).json({ ok: false, message: "invalid-courseId" });
       }
       courseIdFilter = byTitle._id;
     }
 
-    const where = { orgId: actor.orgId, courseId: courseIdFilter, status: "published" };
+    const hasAccess =
+      await canStudentAccessCourse(
+        actor,
+        courseIdFilter
+      );
+
+    if (!hasAccess) {
+      return res.status(403).json({
+        ok: false,
+        message: "forbidden",
+      });
+    }
+
+    const where = {
+      courseId: courseIdFilter,
+      status: "published",
+    };
     dlog(req, "listForStudent: where", where);
 
     console.time(tLabel);
@@ -391,22 +554,51 @@ export async function listForStudent(req, res) {
     res.json(out);
   } catch (err) {
     derr(req, "listForStudent:error", err, { rawCourseId });
-    res.status(500).json({ ok:false, message:"failed-to-list-notes" });
+    res.status(500).json({ ok: false, message: "failed-to-list-notes" });
   }
 }
 
 // ------------------ helper: derive Cloudinary publicId if needed ------------------
 function extractPublicIdFromUrl(u) {
   if (!u) return "";
+
   try {
     const url = new URL(u);
-    const parts = url.pathname.split("/").filter(Boolean);
-    // .../raw/authenticated/v<ver>/<path>/<name>.pdf
-    const vIdx = parts.findIndex(p => /^v\d+$/i.test(p));
-    const afterV = vIdx >= 0 ? parts.slice(vIdx + 1).join("/") : parts.slice(-2).join("/");
-    return afterV.replace(/\.[a-z0-9]+$/i, "");
+
+    const parts =
+      url.pathname
+        .split("/")
+        .filter(Boolean);
+
+    const vIdx =
+      parts.findIndex((p) =>
+        /^v\d+$/i.test(p)
+      );
+
+    if (vIdx === -1) {
+      return "";
+    }
+
+    /**
+     * everything after version
+     */
+    const publicId =
+      parts
+        .slice(vIdx + 1)
+        .join("/");
+
+    return publicId
+      .replace(/^raw\/authenticated\//, "")
+      .replace(/^raw\/upload\//, "")
+      .replace(/^raw\/private\//, "")
+      .replace(/\.pdf$/i, "");
   } catch {
-    return String(u).replace(/^.*\/v\d+\//, "").replace(/\.[a-z0-9]+$/i, "");
+    return String(u)
+      .replace(/^.*\/v\d+\//, "")
+      .replace(/^raw\/authenticated\//, "")
+      .replace(/^raw\/upload\//, "")
+      .replace(/^raw\/private\//, "")
+      .replace(/\.pdf$/i, "");
   }
 }
 
@@ -423,19 +615,34 @@ export async function presignStudentNote(req, res, next) {
     // Phase 2 fix: req.orgId is never populated by the auth middleware — the org
     // id lives on req.user.orgId. Using req.orgId always evaluated to falsy,
     // meaning the org ownership check was silently skipped on every request.
-    const actorOrgId = req.user?.orgId;
-    if (actorOrgId && String(note.orgId || "") !== String(actorOrgId)) return sendErr(res, 403, "forbidden");
+    const hasAccess =
+      await canStudentAccessCourse(
+        req.user,
+        note.courseId
+      );
+
+    if (!hasAccess) {
+      return sendErr(
+        res,
+        403,
+        "forbidden"
+      );
+    }
     if (note.kind !== "pdf") return sendErr(res, 400, "note-not-a-pdf");
 
     const publicId = note.pdfPublicId || extractPublicIdFromUrl(note.pdfUrl);
+    console.log(
+      "[streamPdf] resolved-publicId",
+      publicId
+    );
     if (!publicId && !note.pdfUrl) return sendErr(res, 400, "note-has-no-pdf");
 
     // Detect the original storage type from the saved URL; fallback to global default
     const storedType =
       note.pdfUrl?.includes("/raw/authenticated/") ? "authenticated" :
-      note.pdfUrl?.includes("/raw/private/")       ? "private" :
-      note.pdfUrl?.includes("/raw/upload/")        ? "upload" :
-      NOTES_ACCESS; // global default
+        note.pdfUrl?.includes("/raw/private/") ? "private" :
+          note.pdfUrl?.includes("/raw/upload/") ? "upload" :
+            NOTES_ACCESS; // global default
 
     let url;
     if (storedType === "authenticated") {
@@ -473,14 +680,39 @@ export async function streamPdf(req, res, next) {
     if (!id || !ObjectId.isValid(id)) return sendErr(res, 400, "invalid-note-id");
 
     const note = await Note.findById(id).lean();
+    console.log(
+      "[streamPdf] note-from-db",
+      JSON.stringify(
+        {
+          id: note?._id,
+          kind: note?.kind,
+          status: note?.status,
+          orgId: note?.orgId,
+          courseId: note?.courseId,
+          pdfUrl: note?.pdfUrl,
+          pdfPublicId: note?.pdfPublicId,
+        },
+        null,
+        2
+      )
+    );
     if (!note) return sendErr(res, 404, "note-not-found");
     if (note.status !== "published") return sendErr(res, 403, "note-not-published");
     if (note.kind !== "pdf") return sendErr(res, 400, "note-not-a-pdf");
 
     // Org ownership check (same pattern as presignStudentNote fix above)
-    const actorOrgId = req.user?.orgId;
-    if (actorOrgId && String(note.orgId || "") !== String(actorOrgId)) {
-      return sendErr(res, 403, "forbidden");
+    const hasAccess =
+      await canStudentAccessCourse(
+        req.user,
+        note.courseId
+      );
+
+    if (!hasAccess) {
+      return sendErr(
+        res,
+        403,
+        "forbidden"
+      );
     }
 
     if (!note.pdfUrl) return sendErr(res, 400, "note-has-no-pdf");
@@ -489,9 +721,14 @@ export async function streamPdf(req, res, next) {
     let pdfUrl = note.pdfUrl;
     const storedType =
       note.pdfUrl.includes("/raw/authenticated/") ? "authenticated" :
-      note.pdfUrl.includes("/raw/private/")       ? "private" :
-      note.pdfUrl.includes("/raw/upload/")        ? "upload" :
-      NOTES_ACCESS;
+        note.pdfUrl.includes("/raw/private/") ? "private" :
+          note.pdfUrl.includes("/raw/upload/") ? "upload" :
+            NOTES_ACCESS;
+
+    console.log(
+      "[streamPdf] storage-type",
+      storedType
+    );
 
     if (storedType === "authenticated") {
       const publicId = note.pdfPublicId || extractPublicIdFromUrl(note.pdfUrl);
@@ -499,6 +736,10 @@ export async function streamPdf(req, res, next) {
         try {
           // Short TTL — the URL is consumed immediately server-side
           pdfUrl = buildAuthenticatedPdfUrl(publicId, { ttl: 120 });
+          console.log(
+            "[streamPdf] generated-auth-url",
+            pdfUrl
+          );
         } catch (e) {
           // CLOUDINARY_AUTH_TOKEN_KEY missing — fall back to stored URL
           console.warn("[notes][streamPdf] buildAuthenticatedPdfUrl failed, using stored URL:", e?.message);
@@ -508,14 +749,24 @@ export async function streamPdf(req, res, next) {
 
     // Fetch from Cloudinary server-side using Node built-in https/http
     const proto = pdfUrl.startsWith("https") ? https : http;
-const options = new URL(pdfUrl);
-options.headers = {};
+    const options = new URL(pdfUrl);
+    options.headers = {};
 
-if (req.headers.range) {
-  options.headers.Range = req.headers.range;
-}
+    if (req.headers.range) {
+      options.headers.Range = req.headers.range;
+    }
 
-const upstream = proto.get(options, (upRes) => {
+    console.log(
+      "[streamPdf] final-fetch-url",
+      pdfUrl
+    );
+
+    const upstream = proto.get(options, (upRes) => {
+      console.log(
+        "[streamPdf] upstream-status",
+        upRes.statusCode,
+        upRes.statusMessage
+      );
       if (upRes.statusCode !== 200 && upRes.statusCode !== 206) {
         upRes.resume(); // drain the socket so it can be reused
         if (!res.headersSent) {
@@ -530,25 +781,36 @@ const upstream = proto.get(options, (upRes) => {
       res.setHeader("Cache-Control", "private, max-age=300");
       res.statusCode = upRes.statusCode;
 
-if (upRes.headers["content-range"]) {
-  res.setHeader("Content-Range", upRes.headers["content-range"]);
-}
+      if (upRes.headers["content-range"]) {
+        res.setHeader("Content-Range", upRes.headers["content-range"]);
+      }
 
-if (upRes.headers["accept-ranges"]) {
-  res.setHeader("Accept-Ranges", upRes.headers["accept-ranges"]);
-}
+      if (upRes.headers["accept-ranges"]) {
+        res.setHeader("Accept-Ranges", upRes.headers["accept-ranges"]);
+      }
 
-if (upRes.headers["content-length"]) {
-  res.setHeader("Content-Length", upRes.headers["content-length"]);
-}
+      if (upRes.headers["content-length"]) {
+        res.setHeader("Content-Length", upRes.headers["content-length"]);
+      }
 
       upRes.pipe(res);
     });
 
     upstream.on("error", (fetchErr) => {
-      console.error("[notes][streamPdf] upstream fetch error:", fetchErr?.message);
+      console.error(
+        "[streamPdf] upstream-fetch-error",
+        {
+          message: fetchErr?.message,
+          code: fetchErr?.code,
+          stack: fetchErr?.stack,
+        }
+      );
+
       if (!res.headersSent) {
-        res.status(502).json({ ok: false, message: "pdf-fetch-failed" });
+        res.status(502).json({
+          ok: false,
+          message: "pdf-fetch-failed",
+        });
       }
     });
   } catch (err) {

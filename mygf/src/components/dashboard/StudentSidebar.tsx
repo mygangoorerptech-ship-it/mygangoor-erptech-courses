@@ -35,10 +35,10 @@ export default function StudentSidebar() {
 
         // ✅ NEW ITEMS
         { label: "Enrolled Courses", icon: GraduationCap, path: "/enrolled" },
-        { label: "My Certificates", icon: Award, path: "#" },
+        // { label: "My Certificates", icon: Award, path: "#" },
 
         { label: "Center", icon: Building2, path: "/centers" },
-        { label: "Settings", icon: Settings, path: "#" },
+        // { label: "Settings", icon: Settings, path: "#" },
     ];
 
     return (
