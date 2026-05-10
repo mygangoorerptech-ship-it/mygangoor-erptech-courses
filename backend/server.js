@@ -333,9 +333,10 @@ if (DEBUG_STUDENT) {
 
 app.use("/api/public", publicRoutes);
 app.use("/api/public", publicContactRoutes);
-app.use("/api/student-catalog", studentCatalogRouter);
+
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
+app.use("/api/student-catalog", studentCatalogRouter);
 app.use("/api/organizations", organizationsRouter);
 app.use("/api/sa/users", saUsersRoutes);
 app.use("/api/ad/users", adUsersRoutes);

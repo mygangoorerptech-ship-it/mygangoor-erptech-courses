@@ -104,7 +104,22 @@ export const useEnrollmentStore = create<EnrollmentStore>((set, get) => ({
     if (get().loading) return;
     set({ loading: true });
     try {
+      console.log(
+        "[ENROLLMENTS] fetchActive:start",
+        {
+          loading: get().loading,
+          tick: get().tick,
+          time: new Date().toISOString(),
+        }
+      );
       const res = await api.get("/student/enrollments/active", { withCredentials: true });
+      console.log(
+        "[ENROLLMENTS] fetchActive:response",
+        {
+          status: res?.status,
+          data: res?.data,
+        }
+      );
 
       // Handle both { items: [] } and flat [] response shapes
       const raw = res?.data;
@@ -112,17 +127,17 @@ export const useEnrollmentStore = create<EnrollmentStore>((set, get) => ({
         Array.isArray(raw?.items)
           ? raw.items
           : Array.isArray(raw)
-          ? raw
-          : [];
+            ? raw
+            : [];
 
-const ids = (items as Record<string, unknown>[])
-  .filter((e) =>
-    // ONLY confirmed enrollment states belong in premiumIds.
-    // DO NOT treat payment-only states as enrolled premium access.
-    e.premium === true ||
-    e.status === "premium" ||
-    e.access === "premium"
-  )
+      const ids = (items as Record<string, unknown>[])
+        .filter((e) =>
+          // ONLY confirmed enrollment states belong in premiumIds.
+          // DO NOT treat payment-only states as enrolled premium access.
+          e.premium === true ||
+          e.status === "premium" ||
+          e.access === "premium"
+        )
         // Robust ID extraction: camelCase + snake_case + nested + direct
         .map((e) =>
           String(
@@ -137,10 +152,15 @@ const ids = (items as Record<string, unknown>[])
 
       // Replace — never merge — so revocations are reflected.
       get().setFromServer(ids);
-    } catch {
-      // Silently fail — do NOT clear premiumIds; preserves any optimistic state
-      // and prevents a network error from locking enrolled students out.
+    } catch (e: any) {
+      console.error(
+        "[ENROLLMENTS] fetchActive:error",
+        e?.response?.data || e?.message || e
+      );
     } finally {
+      console.log(
+        "[ENROLLMENTS] fetchActive:end"
+      );
       set({ loading: false });
     }
   },

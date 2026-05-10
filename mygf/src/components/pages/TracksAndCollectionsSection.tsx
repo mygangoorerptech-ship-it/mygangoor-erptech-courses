@@ -187,7 +187,8 @@ function TracksBody({ user }: { user?: User }) {
   // -------------------------
   // Premium / enrollment logic — single source of truth via global store
   // -------------------------
-  const { premiumIds, tick, fetchActive } = useEnrollmentStore();
+  const premiumIds = useEnrollmentStore((s) => s.premiumIds);
+  const tick = useEnrollmentStore((s) => s.tick);
   const [showJoin, setShowJoin] = useState(false);
   const [joinCourseId, setJoinCourseId] = useState<string | undefined>(undefined);
   const [selectedCourseForCenters, setSelectedCourseForCenters] = useState<Course | null>(null);
@@ -236,12 +237,14 @@ function TracksBody({ user }: { user?: User }) {
     return s;
   }, [apiCourses]);
 
-  // Re-fetch enrollment state on mount and after each payment (tick increments
-  // 4 s after payment to give the backend time to commit the enrollment).
+  // Sync enrollments on course load or manual refresh, to reflect any changes since last visit.
   useEffect(() => {
     if (!user?.id) return;
-    void fetchActive();
-  }, [tick, user?.id, fetchActive]);
+
+    void useEnrollmentStore
+      .getState()
+      .fetchActive();
+  }, [tick, user?.id]);
 
   const isPremium = (courseId: string | number) =>
     freeIds.has(String(courseId)) || premiumIds.has(String(courseId));

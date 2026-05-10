@@ -80,6 +80,7 @@ export async function active(req, res) {
       pays,
       assignments,
     ] = await Promise.all([
+
       Enrollment.find(scope)
         .select(
           "courseId status updatedAt"
@@ -97,13 +98,37 @@ export async function active(req, res) {
 
       orgId
         ? CourseAssignment.find({
-            centerId: orgId,
-            isActive: true,
-          })
-            .select("courseId")
-            .lean()
+          centerId: orgId,
+          isActive: true,
+        })
+          .select("courseId")
+          .lean()
         : [],
     ]);
+    console.log(
+      "\n================ ACTIVE ENROLLMENTS DEBUG ================\n"
+    );
+
+    console.log("[ACTIVE] actor:", {
+      id: actor?._id || actor?.sub || actor?.id,
+      role: actor?.role,
+      orgId,
+    });
+
+    console.log(
+      "[ACTIVE] raw enrollments:",
+      JSON.stringify(enrs, null, 2)
+    );
+
+    console.log(
+      "[ACTIVE] raw payments:",
+      JSON.stringify(pays, null, 2)
+    );
+
+    console.log(
+      "[ACTIVE] raw assignments:",
+      JSON.stringify(assignments, null, 2)
+    );
 
     /**
      * Latest payment per course
@@ -137,6 +162,13 @@ export async function active(req, res) {
       const cid = String(
         e.courseId || ""
       );
+      console.log("[ACTIVE][ENROLLMENT]", {
+        rawCourseId: e.courseId,
+        rawCourseIdType: typeof e.courseId,
+        stringCourseId: cid,
+        status: e.status,
+        enrollment: e,
+      });
 
       if (!cid) continue;
 
@@ -146,9 +178,9 @@ export async function active(req, res) {
         };
 
       /**
-       * Example:
-       * premium/free/trial
-       */
+* Example:
+* premium/free/trial
+*/
       item.status =
         e.status || item.status;
 
@@ -176,15 +208,13 @@ export async function active(req, res) {
         };
 
       /**
-       * Mark accessible
-       * through center assignment
+       * Course assignment only means
+       * the course is visible/available
+       * to the student's center.
+       *
+       * It does NOT grant enrollment
+       * or premium access.
        */
-      item.status =
-        item.status || "premium";
-
-      item.access =
-        item.access || "premium";
-
       item.assignmentAccess = true;
 
       byCourse.set(cid, item);
@@ -197,6 +227,11 @@ export async function active(req, res) {
       cid,
       p,
     ] of latestPay.entries()) {
+      console.log("[ACTIVE][PAYMENT]", {
+        cid,
+        paymentStatus: p?.status,
+        payment: p,
+      });
       const item =
         byCourse.get(cid) || {
           courseId: cid,
@@ -231,11 +266,22 @@ export async function active(req, res) {
     /**
      * Final response
      */
+    const finalItems = Array.from(
+      byCourse.values()
+    );
+
+    console.log(
+      "[ACTIVE] FINAL RESPONSE:",
+      JSON.stringify(finalItems, null, 2)
+    );
+
+    console.log(
+      "\n================ END ACTIVE ENROLLMENTS DEBUG ================\n"
+    );
+
     return res.json({
       ok: true,
-      items: Array.from(
-        byCourse.values()
-      ),
+      items: finalItems,
     });
   } catch (e) {
     console.error(
