@@ -48,7 +48,13 @@ export default function OfflinePaymentModal({
     queryFn: () => listOrgCourses({ status: "all" }),
   });
 
-  const students = Array.isArray(studentsQ.data) ? studentsQ.data : [];
+  const students = Array.isArray(studentsQ.data)
+    ? studentsQ.data
+    : [];
+  const selectedStudent =
+    students.find(
+      (s: any) => s.id === studentId
+    ) || null;
   const courses = Array.isArray(coursesQ.data)
     ? coursesQ.data
     : coursesQ.data?.items ?? [];
@@ -142,7 +148,11 @@ export default function OfflinePaymentModal({
                   amount: Math.round(Number(amount) * 100),
                   receiptNo: receiptNo || undefined,
                   referenceId: referenceId || undefined,
-                  notes: notes || undefined
+                  notes: JSON.stringify({
+                    orgId: selectedStudent?.orgId || null,
+                    manualEntry: true,
+                    note: notes || null,
+                  })
                 });
                 onClose();
               } finally {
