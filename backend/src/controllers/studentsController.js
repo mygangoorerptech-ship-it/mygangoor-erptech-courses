@@ -24,11 +24,20 @@ export async function list(req, res) {
   }
 
   const docs = await User.find({ $and: and })
-    .select(lite ? "_id email name" : "_id email name orgId createdAt")
+    .select(
+      lite
+        ? "_id email name orgId"
+        : "_id email name orgId createdAt"
+    )
     .sort({ createdAt: -1 })
     .limit(Math.min(Number(limit) || 200, 1000))
     .lean();
 
-  const rows = docs.map(d => ({ id: String(d._id), email: d.email, name: d.name }));
+  const rows = docs.map(d => ({
+    id: String(d._id),
+    email: d.email,
+    name: d.name,
+    orgId: d.orgId ? String(d.orgId) : null,
+  }));
   return res.json(rows);
 }
