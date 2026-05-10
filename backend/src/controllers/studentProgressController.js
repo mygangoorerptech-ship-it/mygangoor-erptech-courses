@@ -2,6 +2,9 @@
 import Progress from "../models/Progress.js";
 import Course from "../models/Course.js";
 import User from "../models/User.js";
+import Enrollment from "../models/Enrollment.js";
+import Payment from "../models/Payment.js";
+import CourseAssignment from "../models/CourseAssignment.js";
 
 export async function get(req, res) {
   try {
@@ -41,6 +44,20 @@ export async function get(req, res) {
         const u = await User.findById(actor.sub).select("orgId").lean();
         if (u?.orgId) orgId = String(u.orgId);
       } catch {}
+    }
+
+    // SP-5: enrollment gate — only enrolled students (or center-assigned students,
+    // or students with a captured payment in the recovery window) may access progress.
+    const [enrolled, assigned, capturedPayment] = await Promise.all([
+      Enrollment.findOne({ studentId, courseId }).select("_id").lean(),
+      orgId
+        ? CourseAssignment.findOne({ centerId: orgId, courseId, isActive: true }).select("_id").lean()
+        : Promise.resolve(null),
+      Payment.findOne({ studentId, courseId, status: "captured" }).select("_id").lean(),
+    ]);
+
+    if (!enrolled && !assigned && !capturedPayment) {
+      return res.status(403).json({ ok: false, message: "not enrolled" });
     }
 
     // Attempt to find an existing progress record for the

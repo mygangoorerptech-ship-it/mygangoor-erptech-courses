@@ -19,6 +19,7 @@ import { useCourses } from "../pages/tracks/useCourses";
 
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/store";
+import { useEnrollmentStore } from "../../store/enrollmentStore";
 
 import type {
   EnrolledCourse,
@@ -46,7 +47,12 @@ export default function EnrolledCoursesPage() {
     (s) => !!s.user
   );
 
-  const [activeEnrollmentIds, setActiveEnrollmentIds] = useState<string[]>([]);
+  // RF-2: consume the global enrollment store instead of a parallel independent fetch.
+  // premiumIds is populated by enrollmentStore.fetchActive() which fires from
+  // TracksAndCollectionsSection and App.tsx (RF-3). Replace-semantics (RF-1) ensure
+  // revocations are reflected after the next server sync.
+  const premiumIds = useEnrollmentStore((s) => s.premiumIds);
+  const enrollmentLoading = useEnrollmentStore((s) => s.loading);
 
   /**
    * Progress map
@@ -115,77 +121,20 @@ export default function EnrolledCoursesPage() {
     };
   }, [catalogCourses, isAuthenticated]);
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setActiveEnrollmentIds([]);
-      return;
-    }
-    let cancelled = false;
-
-    async function loadEnrollments() {
-      try {
-        const { data } = await api.get(
-          "/student/enrollments/active"
-        );
-
-        if (cancelled) return;
-
-        /**
-         * Normalize ids safely
-         */
-        const ids = Array.isArray(data)
-          ? data
-            .map((item: any) => {
-              if (
-                typeof item === "string"
-              ) {
-                return item;
-              }
-
-              return (
-                item.courseId ||
-                item.course?._id ||
-                item.course?.id ||
-                item._id
-              );
-            })
-            .filter(Boolean)
-          : [];
-
-        setActiveEnrollmentIds(ids);
-      } catch {
-        setActiveEnrollmentIds([]);
-      }
-    }
-
-    loadEnrollments();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
-
   /**
    * Transform existing course shape
    * into enrolled UI model
    */
   const enrolledCourses: EnrolledCourse[] =
     useMemo(() => {
-      console.log("catalogCourses", catalogCourses);
-      console.log(
-        "activeEnrollmentIds",
-        activeEnrollmentIds
-      );
       return (catalogCourses || [])
         .filter((course: any) => {
-          // Robust price handling
-          // Treat missing, null, non-numeric, and zero price as free
           const courseId =
             course.id ||
             course._id;
 
           /**
-           * Robust price handling
+           * Robust price handling — treat missing/null/zero as free
            */
           const pricePaise = Number(
             course.pricePaise ??
@@ -197,13 +146,9 @@ export default function EnrolledCoursesPage() {
             !Number.isFinite(pricePaise) ||
             pricePaise <= 0;
 
-          /**
-           * Purchased / assigned
-           */
-          const isEnrolled =
-            activeEnrollmentIds.includes(
-              courseId
-            );
+          // RF-2: use global premiumIds (Set) instead of local array.
+          // .has() is O(1) vs .includes() O(n); also avoids stale independent fetch.
+          const isEnrolled = premiumIds.has(String(courseId));
 
           return (
             isFree ||
@@ -248,7 +193,7 @@ export default function EnrolledCoursesPage() {
           );
         }
         );
-    }, [catalogCourses, progressMap, activeEnrollmentIds]);
+    }, [catalogCourses, progressMap, premiumIds]);
 
   /**
    * UI filters
@@ -391,8 +336,8 @@ export default function EnrolledCoursesPage() {
               />
             </div>
 
-            {/* LOADING */}
-            {loading && (
+            {/* LOADING — catalog fetch OR first-load enrollment sync */}
+            {(loading || (enrollmentLoading && premiumIds.size === 0)) && (
               <div className="mt-20 flex items-center justify-center">
                 <div className="h-10 w-10 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
               </div>
@@ -400,6 +345,7 @@ export default function EnrolledCoursesPage() {
 
             {/* GRID */}
             {!loading &&
+              !(enrollmentLoading && premiumIds.size === 0) &&
               filteredCourses.length >
               0 && (
                 <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">

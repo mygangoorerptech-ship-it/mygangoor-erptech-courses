@@ -112,7 +112,9 @@ export default function JoinNowModal({
   const { addOptimistic, refresh, premiumIds } = useEnrollmentStore();
 
   // Prevent re-payment of an already-enrolled course
-  const alreadyEnrolled = !!selectedCourse && premiumIds.has(String(selectedCourse.id));
+  const alreadyEnrolled =
+  !!selectedCourse &&
+  premiumIds.has(String(selectedCourse.id));
 
   // ⛔️ STOP refetching on every select:
   // Only (re)load when we actually show Step 1 AND auth is ready.
@@ -136,6 +138,20 @@ export default function JoinNowModal({
     payment?: { status?: string | null; amount?: number | null }; // status & amount (paise)
   };
   const [courseStates, setCourseStates] = React.useState<Record<string, CourseState>>({});
+
+  // CRITICAL:
+// Direct-open flows (selectedCourseId) bypass Step-1 CourseStep disabling.
+// We must still block payment if backend reports any active pending state.
+const selectedCoursePendingState =
+  selectedCourse
+    ? (
+        courseStates[selectedCourse.id]?.payment?.status || ""
+      ).toLowerCase()
+    : "";
+
+const hasActivePendingPayment =
+  selectedCoursePendingState === "pending" ||
+  selectedCoursePendingState === "pending_verification";
 
   // NEW: one clear fetch to the dedicated endpoint
   React.useEffect(() => {
@@ -183,7 +199,9 @@ export default function JoinNowModal({
     });
   }, [typedCourses, courseStates]);
 
-  // pending badge text (₹ from paise) — unchanged
+  // pending badge text (₹ from paise)
+  // "pending_verification" → offline claim awaiting admin
+  // "pending"             → online order in-progress (abandoned Razorpay modal)
   const pendingMap = React.useMemo(() => {
     const m: Record<string, string> = {};
     for (const [id, st] of Object.entries(courseStates)) {
@@ -191,6 +209,8 @@ export default function JoinNowModal({
       if (ps === "pending_verification") {
         const amt = st.payment?.amount;
         m[id] = amt ? `Pending • ${formatINRFromPaise(amt)}` : "Pending";
+      } else if (ps === "pending") {
+        m[id] = "Payment in progress";
       }
     }
     return m;
@@ -942,6 +962,7 @@ export default function JoinNowModal({
                   onClick={method === "online" ? handleOnlinePay : handleCashClaim}
                   disabled={
                     alreadyEnrolled ||
+                    hasActivePendingPayment ||
                     isPaying ||
                     Object.keys(errors).length > 0 ||
                     (

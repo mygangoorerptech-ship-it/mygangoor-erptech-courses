@@ -123,8 +123,7 @@ export async function createOrder(req, res) {
       firstPaymentMin = payablePaise;
     }
 
-    // Prevent duplicate offline claims
-    // Prevent duplicate active purchases/orders
+    // Prevent duplicate active online purchases/orders
     const existingPayment = await Payment.findOne({
       studentId: actor._id,
       courseId: toId(courseId),
@@ -141,6 +140,26 @@ export async function createOrder(req, res) {
           existingPayment.status === "captured"
             ? "Course already purchased."
             : "Payment already in progress.",
+      });
+    }
+
+    // SP-3: cross-source check — block online order if an active offline claim exists.
+    // Prevents Scenario B (offline pending_verification → online pay → double charge when admin verifies).
+    const existingOffline = await Payment.findOne({
+      studentId: actor._id,
+      courseId: toId(courseId),
+      status: { $in: ["pending_verification", "captured"] },
+      type: "offline",
+      reconciliationStatus: { $ne: "matched" },
+    }).lean();
+
+    if (existingOffline) {
+      return res.status(409).json({
+        ok: false,
+        message:
+          existingOffline.status === "captured"
+            ? "Course already purchased."
+            : "Your offline payment is pending verification. Please wait for admin confirmation.",
       });
     }
 
@@ -226,7 +245,8 @@ export async function verifyPayment(req, res) {
       });
     }
 
-    // Idempotent: already captured
+    // SP-1: safe atomic sequence — ownership verified before write, atomic capture.
+    // Step 1: idempotent gate — already captured by webhook or prior verify call.
     if (doc0.status === "captured") {
       return res.json({
         ok: true,
@@ -235,13 +255,17 @@ export async function verifyPayment(req, res) {
         duplicate: true,
       });
     }
-    if (!doc0) return res.status(404).json({ ok: false, message: "order not found" });
+
+    // Step 2: ownership check before any write (security gate — must come before atomic update).
     const actorId = String(actor._id || actor.sub || actor.id || "");
     if (String(doc0.studentId) !== actorId) {
       return res.status(403).json({ ok: false, message: "not your order" });
     }
-    await Payment.updateOne(
-      { _id: doc0._id },
+
+    // Step 3: atomic capture — uses _id for precision, status filter prevents double-capture.
+    // Returns null if another request (or webhook) already captured between steps 1 and 3.
+    const doc = await Payment.findOneAndUpdate(
+      { _id: doc0._id, status: { $ne: "captured" } },
       {
         $set: {
           status: "captured",
@@ -251,10 +275,20 @@ export async function verifyPayment(req, res) {
             ...(doc0.notes ? JSON.parse(doc0.notes || "{}") : {}),
             joinForm: joinForm || null,
           }),
-        }
-      }
+        },
+      },
+      { returnDocument: "after", lean: true }
     );
-    const doc = await Payment.findById(doc0._id).lean();
+
+    // Race: webhook captured the payment between our read and this write — idempotent success.
+    if (!doc) {
+      return res.json({
+        ok: true,
+        trusted: true,
+        enrollment: { created: true },
+        duplicate: true,
+      });
+    }
 
     // 🔒 TRUSTED path: verify with provider — only controls providerVerified flag
     let trusted = false;

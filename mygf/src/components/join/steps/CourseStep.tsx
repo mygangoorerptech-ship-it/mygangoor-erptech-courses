@@ -86,15 +86,23 @@ function CourseStep({
           // level fallback to Beginner (to mirror /tracks mapping)
           const level = (c.level || "Beginner") as string;
 
+          // A course with any active pending payment cannot be re-enrolled.
+          // "pending"              → abandoned Razorpay order (expires ~30 min)
+          // "pending_verification" → offline claim awaiting admin
+          const isPendingBlocked = !!pending;
+
           return (
             <button
               key={c.id}
               type="button"
               aria-pressed={isSelected}
-              onClick={() => onSelect(c.id)}
+              disabled={isPendingBlocked}
+              onClick={() => !isPendingBlocked && onSelect(c.id)}
               className={classNames(
                 "group relative text-left overflow-hidden rounded-2xl bg-white border transition-shadow",
-                isSelected
+                isPendingBlocked
+                  ? "opacity-60 cursor-not-allowed border-slate-200"
+                  : isSelected
                   ? "ring-2 ring-indigo-600 border-transparent shadow-md"
                   : "border-slate-300 hover:shadow-md focus-visible:ring-2 focus-visible:ring-indigo-600"
               )}

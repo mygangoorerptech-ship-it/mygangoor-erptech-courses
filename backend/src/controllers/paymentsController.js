@@ -4,6 +4,7 @@ const { Types } = mongoose;
 import Payment from "../models/Payment.js";
 import User from "../models/User.js";
 import Course from "../models/Course.js";
+import CourseAssignment from "../models/CourseAssignment.js";
 import { safeRegex } from "../utils/safeRegex.js";
 import { ensureEnrollment } from "../services/enrollmentService.js";
 import { reconcileOfflinePayment } from "../services/paymentReconciliationService.js";
@@ -109,6 +110,11 @@ function sanitize(p) {
     verifiedBy: o.verifiedBy ? String(toId(o.verifiedBy)) : null,
     verifiedAt: o.verifiedAt || null,
     managerId: o.managerId ? String(toId(o.managerId)) : null,
+    // SP-7: enrollment recovery visibility for admin dashboard
+    needsEnrollment: o.needsEnrollment || false,
+    enrollmentRetryCount: o.enrollmentRetryCount || 0,
+    lastEnrollmentError: o.lastEnrollmentError || null,
+    lastEnrollmentRetryAt: o.lastEnrollmentRetryAt || null,
     createdAt: o.createdAt,
     updatedAt: o.updatedAt,
   };
@@ -124,7 +130,7 @@ export async function list(req, res) {
       return res.status(403).json({ ok: false, message: "No org" });
     }
 
-    const { q, status, type } = req.query || {};
+    const { q, status, type, broken } = req.query || {};
     let orgId = toId(actor.orgId);
 
     const studentIds = await User.find({
@@ -177,6 +183,10 @@ export async function list(req, res) {
           { providerPaymentId: rx },
         ],
       });
+    }
+    // SP-7: ?broken=true filters to payments where enrollment recovery is needed
+    if (broken === "true") {
+      and.push({ needsEnrollment: true });
     }
 
     const docs = await Payment.find({
@@ -256,6 +266,54 @@ export async function createOffline(req, res) {
     }).select("_id orgId");
     if (!course) return res.status(404).json({ ok: false, message: "course not found" });
 
+    // Resolve enrollment center/org.
+    //
+    // IMPORTANT:
+    // Payment.orgId represents the actual enrollment center,
+    // NOT the course owner org.
+    let resolvedOrgId = null;
+
+    try {
+      const parsedNotes =
+        typeof notes === "string"
+          ? JSON.parse(notes)
+          : notes || {};
+
+      if (
+        parsedNotes?.orgId &&
+        isOid(parsedNotes.orgId)
+      ) {
+        resolvedOrgId = toId(parsedNotes.orgId);
+
+        // Courses with assignments are center-restricted.
+        // Courses without assignments are global.
+        const assignmentCount =
+          await CourseAssignment.countDocuments({
+            courseId: toId(courseId),
+            isActive: true,
+          });
+
+        if (assignmentCount > 0) {
+          const validAssignment =
+            await CourseAssignment.exists({
+              courseId: toId(courseId),
+              centerId: resolvedOrgId,
+              isActive: true,
+            });
+
+          if (!validAssignment) {
+            return res.status(400).json({
+              ok: false,
+              message:
+                "Selected center is not assigned to this course.",
+            });
+          }
+        }
+      }
+    } catch {
+      // ignore malformed notes payload
+    }
+
     // Prevent duplicate pending/captured offline payments
     const existingPayment = await Payment.findOne({
       studentId: toId(studentId),
@@ -289,8 +347,6 @@ export async function createOffline(req, res) {
       });
     }
 
-    const courseOrgId = course.orgId ? toId(course.orgId) : null;
-
     const submittedBy = pickActorId(actor);
     const managerId = pickManagerId(actor);
 
@@ -300,7 +356,7 @@ export async function createOffline(req, res) {
       status: "pending_verification", // offline payments require verification
       amount: Math.floor(Number(amount)),
       currency: "INR",
-      orgId: courseOrgId,          // FIXED: course.orgId, not actor.orgId
+      orgId: resolvedOrgId || null,          // FIXED: course.orgId, not actor.orgId
       courseId: toId(courseId),
       studentId: toId(studentId),
       receiptNo: receiptNo || undefined,
@@ -392,6 +448,7 @@ export async function claimReceipt(req, res) {
     }
 
     // Course validation
+    // Course validation
     const course = await Course.findOne({
       _id: courseId,
       status: { $ne: "draft" },
@@ -406,7 +463,66 @@ export async function claimReceipt(req, res) {
       });
     }
 
-    // Prevent duplicate active claims/purchases
+    // Resolve selected enrollment center/org.
+    //
+    // IMPORTANT:
+    // Course.orgId is the owner/publisher org.
+    // Actual enrollment center comes from the student's selected orgId
+    // stored inside notes payload.
+    let resolvedOrgId = null;
+
+    try {
+      const parsedNotes =
+        typeof notes === "string"
+          ? JSON.parse(notes)
+          : notes || {};
+
+      if (
+        parsedNotes?.orgId &&
+        isOid(parsedNotes.orgId)
+      ) {
+        resolvedOrgId = toId(parsedNotes.orgId);
+
+        // SECURITY:
+        //
+        // Courses with CourseAssignment entries are center-restricted.
+        // Courses with NO assignments are treated as global courses.
+        //
+        // Only enforce center validation when assignment-based delivery exists.
+        const assignmentCount =
+          await CourseAssignment.countDocuments({
+            courseId: toId(courseId),
+            isActive: true,
+          });
+
+        if (assignmentCount > 0) {
+          const validAssignment =
+            await CourseAssignment.exists({
+              courseId: toId(courseId),
+              centerId: resolvedOrgId,
+              isActive: true,
+            });
+
+          if (!validAssignment) {
+            return res.status(400).json({
+              ok: false,
+              message:
+                "Selected center is not assigned to this course.",
+            });
+          }
+        }
+      }
+    } catch {
+      // ignore malformed notes payload
+    }
+
+    // Fallback:
+    // use course owner org only if no explicit center selected.
+    if (!resolvedOrgId && course?.orgId) {
+      resolvedOrgId = toId(course.orgId);
+    }
+
+    // Prevent duplicate active student claims
     const existingPayment = await Payment.findOne({
       studentId: toId(studentId),
 
@@ -436,6 +552,26 @@ export async function claimReceipt(req, res) {
       });
     }
 
+    // SP-3: cross-source check — block offline claim if an active online payment exists.
+    // Soft-block: online "pending" orders expire in ~30-45 min via the expiry job.
+    // Hard-block: online "captured" means already purchased.
+    const existingOnline = await Payment.findOne({
+      studentId: toId(studentId),
+      courseId: toId(courseId),
+      status: { $in: ["pending", "captured"] },
+      type: "online",
+    }).lean();
+
+    if (existingOnline) {
+      return res.status(409).json({
+        ok: false,
+        message:
+          existingOnline.status === "captured"
+            ? "Course already purchased online."
+            : "An online payment for this course is in progress. It will expire in ~30 minutes, after which you can submit a cash receipt.",
+      });
+    }
+
     const doc = await Payment.create({
       type: "offline",
 
@@ -449,9 +585,7 @@ export async function claimReceipt(req, res) {
 
       currency: "INR",
 
-      orgId: course.orgId
-        ? toId(course.orgId)
-        : null,
+      orgId: resolvedOrgId || null,
 
       courseId: toId(courseId),
 
@@ -611,13 +745,20 @@ export async function verify(req, res) {
     // Derive managerId from actor or org lookup
     const managerId = pickManagerId(actor) || (await resolveManagerId(orgId));
 
-    // ✅ FIX: fallback orgId for global courses
-    let enrollmentOrgId = doc.orgId;
-
-    if (!isOid(enrollmentOrgId)) {
-      const course = await Course.findById(doc.courseId).select("orgId").lean();
-      enrollmentOrgId = course?.orgId || null;
-    }
+    // Enrollment orgId semantics:
+    //
+    // - center-assigned courses:
+    //   orgId = selected enrollment center
+    //
+    // - global courses:
+    //   orgId remains null
+    //
+    // Never fallback to Course.owner org here.
+    // claimReceipt/createOrder already resolved the correct enrollment org.
+    const enrollmentOrgId =
+      isOid(doc.orgId)
+        ? toId(doc.orgId)
+        : null;
 
     // allow null orgId for global courses
     const enrollOk = await ensureEnrollment({
@@ -774,7 +915,7 @@ export async function refund(req, res) {
 // GET /sa/payments  (superadmin — cross-org listing)
 export async function listAll(req, res) {
   try {
-    const { q, status, type } = req.query || {};
+    const { q, status, type, broken } = req.query || {};
     const and = [];
     if (status && String(status).toLowerCase() !== "all") and.push({ status: String(status).toLowerCase() });
     if (type && String(type).toLowerCase() !== "all") and.push({ type: String(type).toLowerCase() });
@@ -792,6 +933,10 @@ export async function listAll(req, res) {
           { providerPaymentId: rx },
         ],
       });
+    }
+    // SP-7: ?broken=true filters to payments where enrollment recovery is needed
+    if (broken === "true") {
+      and.push({ needsEnrollment: true });
     }
     const docs = await Payment.find({
       ...(and.length ? { $and: and } : {}),

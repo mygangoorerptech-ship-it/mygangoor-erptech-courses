@@ -4,24 +4,38 @@ import { emitToUser } from "./notify.js";
 import { generatePeriodicReminders } from "../controllers/notificationsController.js";
 // C-2 fix: enrollment recovery job (runs every 5 minutes inside the scheduler tick)
 import { runEnrollmentRecovery } from "../jobs/enrollmentRecoveryJob.js";
+// SP-4: abandoned Razorpay order expiry job (runs every 15 minutes)
+import { runPaymentExpiry } from "../jobs/paymentExpiryJob.js";
 
 const DBG = process.env.DEBUG_NOTIFICATIONS !== '0';
 const slog = (...args) => { if (DBG) console.log('[scheduler]', ...args); };
 
 function nextTime(from, recurrence) {
   const d = new Date(from.getTime());
-  if (recurrence === "daily") d.setUTCDate(d.getUTCDate() + 1); 
-  else if (recurrence === "weekly") d.setUTCDate(d.getUTCDate() + 7); 
-  else if (recurrence === "monthly") d.setUTCMonth(d.getUTCMonth() + 1); 
+  if (recurrence === "daily") d.setUTCDate(d.getUTCDate() + 1);
+  else if (recurrence === "weekly") d.setUTCDate(d.getUTCDate() + 7);
+  else if (recurrence === "monthly") d.setUTCMonth(d.getUTCMonth() + 1);
   else return null; // unknown/legacy -> stop recurring
   return d;
 }
 
-// C-2 fix: enrollment recovery runs every 5 minutes (300 000 ms).
+// C-2 fix: enrollment recovery runs every 2 minutes (120 000 ms). SP-6: tightened from 5 min.
 // Decoupled from the notification tick so it always fires regardless of NOTIFY_TICK_MS.
-const ENROLLMENT_RECOVERY_MS = 5 * 60 * 1000;
+const ENROLLMENT_RECOVERY_MS = 2 * 60 * 1000;
+
+// SP-4: abandoned Razorpay order expiry runs every 15 minutes.
+// Verifies each stale "pending" order against the Razorpay API before expiring.
+const PAYMENT_EXPIRY_MS = 15 * 60 * 1000;
+
+let schedulerStarted = false;
 
 export function startScheduler() {
+  if (schedulerStarted) {
+    console.warn("[scheduler] already started");
+    return;
+  }
+
+  schedulerStarted = true;
   const TICK_MS = Number(process.env.NOTIFY_TICK_MS || 60000);
   // slog('start', { TICK_MS, recurrences: ['daily','weekly','monthly'] });
 
@@ -31,6 +45,13 @@ export function startScheduler() {
       console.error("[scheduler] enrollmentRecovery error:", e?.message)
     );
   }, ENROLLMENT_RECOVERY_MS);
+
+  // SP-4: start payment expiry on its own independent interval
+  setInterval(() => {
+    runPaymentExpiry().catch((e) =>
+      console.error("[scheduler] paymentExpiry error:", e?.message)
+    );
+  }, PAYMENT_EXPIRY_MS);
 
   setInterval(async () => {
     try {
@@ -52,7 +73,7 @@ export function startScheduler() {
             n.resolvedAt = n.resolvedAt || now;
           } else {
             const next = nextTime(now, n.recurrence);
-                      if (next) n.dueAt = next; 
+            if (next) n.dueAt = next;
             else n.resolvedAt = n.resolvedAt || now; // legacy/unknown (e.g., old "minutely") → stop
           }
 

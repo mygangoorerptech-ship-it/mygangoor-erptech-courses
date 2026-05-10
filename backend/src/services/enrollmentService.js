@@ -33,10 +33,15 @@ async function ensureEnrollment({
     return false;
   }
 
+  // SP-2: filter aligns with the actual unique index {studentId, courseId}.
+  // Previously included orgId, which caused cross-org attempts to fall through
+  // to a 11000 duplicate-key error (caught below) rather than finding the
+  // existing document via the upsert's find path. Using {studentId, courseId}
+  // makes the intent explicit: one enrollment per student per course globally.
+  // orgId is set only on first insert via $setOnInsert.
   const filter = {
     studentId: sid,
     courseId: cid,
-    orgId: oid || null,
   };
 
   const update = {

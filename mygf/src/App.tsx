@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./auth/store";
 import { checkSession } from "./api/auth";
+import { useEnrollmentStore } from "./store/enrollmentStore";
 import RequireOrgUser from "./auth/RequireOrgUser";
 import { NotificationsProvider } from "./hooks/useNotifications";
 import ReminderPopup from "./components/notifications/ReminderPopup";
@@ -88,6 +89,20 @@ import CentersPage from "./components/centers/CentersPage";
 const SESSION_POLL_MS = 4 * 60 * 1000;
 
 export default function App() {
+  // RF-3: prefetch enrollment state as soon as auth hydration confirms the user.
+  // Fires once per login transition (idle→ready with a user), before any route
+  // component mounts, eliminating the brief "locked course" flash on page load.
+  // The loading dedup in fetchActive() prevents duplicate calls if a route
+  // component (e.g. TracksAndCollectionsSection) also triggers fetchActive().
+  const authStatus = useAuth((s) => s.status);
+  const authUserId = useAuth((s) => s.user?.id);
+
+  useEffect(() => {
+    if (authStatus === "ready" && authUserId) {
+      useEnrollmentStore.getState().fetchActive();
+    }
+  }, [authStatus, authUserId]);
+
   // Remove the static HTML splash screen after React's first paint.
   // The CSS transition on #splash gives a smooth 350 ms fade-out.
   useEffect(() => {
