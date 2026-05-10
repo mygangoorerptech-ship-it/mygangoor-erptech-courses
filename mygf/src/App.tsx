@@ -184,8 +184,15 @@ export default function App() {
           }
         />
 
-        <Route path="/enrolled" element={<EnrolledCoursesPage />} />
-        
+        <Route
+          path="/enrolled"
+          element={
+            <Shell allowedRoles={["student", /^org/i]}>
+              <EnrolledCoursesPage />
+            </Shell>
+          }
+        />
+
         {/* MFA route target */}
         <Route path="/mfa" element={<Mfa />} />
 

@@ -1,5 +1,6 @@
 //src/components/dashboard/StudentSidebar.tsx
 import { useState } from "react";
+import { useAuth } from "../../auth/store";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
     LayoutDashboard,
@@ -13,12 +14,20 @@ import {
 } from "lucide-react";
 
 export default function StudentSidebar() {
+    const user = useAuth((s) => s.user);
+    const status = useAuth((s) => s.status);
     const [collapsed, setCollapsed] = useState(
         typeof window !== "undefined" ? window.innerWidth < 1024 : false
     );
 
     const navigate = useNavigate();
     const location = useLocation();
+
+        // Prevent sidebar render until auth hydration completes
+    // and a valid authenticated session exists.
+    if (status !== "ready" || !user) {
+        return null;
+    }
 
     const items = [
         { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -34,9 +43,8 @@ export default function StudentSidebar() {
 
     return (
         <aside
-            className={`hidden md:flex flex-col ${
-                collapsed ? "w-16" : "w-64"
-            } bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 h-screen sticky top-0 transition-all duration-300`}
+            className={`hidden md:flex flex-col ${collapsed ? "w-16" : "w-64"
+                } bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-800 h-screen sticky top-0 transition-all duration-300`}
         >
             {/* TOP */}
             <div className="flex items-center justify-between px-3 py-3">
@@ -69,15 +77,13 @@ export default function StudentSidebar() {
                             key={item.label}
                             onClick={() => item.path !== "#" && navigate(item.path)}
                             title={collapsed ? item.label : ""}
-                            className={`relative w-full flex items-center ${
-                                collapsed ? "justify-center" : "justify-start"
-                            } gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200
+                            className={`relative w-full flex items-center ${collapsed ? "justify-center" : "justify-start"
+                                } gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200
               
-              ${
-                  isActive
-                      ? "bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
-              }
+              ${isActive
+                                    ? "bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white"
+                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                                }
               `}
                         >
                             {/* ACTIVE INDICATOR */}
