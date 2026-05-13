@@ -177,6 +177,22 @@ export default function CourseFormModal({
     );
   }
 
+  const ownCenterIdSet = useMemo(
+    () => new Set(centers.map((c) => c.value)),
+    [centers]
+  );
+
+  const centerLabelMap = useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    centers.forEach((c) => { map[c.value] = c.label; });
+    if (!isSA && initial?.centerIds) {
+      initial.centerIds.forEach((id, i) => {
+        if (!map[id]) map[id] = initial.centerNames?.[i] || id;
+      });
+    }
+    return map;
+  }, [centers, isSA, initial?.centerIds, initial?.centerNames]);
+
   // ── Fetch owners (admins) for SA, filtered by org ─────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -750,40 +766,48 @@ export default function CourseFormModal({
 
 
                 {/* NEW: Centers Selection */}
-                {centers.length > 0 && (
+                {(centers.length > 0 || (!isSA && selectedCenterIds.some((id) => !ownCenterIdSet.has(id)))) && (
                   <div className="mt-3">
                     <Field
                       label="Assign to Centers"
                       help="If none selected, this course will be available globally"
                     >
                       <div className="flex flex-col gap-1 max-h-40 overflow-y-auto border rounded p-2">
-                        {centers.map((c) => (
-                          <label
-                            key={c.value}
-                            className="flex items-center gap-2 text-sm cursor-pointer"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selectedCenterIds.includes(c.value)}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-
-                                setSelectedCenterIds((prev) => {
-                                  if (checked) {
-                                    return prev.includes(c.value)
-                                      ? prev
-                                      : [...prev, c.value];
-                                  }
-
-                                  removeCenterTeacher(c.value);
-
-                                  return prev.filter((id) => id !== c.value);
-                                });
-                              }}
-                            />
-                            {c.label}
-                          </label>
-                        ))}
+                        {centers.map((c) => {
+                          const isChecked = selectedCenterIds.includes(c.value);
+                          const isLocked = !isSA && isChecked;
+                          return (
+                            <label
+                              key={c.value}
+                              className={`flex items-center gap-2 text-sm ${isLocked ? "cursor-not-allowed" : "cursor-pointer"}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={isLocked}
+                                onChange={(e) => {
+                                  if (isLocked) return;
+                                  const checked = e.target.checked;
+                                  setSelectedCenterIds((prev) => {
+                                    if (checked) return prev.includes(c.value) ? prev : [...prev, c.value];
+                                    removeCenterTeacher(c.value);
+                                    return prev.filter((id) => id !== c.value);
+                                  });
+                                }}
+                              />
+                              {c.label}
+                            </label>
+                          );
+                        })}
+                        {!isSA && selectedCenterIds
+                          .filter((id) => !ownCenterIdSet.has(id))
+                          .map((id) => (
+                            <label key={id} className="flex items-center gap-2 text-sm text-slate-400 cursor-not-allowed">
+                              <input type="checkbox" checked disabled readOnly />
+                              {centerLabelMap[id] || id}
+                              <span className="text-xs ml-1">(assigned externally)</span>
+                            </label>
+                          ))}
                       </div>
                       {selectedCenterIds.length === 0 && (
                         <div className="text-xs text-blue-600 mt-1">
@@ -802,25 +826,30 @@ export default function CourseFormModal({
                     >
                       <div className="space-y-3">
                         {selectedCenterIds.map((centerId) => {
-                          const center = centers.find((c) => c.value === centerId);
+                          const isExternal = !isSA && !ownCenterIdSet.has(centerId);
+                          const label = centerLabelMap[centerId] || "Center";
 
                           return (
                             <div
                               key={centerId}
-                              className="grid md:grid-cols-2 gap-3 border rounded-lg p-3"
+                              className={`grid md:grid-cols-2 gap-3 border rounded-lg p-3${isExternal ? " opacity-60 bg-slate-50" : ""}`}
                             >
                               <div>
                                 <div className="text-sm font-medium text-slate-700">
-                                  {center?.label || "Center"}
+                                  {label}
+                                  {isExternal && (
+                                    <span className="ml-2 text-xs font-normal text-slate-400">(read-only)</span>
+                                  )}
                                 </div>
                               </div>
 
                               <div>
                                 <Select
                                   value={getTeacherForCenter(centerId)}
-                                  onChange={(e) =>
-                                    updateCenterTeacher(centerId, e.target.value)
-                                  }
+                                  disabled={isExternal}
+                                  onChange={(e) => {
+                                    if (!isExternal) updateCenterTeacher(centerId, e.target.value);
+                                  }}
                                 >
                                   <option value="">Select Teacher</option>
 

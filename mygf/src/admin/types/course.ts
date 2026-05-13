@@ -68,6 +68,7 @@ export interface Course {
 
   // center assignment IDs (empty array = no center assignments)
   centerIds?: string[]
+  centerNames?: string[]
 }
 
 export type CourseFilters = {
