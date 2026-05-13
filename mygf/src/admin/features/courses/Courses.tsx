@@ -46,7 +46,7 @@ export default function CoursesUnified() {
 
   // Lookups
   const orgsQ = useQuery<Organization[]>({
-    enabled: isSA,
+    enabled: true,
     queryKey: ["orgs-lite"],
     queryFn: async () => {
       const res = await listOrganizations({ q: "", status: "active" } as any);
