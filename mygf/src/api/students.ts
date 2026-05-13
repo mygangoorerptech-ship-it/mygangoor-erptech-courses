@@ -5,3 +5,8 @@ export async function listStudents(params?: { q?: string; limit?: number; lite?:
   const r = await api.get('/students', { params });
   return Array.isArray(r.data) ? r.data : [];
 }
+
+export async function getUserDetails(id: string) {
+  const r = await api.get(`/students/${id}/details`);
+  return r.data;
+}

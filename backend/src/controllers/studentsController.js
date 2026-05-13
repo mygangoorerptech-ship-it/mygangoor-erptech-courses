@@ -1,6 +1,7 @@
 //backend/src/controllers/studentsController.js
 import User from "../models/User.js";
 import { safeRegex } from "../utils/safeRegex.js";
+import StudentFormProfile from "../models/StudentFormProfile.js";
 
 export async function list(req, res) {
   const actor = req.user;
@@ -40,4 +41,74 @@ export async function list(req, res) {
     orgId: d.orgId ? String(d.orgId) : null,
   }));
   return res.json(rows);
+}
+
+export async function getUserDetails(req, res) {
+  try {
+    const actor = req.user;
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        ok: false,
+        message: "User id required",
+      });
+    }
+
+    const user = await User.findById(id)
+      .select("-password -refreshToken")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        ok: false,
+        message: "User not found",
+      });
+    }
+
+    // SECURITY:
+    // non-superadmin can only access same org
+    if (
+      actor.role !== "superadmin" &&
+      String(user.orgId || "") !== String(actor.orgId || "")
+    ) {
+      return res.status(403).json({
+        ok: false,
+        message: "forbidden",
+      });
+    }
+
+    let formProfile = null;
+
+    if (
+      user.role === "student" ||
+      user.role === "orguser"
+    ) {
+      formProfile = await StudentFormProfile.findOne({
+        studentId: user._id,
+      }).lean();
+    }
+
+    return res.json({
+      ok: true,
+      user: {
+        id: String(user._id),
+        name: user.name || "",
+        email: user.email || "",
+        role: user.role || "",
+        status: user.status || "",
+        orgId: user.orgId || null,
+        isVerified: !!user.isVerified,
+        createdAt: user.createdAt || null,
+      },
+      formProfile,
+    });
+  } catch (e) {
+    console.error("[students.getUserDetails]", e);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Failed to fetch user details",
+    });
+  }
 }

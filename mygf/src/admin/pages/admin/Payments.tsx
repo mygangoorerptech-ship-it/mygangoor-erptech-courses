@@ -1,24 +1,38 @@
 // mygf/src/admin/pages/admin/Payments.tsx
 import { useState } from 'react'
+import { formatINRFromPaise } from '../../utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listPayments, refundPayment, createOfflinePayment, verifyPayment } from '../../../api/payments'
-import { useAuth } from '../../auth/store'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
 import OfflinePaymentModal from '../../features/payments/OfflinePaymentModal'
-import { RotateCcw, Search, CheckCircle2, Plus } from 'lucide-react'
+import {
+  RotateCcw,
+  Search,
+  CheckCircle2,
+  Plus,
+  Loader2
+} from 'lucide-react'
 
-// include 'submitted' so offline flow can be verified
-type PaymentStatus = 'initiated' | 'submitted' | 'captured' | 'refunded' | 'failed' | 'pending' | 'verified'
+import toast from 'react-hot-toast'
+
+type PaymentStatus =
+  | 'pending_verification'
+  | 'captured'
+  | 'failed'
+  | 'refunded'
+  | 'rejected'
+  | 'reconciled'
 type Filters = { q?: string; status: 'all' | PaymentStatus }
 
 export default function ADPayments() {
   const qc = useQueryClient()
-  const { user } = useAuth()
   const [filters, setFilters] = useState<Filters>({ q: '', status: 'all' })
   const [target, setTarget] = useState<any | null>(null)
+  const [teacherModal, setTeacherModal] = useState<any | null>(null)
   const [openOffline, setOpenOffline] = useState(false)
+  const [verifyingId, setVerifyingId] = useState<string | null>(null)
 
   const query = useQuery({
     queryKey: ['admin-payments', filters],
@@ -26,26 +40,142 @@ export default function ADPayments() {
   })
 
   const refundMut = useMutation({
-    mutationFn: (id: string) => refundPayment(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-payments'] })
+    mutationFn: (id: string) =>
+      refundPayment(id),
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['admin-payments'],
+        type: 'active',
+      });
+
+      toast.success(
+        'Payment refunded successfully'
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to refund payment'
+      );
+    },
   })
 
   // create offline payment
   const createOfflineMut = useMutation({
     mutationFn: createOfflinePayment,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin-payments'] })
-      setOpenOffline(false)
-    }
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['admin-payments'],
+        type: 'active',
+      });
+
+      setOpenOffline(false);
+
+      toast.success(
+        'Offline payment recorded successfully'
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to record offline payment'
+      );
+    },
   })
 
   // verify submitted offline payment
   const verifyMut = useMutation({
-    mutationFn: (id: string) => verifyPayment(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-payments'] })
+    mutationFn: async (id: string) => {
+      setVerifyingId(id);
+
+      return verifyPayment(id);
+    },
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['admin-payments'],
+        type: 'active',
+      });
+
+      toast.success(
+        'Payment verified successfully'
+      );
+    },
+
+    onError: async (err: any) => {
+
+      console.error(err);
+
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to verify payment';
+
+      if (
+        message.includes('already verified') ||
+        message.includes('already enrolled') ||
+        message.includes('already purchased')
+      ) {
+
+        toast.success(
+          'Payment already verified'
+        );
+
+        await qc.refetchQueries({
+          queryKey: ['admin-payments'],
+          type: 'active',
+        });
+
+        return;
+      }
+
+      toast.error(message);
+    },
+
+    onSettled: () => {
+      setVerifyingId(null);
+    },
   })
 
   const rows = query.data ?? []
+
+  const teacherSummary = (p: any) => {
+    const rows =
+      Array.isArray(p?.courseTeacherAssignments)
+        ? p.courseTeacherAssignments
+        : []
+
+    if (!rows.length) {
+      return '—'
+    }
+
+    const uniqueTeachers =
+      [...new Set(
+        rows
+          .map((x: any) => x?.teacherName)
+          .filter(Boolean)
+      )]
+
+    if (uniqueTeachers.length === 0) {
+      return 'Teacher Assigned'
+    }
+
+    if (uniqueTeachers.length === 1) {
+      return uniqueTeachers[0]
+    }
+
+    return `${uniqueTeachers[0]} +${uniqueTeachers.length - 1}`
+  }
 
   return (
     <div className="space-y-4">
@@ -59,77 +189,335 @@ export default function ADPayments() {
         </div>
         <div className="space-y-2">
           <Label>Status</Label>
-          <Select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value as Filters['status'] }))}>
+          <Select
+            value={filters.status}
+            onChange={e =>
+              setFilters(f => ({
+                ...f,
+                status: e.target.value as Filters['status']
+              }))
+            }
+          >
             <option value="all">All</option>
-            <option value="initiated">Initiated</option>
-            <option value="submitted">Submitted</option>
-            <option value="captured">Captured</option>
-            <option value="refunded">Refunded</option>
-            <option value="failed">Failed</option>
+
+            <option value="pending">
+              Pending
+            </option>
+
+            <option value="pending_verification">
+              Pending Verification
+            </option>
+
+            <option value="captured">
+              Captured
+            </option>
+
+            <option value="refunded">
+              Refunded
+            </option>
+
+            <option value="failed">
+              Failed
+            </option>
+
+            <option value="rejected">
+              Rejected
+            </option>
+
+            <option value="reconciled">
+              Reconciled
+            </option>
           </Select>
         </div>
         <div className="flex items-end justify-end md:col-span-2 gap-2">
           <Button onClick={() => setOpenOffline(true)}><Plus size={16} /> Record Offline</Button>
-          <Button variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ['admin-payments'] })}>Refresh</Button>
+          <Button
+            variant="ghost"
+            disabled={query.isFetching}
+            onClick={async () => {
+              try {
+                await qc.refetchQueries({
+                  queryKey: ['admin-payments'],
+                  type: 'active',
+                });
+
+                toast.success(
+                  'Payments refreshed successfully'
+                );
+              } catch (err: any) {
+                console.error(err);
+
+                toast.error(
+                  'Failed to refresh payments'
+                );
+              }
+            }}
+          >
+            {
+              query.isFetching
+                ? (
+                  <>
+                    <Loader2
+                      className="animate-spin"
+                      size={16}
+                    />
+
+                    Refreshing...
+                  </>
+                )
+                : 'Refresh'
+            }
+          </Button>
         </div>
       </header>
 
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="text-left font-medium p-3">When</th>
-              <th className="text-left font-medium p-3">Order / Sub</th>
-              <th className="text-left font-medium p-3">Student</th>
-              <th className="text-left font-medium p-3">Amount</th>
-              <th className="text-left font-medium p-3">Method</th>
-              <th className="text-left font-medium p-3">Status</th>
-              <th className="text-left font-medium p-3 w-40">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p: any) => (
-              <tr key={p.id} className="border-t">
-                <td className="p-3">{new Date(p.createdAt).toLocaleString()}</td>
-                <td className="p-3">
-                  <div className="font-mono text-xs">{p.orderId || p.subscriptionId || '—'}</div>
-                </td>
-                <td className="p-3">{p.studentEmail || p.student?.email || '—'}</td>
-                <td className="p-3">₹{((p.amount || 0) / 100).toFixed(2)}</td>
-                <td className="p-3">{p.method || '—'}</td>
-                <td className="p-3">
-                  <span className={
-                    p.status === 'captured' ? 'text-green-700 bg-green-50 rounded px-2 py-0.5' :
-                      p.status === 'initiated' ? 'text-amber-700 bg-amber-50 rounded px-2 py-0.5' :
-                        p.status === 'submitted' ? 'text-indigo-700 bg-indigo-50 rounded px-2 py-0.5' :
-                          p.status === 'refunded' ? 'text-slate-700 bg-slate-100 rounded px-2 py-0.5' :
-                            'text-red-700 bg-red-50 rounded px-2 py-0.5'
-                  }>{p.status}</span>
-                </td>
-                <td className="p-3">
-                  <div className="flex items-center gap-2">
-                    {p.status === 'submitted' && (
+      <div className="w-full rounded-xl border bg-white overflow-hidden">
+        <div className="w-full overflow-x-auto">
+          <table className="min-w-[1400px] w-full text-sm">
+            <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
+              <tr>
+                <th className="text-left font-medium p-3">When</th>
+                <th className="text-left font-medium p-3">Order / Sub</th>
+                <th className="text-left font-medium p-3">Student</th>
+
+                {/* NEW */}
+                <th className="text-left font-medium p-3 w-[180px]">
+                  Center
+                </th>
+
+                {/* NEW */}
+                <th className="text-left font-medium p-3 w-[220px]">
+                  Course
+                </th>
+
+                <th className="text-left font-medium p-3 w-[220px]">
+                  Assigned Teachers
+                </th>
+
+                <th className="text-left font-medium p-3">
+                  Amount
+                </th>
+
+                <th className="text-left font-medium p-3">
+                  Method
+                </th>
+
+                <th className="text-left font-medium p-3">
+                  Status
+                </th>
+
+                <th className="text-left font-medium p-3 w-40">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {rows.map((p: any) => (
+                <tr key={p.id} className="border-t align-top">
+                  <td className="p-3 whitespace-nowrap">
+                    {new Date(p.createdAt).toLocaleString()}
+                  </td>
+
+                  <td className="p-3">
+                    <div className="font-mono text-xs break-all leading-relaxed">
+                      {
+                        p.providerOrderId
+                          ? `ONLINE_${p.providerOrderId}`
+
+                          : p.providerPaymentId
+                            ? `PAY_${p.providerPaymentId}`
+
+                            : p.receiptNo
+                              ? `CASH_${p.receiptNo}`
+
+                              : p.referenceId
+                                ? `REF_${p.referenceId}`
+
+                                : p.id
+                                  ? `${(p.method || 'PAY').toUpperCase()}_${String(p.id).slice(-6)}`
+
+                                  : '—'
+                      }
+                    </div>
+                  </td>
+
+                  <td className="p-3 break-words max-w-[220px]">
+                    {p.studentEmail || p.student?.email || '—'}
+                  </td>
+
+                  {/* CENTER */}
+                  <td className="p-3">
+                    <div className="whitespace-normal break-words leading-relaxed max-w-[180px]">
+                      {p.orgName || '—'}
+                    </div>
+                  </td>
+
+                  {/* COURSE */}
+                  <td className="p-3">
+                    <div className="whitespace-normal break-words leading-relaxed max-w-[220px]">
+                      {p.courseTitle || '—'}
+                    </div>
+                  </td>
+
+                  <td className="p-3">
+                    {
+                      Array.isArray(p.courseTeacherAssignments) &&
+                        p.courseTeacherAssignments.length > 0
+                        ? (
+                          <button
+                            type="button"
+                            onClick={() => setTeacherModal(p)}
+                            className="
+            text-left
+            w-full
+            rounded-lg
+            border
+            border-slate-200
+            px-3
+            py-2
+            hover:border-indigo-300
+            hover:bg-indigo-50/40
+            transition
+          "
+                          >
+                            <div className="font-medium text-slate-800">
+                              {teacherSummary(p)}
+                            </div>
+
+                            <div className="text-xs text-slate-500 mt-1">
+                              View center-wise assignments
+                            </div>
+                          </button>
+                        )
+                        : (
+                          <span className="text-slate-400">
+                            —
+                          </span>
+                        )
+                    }
+                  </td>
+
+                  <td className="p-3 whitespace-nowrap">
+                    {
+                      typeof formatINRFromPaise === 'function'
+                        ? formatINRFromPaise(p.amount || 0)
+                        : `₹${((p.amount || 0) / 100).toFixed(2)}`
+                    }
+                  </td>
+
+                  <td className="p-3 whitespace-nowrap">
+                    {p.method || '—'}
+                  </td>
+
+                  <td className="p-3 whitespace-nowrap">
+                    <span
+                      className={
+                        p.status === 'captured'
+                          ? 'text-green-700 bg-green-50 rounded px-2 py-0.5'
+
+                          : p.status === 'pending'
+                            ? 'text-amber-700 bg-amber-50 rounded px-2 py-0.5'
+
+                            : p.status === 'pending_verification'
+                              ? 'text-indigo-700 bg-indigo-50 rounded px-2 py-0.5'
+
+                              : p.status === 'refunded'
+                                ? 'text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+
+                                : p.status === 'rejected'
+                                  ? 'text-rose-700 bg-rose-50 rounded px-2 py-0.5'
+
+                                  : p.status === 'reconciled'
+                                    ? 'text-cyan-700 bg-cyan-50 rounded px-2 py-0.5'
+
+                                    : 'text-red-700 bg-red-50 rounded px-2 py-0.5'
+                      }
+                    >
+                      {p.status.replaceAll('_', ' ')}
+                    </span>
+                  </td>
+
+                  <td className="p-3">
+                    <div className="flex items-center gap-2">
+                      {p.status === 'pending_verification' && (
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-2 text-xs disabled:opacity-60"
+                          onClick={() => {
+
+                            if (
+                              verifyingId === p.id ||
+                              verifyMut.isPending
+                            ) {
+                              return;
+                            }
+                            const ok = window.confirm(
+                              'Verify this offline payment and enroll the student into the course?'
+                            );
+
+                            if (!ok) return;
+
+                            verifyMut.mutate(p.id);
+                          }}
+                          disabled={verifyingId === p.id}
+                          title="Verify offline payment"
+                        >
+                          {
+                            verifyingId === p.id
+                              ? (
+                                <Loader2
+                                  className="animate-spin"
+                                  size={16}
+                                />
+                              )
+                              : (
+                                <CheckCircle2 size={16} />
+                              )
+                          }
+
+                          {
+                            verifyingId === p.id
+                              ? 'Verifying...'
+                              : 'Verify & Enroll'
+                          }
+                        </Button>
+                      )}
+
+                      {p.status === 'captured' && (
+                        <Button
+                          variant="danger"
+                          disabled={refundMut.isPending}
+                          onClick={() => setTarget(p)}
+                        >
+                          <RotateCcw size={16} /> Refund
+                        </Button>
+                      )}
+
                       <Button
                         variant="ghost"
-                        className="h-8 px-2 text-xs"
-                        onClick={() => verifyMut.mutate(p.id)}
-                        disabled={verifyMut.isPending}
-                        title="Verify offline payment"
+                        onClick={() => setTarget(p)}
                       >
-                        <CheckCircle2 size={16} /> Verify
+                        View
                       </Button>
-                    )}
-                    {p.status === 'captured' && (
-                      <Button variant="danger" onClick={() => setTarget(p)}><RotateCcw size={16} /> Refund</Button>
-                    )}
-                    <Button variant="ghost" onClick={() => setTarget(p)}>View</Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && <tr><td className="p-6 text-center text-slate-500" colSpan={7}>No payments</td></tr>}
-          </tbody>
-        </table>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+              {rows.length === 0 && (
+                <tr>
+                  <td
+                    className="p-6 text-center text-slate-500"
+                    colSpan={10}
+                  >
+                    No payments
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Modal open={!!target} onClose={() => setTarget(null)} title="Payment details">
@@ -140,7 +528,18 @@ export default function ADPayments() {
               <div><div className="text-xs text-slate-500">Status</div><div className="text-sm">{target.status}</div></div>
               <div><div className="text-xs text-slate-500">Amount</div><div className="text-sm">₹{((target.amount || 0) / 100).toFixed(2)}</div></div>
               <div><div className="text-xs text-slate-500">Method</div><div className="text-sm">{target.method || '—'}</div></div>
-              <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.orderId || target.subscriptionId || '—'}</div></div>
+              <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.providerOrderId
+                ? `ONLINE_${target.providerOrderId}`
+                : target.providerPaymentId
+                  ? `PAY_${target.providerPaymentId}`
+                  : target.receiptNo
+                    ? `CASH_${target.receiptNo}`
+                    : target.referenceId
+                      ? `REF_${target.referenceId}`
+                      : target.id
+                        ? `${(target.method || 'PAY').toUpperCase()}_${String(target.id).slice(-6)}`
+                        : '—'
+              }</div></div>
               <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
               <div>
                 <div className="text-xs text-slate-500">
@@ -237,16 +636,54 @@ export default function ADPayments() {
               {target.status === 'captured' && (
                 <Button
                   variant="danger"
-                  onClick={() => {
-                    refundMut.mutate(target.id, { onSuccess: () => setTarget((p: any) => ({ ...p, status: 'refunded' })) })
-                  }}
                   disabled={refundMut.isPending}
+                  onClick={() => {
+                    refundMut.mutate(target.id, {
+                      onSuccess: () => {
+                        setTarget((p: any) => ({
+                          ...p,
+                          status: 'refunded'
+                        }));
+                      }
+                    })
+                  }}
                 >
-                  {refundMut.isPending ? 'Refunding…' : 'Refund'}
+                  {
+                    refundMut.isPending
+                      ? (
+                        <>
+                          <Loader2
+                            className="animate-spin"
+                            size={16}
+                          />
+
+                          Refunding...
+                        </>
+                      )
+                      : (
+                        <>
+                          <RotateCcw size={16} />
+
+                          Refund
+                        </>
+                      )
+                  }
                 </Button>
               )}
-              <Button onClick={() => setTarget(null)}>Close</Button>
+              <Button
+                onClick={() => setTarget(null)}
+                disabled={refundMut.isPending}
+              >
+                Close
+              </Button>
             </div>
+            {
+              target.status === 'pending_verification' && (
+                <div className="text-xs text-amber-600 mt-1">
+                  Waiting for admin verification and enrollment.
+                </div>
+              )
+            }
           </div>
         )}
       </Modal>
@@ -255,8 +692,91 @@ export default function ADPayments() {
       <OfflinePaymentModal
         open={openOffline}
         onClose={() => setOpenOffline(false)}
-        onSubmit={(payload) => createOfflineMut.mutateAsync(payload).then(() => { })}
+        onSubmit={async (payload) => {
+          await createOfflineMut.mutateAsync(
+            payload
+          );
+        }}
       />
+
+      <Modal
+        open={!!teacherModal}
+        onClose={() => setTeacherModal(null)}
+        title="Assigned Teachers"
+      >
+        {
+          teacherModal && (
+            <div className="space-y-4">
+              <div className="border rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="text-left p-3 font-medium">
+                        Center
+                      </th>
+
+                      <th className="text-left p-3 font-medium">
+                        Teacher
+                      </th>
+
+                      <th className="text-left p-3 font-medium">
+                        Email
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {
+                      (
+                        Array.isArray(
+                          teacherModal.courseTeacherAssignments
+                        )
+                          ? teacherModal.courseTeacherAssignments
+                          : []
+                      ).map(
+                        (x: any, idx: number) => (
+                          <tr
+                            key={`${x.centerId}-${idx}`}
+                            className="border-t"
+                          >
+                            <td className="p-3">
+                              <div className="space-y-1">
+                                <div>
+                                  {x.centerName || 'Center'}
+                                </div>
+
+                                <div className="text-[11px] text-slate-400 font-mono break-all">
+                                  {x.centerId || '—'}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3 font-medium">
+                              {x.teacherName || '—'}
+                            </td>
+
+                            <td className="p-3 text-slate-600">
+                              {x.teacherEmail || '—'}
+                            </td>
+                          </tr>
+                        )
+                      )
+                    }
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => setTeacherModal(null)}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      </Modal>
     </div>
   )
 }

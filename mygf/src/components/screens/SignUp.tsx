@@ -6,6 +6,8 @@ import NavBar from "../home/NavBar";
 import { useAuth } from '../../auth/store';
 import { api } from '../../api/client';
 import Footer from "../common/Footer";
+import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 const AuthBackdrop: React.FC = () => (
   <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -128,9 +130,12 @@ const SignUp: React.FC = () => {
       return data as PrecheckResp;         // <-- return the value so caller can decide immediately
     } catch (err: any) {
       // If precheck is unavailable, allow signup flow to proceed
-      setFormError(
-        'Unable to verify account availability right now. Please try again shortly.'
-      );
+      const msg =
+        'Unable to verify account availability right now. Please try again shortly.';
+
+      setFormError(msg);
+
+      toast.error(msg);
 
       return null;
     } finally {
@@ -150,9 +155,17 @@ const SignUp: React.FC = () => {
     // Always verify the email status before signup (use the return to avoid state-race)
     const pc = await runPrecheck(email);
     if (!pc) {
+      setSubmitting(false);
       return;
     }
     if (pc?.mode === 'signin') {
+      toast(
+        'Account already exists. Please sign in.',
+        {
+          icon: 'ℹ️',
+        }
+      );
+      setSubmitting(false);
       // Go to Sign In instead of attempting signup
       navigate('/login', { state: { email } });
       return;
@@ -171,29 +184,62 @@ const SignUp: React.FC = () => {
         doLogin({ user: data.user, tokens: data.tokens });
         const base = routeForRole(data.user?.role);
         const from = state?.from && String(state.from).startsWith(base) ? state.from : base;
+        setPrecheck(null);
+        toast.success(
+          'Account created successfully'
+        );
         navigate(from, { replace: true });
         return;
       }
 
       // Fallback: cookie-based session only (no tokens returned)
       const base = routeForRole(data?.user?.role);
+      setPrecheck(null);
+      toast.success(
+        'Account created successfully'
+      );
       navigate(base, { replace: true });
     } catch (error: any) {
-      // If the email was created elsewhere during the attempt, show “Go to Sign In”
+      console.error(error);
+
       if (error?.response?.status === 409) {
-        setPrecheck({ mode: 'signin', reason: 'Account already exists' });
+        setPrecheck({
+          mode: 'signin',
+          reason: 'Account already exists'
+        });
+
+        toast(
+          'Account already exists. Please sign in.',
+          {
+            icon: 'ℹ️',
+          }
+        );
+
         return;
       }
-      const status = error?.response?.status;
-      const message = error?.response?.data?.message;
+
+      const status =
+        error?.response?.status;
+
+      const message =
+        error?.response?.data?.message;
+
+      let finalMessage =
+        'Unable to create account right now.';
 
       if (status === 409) {
-        setFormError('An account with this email already exists.');
+        finalMessage =
+          'An account with this email already exists.';
       } else if (status === 429) {
-        setFormError('Too many attempts. Please wait before trying again.');
-      } else {
-        setFormError(message || 'Unable to create account right now.');
+        finalMessage =
+          'Too many attempts. Please wait before trying again.';
+      } else if (message) {
+        finalMessage = message;
       }
+
+      setFormError(finalMessage);
+
+      toast.error(finalMessage);
     } finally {
       setSubmitting(false);
     }
@@ -278,7 +324,13 @@ const SignUp: React.FC = () => {
                     className="mt-1 w-full px-4 py-2 rounded-xl shadow-sm focus:ring-0 focus:outline-none pl-10 bg-transparent border-none"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+
+                      if (precheck) {
+                        setPrecheck(null);
+                      }
+                    }}
                     onBlur={() => runPrecheck(email)}
                     autoComplete="email"
                     maxLength={254}
@@ -359,11 +411,29 @@ const SignUp: React.FC = () => {
             </div>
 
             <button
+              type="button"
               onClick={handleSubmit}
-              disabled={checking}
-              className="w-full relative font-semibold py-2.5 rounded-xl text-white transition shadow-lg bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 disabled:opacity-60"
+              disabled={checking || submitting}
+              className="w-full relative font-semibold py-2.5 rounded-xl text-white transition shadow-lg bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {checking ? 'Checking…' : 'Sign Up'}
+              {
+                checking || submitting
+                  ? (
+                    <span className="inline-flex items-center gap-2 justify-center">
+                      <Loader2
+                        className="animate-spin"
+                        size={18}
+                      />
+
+                      {
+                        submitting
+                          ? 'Creating Account...'
+                          : 'Checking...'
+                      }
+                    </span>
+                  )
+                  : 'Sign Up'
+              }
             </button>
 
             {/* Divider */}
@@ -389,10 +459,15 @@ const SignUp: React.FC = () => {
                     const base = routeForRole(data?.user?.role);
                     navigate(base, { replace: true });
                   } catch (err: any) {
-                    alert(err?.response?.data?.message || 'Google login failed');
+                    toast.error(
+  err?.response?.data?.message ||
+  'Google login failed'
+);
                   }
                 }}
-                onError={() => { alert('Google Login Failed'); }}
+                onError={() => { toast.error(
+  'Google Login Failed'
+); }}
               />
             </div> */}
 

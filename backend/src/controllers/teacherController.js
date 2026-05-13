@@ -74,8 +74,24 @@ export async function listTeacherStudents(req, res) {
     const limit = Math.min(100, Math.max(1, parseInt(limitRaw) || 20));
     const skip  = (page - 1) * limit;
 
-    // Only courses assigned to this teacher (teacherId = currentUser)
-    const courseFilter = { teacherId: new ObjectId(String(actorId)) };
+    const actorIdStr = String(actorId);
+    const orgIdStr   = String(actor.orgId);
+    const courseFilter = {
+      $or: [
+        { teacherId: actorIdStr },
+        { teacherId: new ObjectId(actorIdStr) },
+        {
+          centerTeacherAssignments: {
+            $elemMatch: {
+              $or: [
+                { centerId: orgIdStr,                teacherId: actorIdStr },
+                { centerId: new ObjectId(orgIdStr),  teacherId: new ObjectId(actorIdStr) },
+              ]
+            }
+          }
+        }
+      ]
+    };
     if (courseId && isOid(courseId)) courseFilter._id = new ObjectId(String(courseId));
 
     const teacherCourses = await Course.find(courseFilter).select("_id title").lean();

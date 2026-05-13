@@ -17,7 +17,7 @@ const ProgressSchema = new mongoose.Schema(
   {
     studentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
-    orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", required: true },
+    orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", required: false, default: null },
     // Array of chapter statuses. For non-bundled courses this may remain empty and overallStatus used instead.
     statuses: { type: [ChapterStatusSchema], default: [] },
     // Overall status for courses without chapters. Values are arbitrary strings but typically follow
@@ -34,6 +34,19 @@ const ProgressSchema = new mongoose.Schema(
 );
 
 // Ensure one progress record per student/course/org combination
-ProgressSchema.index({ studentId: 1, courseId: 1, orgId: 1 }, { unique: true });
+ProgressSchema.index(
+  {
+    studentId: 1,
+    courseId: 1,
+    orgId: 1,
+  },
+  {
+    unique: true,
+    partialFilterExpression: {
+      studentId: { $exists: true },
+      courseId: { $exists: true },
+    },
+  }
+);
 
 export default mongoose.models.Progress || mongoose.model("Progress", ProgressSchema);

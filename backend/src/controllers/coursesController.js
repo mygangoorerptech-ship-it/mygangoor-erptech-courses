@@ -81,6 +81,11 @@ async function syncCenterAssignments(courseId, orgId, centerIds, actorId) {
   }
 }
 
+const idOf = (v) =>
+  (v && typeof v === "object" && v._id)
+    ? v._id
+    : v;
+
 function clampDiscount(n) {
   const x = Number(n);
   if (!Number.isFinite(x)) return 0;
@@ -116,6 +121,22 @@ function sanitize(doc, centerIds = [], centerNames = []) {
     courseType: o.courseType || "paid",
     durationText: o.durationText || "",
     teacherId: o.teacherId ? String(o.teacherId) : null,
+    centerTeacherAssignments: Array.isArray(o.centerTeacherAssignments)
+      ? o.centerTeacherAssignments.map((x) => ({
+        centerId:
+          x?.centerId &&
+            mongoose.Types.ObjectId.isValid(idOf(x.centerId))
+            ? String(idOf(x.centerId))
+            : null,
+        teacherId:
+          x?.teacherId &&
+            mongoose.Types.ObjectId.isValid(idOf(x.teacherId))
+            ? String(idOf(x.teacherId))
+            : null,
+        teacherName: x?.teacherName || null,
+        teacherEmail: x?.teacherEmail || null,
+      }))
+      : [],
 
     isBundled: !!o.isBundled,
     chapters: Array.isArray(o.chapters) ? o.chapters : [],
@@ -143,41 +164,63 @@ function sanitize(doc, centerIds = [], centerNames = []) {
 export async function list(req, res) {
   const actor = req.user;
   if (!actor?.orgId && actor?.role !== "superadmin") {
-  return res.status(403).json({
-    ok: false,
-    message: "No org"
-  });
-}
+    return res.status(403).json({
+      ok: false,
+      message: "No org"
+    });
+  }
 
   const { q, status = "all", page, limit } = req.query || {};
   const CourseAssignment = (await import("../models/CourseAssignment.js")).default;
 
   // 1. find courses assigned to this org (center)
-let and = [];
+  let and = [];
 
-if (actor.role === "superadmin") {
+  if (actor.role === "superadmin") {
 
-  and = [{}];
+    and = [{}];
 
-} else {
+  } else if (actor.role === "teacher") {
 
-  const assigned = await CourseAssignment.find({
-    centerId: actor.orgId
-  }).select("courseId").lean();
+    const actorId    = actor._id || actor.id || actor.sub;
+    const actorIdStr = String(actorId);
+    const orgIdStr   = String(actor.orgId);
+    and = [{
+      $or: [
+        { teacherId: actorIdStr },
+        { teacherId: new mongoose.Types.ObjectId(actorIdStr) },
+        {
+          centerTeacherAssignments: {
+            $elemMatch: {
+              $or: [
+                { centerId: orgIdStr,                                  teacherId: actorIdStr },
+                { centerId: new mongoose.Types.ObjectId(orgIdStr),     teacherId: new mongoose.Types.ObjectId(actorIdStr) },
+              ]
+            }
+          }
+        }
+      ]
+    }];
 
-  const assignedIds = assigned.map(a => a.courseId);
+  } else {
 
-  const allAssignedCourseIds =
-    await CourseAssignment.distinct("courseId");
+    const assigned = await CourseAssignment.find({
+      centerId: actor.orgId
+    }).select("courseId").lean();
 
-  and = [{
-    $or: [
-      { orgId: actor.orgId },
-      { _id: { $in: assignedIds } },
-      { _id: { $nin: allAssignedCourseIds } }
-    ]
-  }];
-}
+    const assignedIds = assigned.map(a => a.courseId);
+
+    const allAssignedCourseIds =
+      await CourseAssignment.distinct("courseId");
+
+    and = [{
+      $or: [
+        { orgId: actor.orgId },
+        { _id: { $in: assignedIds } },
+        { _id: { $nin: allAssignedCourseIds } }
+      ]
+    }];
+  }
 
   if (q) {
     // H-4 fix: escape metacharacters to prevent ReDoS
@@ -225,7 +268,7 @@ export async function create(req, res) {
   const {
     title, slug, description, category, programType, price, visibility, status, tags,
     isBundled, chapters, demoVideoUrl,
-    courseType, durationText, teacherId,
+    courseType, durationText, teacherId, centerTeacherAssignments,
     discountPercent, level, bundleCoverUrl, platformFee,
     centerIds,
   } = req.body || {};
@@ -233,11 +276,36 @@ export async function create(req, res) {
   if (!title) return res.status(400).json({ ok: false, message: "title required" });
   if (!programType) return res.status(400).json({ ok: false, message: "programType required" });
 
-  let teacherObjectId = null;
-  if (teacherId) {
-    // Verify teacher belongs to same org and has teacher role (accepts both during migration)
-    const teacher = await User.findOne({ _id: teacherId, role: "teacher" }).select("_id");
-    teacherObjectId = teacher ? teacher._id : null;
+  let validatedCenterTeacherAssignments = [];
+
+  if (Array.isArray(centerTeacherAssignments)) {
+    for (const item of centerTeacherAssignments) {
+      if (!item?.centerId || !item?.teacherId) continue;
+
+      const teacher = await User.findOne({
+        _id: item.teacherId,
+        role: "teacher",
+        orgId: item.centerId, // double-check teacher belongs to the center they're being assigned to
+      }).select("_id name email");
+
+      if (!teacher) continue;
+
+      const alreadyExists =
+        validatedCenterTeacherAssignments.some(
+          (x) => String(x.centerId) === String(item.centerId)
+        );
+
+      if (alreadyExists) {
+        continue;
+      }
+
+      validatedCenterTeacherAssignments.push({
+        centerId: String(item.centerId),
+        teacherId: teacher._id,
+        teacherName: teacher.name || null,
+        teacherEmail: teacher.email || null,
+      });
+    }
   }
 
   const payload = {
@@ -246,7 +314,9 @@ export async function create(req, res) {
     description,
     category,
     programType,
-    price: Number.isFinite(price) ? price : 0,
+    price: Number.isFinite(Number(price))
+      ? Math.round(Number(price))
+      : 0,
     visibility: visibility || "unlisted",
     status: status || "draft",
     orgId: actor.orgId,
@@ -258,7 +328,11 @@ export async function create(req, res) {
 
     courseType: (courseType === "free" ? "free" : "paid"),
     durationText: typeof durationText === "string" ? durationText : "",
-    teacherId: teacherObjectId,
+    teacherId:
+      validatedCenterTeacherAssignments[0]?.teacherId || null,
+
+    centerTeacherAssignments:
+      validatedCenterTeacherAssignments,
 
     isBundled: !!isBundled,
     chapters: Array.isArray(chapters) ? chapters : [],
@@ -271,10 +345,14 @@ export async function create(req, res) {
         : []),
 
     // NEW bundle-level fields (validated)
-    discountPercent: Number.isFinite(discountPercent) ? clampDiscount(discountPercent) : 0,
+    discountPercent: Number.isFinite(Number(discountPercent))
+      ? clampDiscount(Number(discountPercent))
+      : 0,
     level: (level || "all").toLowerCase(),
     bundleCoverUrl: bundleCoverUrl || null,
-    platformFee: Number.isFinite(platformFee) ? platformFee : getPlatformFeePaise(),
+    platformFee: Number.isFinite(Number(platformFee))
+      ? Number(platformFee)
+      : getPlatformFeePaise()
   };
 
   // Wrap course creation + center assignments in a transaction so partial failures roll back
@@ -355,26 +433,66 @@ export async function patch(req, res) {
   const baseAllow = [
     "title", "slug", "description", "category", "programType", "price",
     "visibility", "status", "tags", "isBundled", "chapters", "demoVideoUrl",
-    "courseType", "durationText", "teacherId",
+    "courseType", "durationText",
   ];
 
   const patch = {};
+
+  if (Array.isArray(req.body?.centerTeacherAssignments)) {
+    const validated = [];
+
+    for (const item of req.body.centerTeacherAssignments) {
+      if (!item?.centerId || !item?.teacherId) continue;
+
+      const teacher = await User.findOne({
+        _id: item.teacherId,
+        orgId: item.centerId, // double-check teacher belongs to the center they're being assigned to
+        role: "teacher",
+      }).select("_id name email");
+
+      if (!teacher) continue;
+
+      const alreadyExists =
+        validated.some(
+          (x) => String(x.centerId) === String(item.centerId)
+        );
+
+      if (alreadyExists) {
+        continue;
+      }
+
+      validated.push({
+        centerId: String(item.centerId),
+        teacherId: teacher._id,
+        teacherName: teacher.name || null,
+        teacherEmail: teacher.email || null,
+      });
+    }
+
+    if (
+      req.body.centerTeacherAssignments.length === 0 ||
+      validated.length > 0
+    ) {
+      patch.centerTeacherAssignments = validated;
+      patch.teacherId = validated[0]?.teacherId || null;
+    }
+  }
   // allow base fields
   for (const k of baseAllow) {
     if (Object.prototype.hasOwnProperty.call(req.body || {}, k)) {
       if (k === "courseType") patch[k] = (req.body[k] === "free" ? "free" : "paid");
-      else patch[k] = req.body[k];
+      else if (k === "price") {
+        const np = Number(req.body[k]);
+        patch[k] = Number.isFinite(np) ? Math.round(np) : 0;
+      }
+      else {
+        patch[k] = req.body[k];
+      }
     }
   }
-
-  // Validate teacherId if provided 
-  if (patch.teacherId) {
-    const v = await User.findOne({ _id: patch.teacherId, orgId: actor.orgId, role: "teacher" }).select("_id");
-    patch.teacherId = v ? v._id : null;
-  }
   // allow NEW bundle-level fields with validation
-  if (Number.isFinite(req.body?.discountPercent)) {
-    patch.discountPercent = clampDiscount(req.body.discountPercent);
+  if (Number.isFinite(Number(req.body?.discountPercent))) {
+    patch.discountPercent = clampDiscount(Number(req.body.discountPercent));
   }
   if (typeof req.body?.level === "string") {
     patch.level = String(req.body.level).toLowerCase();
@@ -382,18 +500,37 @@ export async function patch(req, res) {
   if (typeof req.body?.bundleCoverUrl === "string") {
     patch.bundleCoverUrl = req.body.bundleCoverUrl;
   }
-  if (Number.isFinite(req.body?.platformFee)) {
-    patch.platformFee = req.body.platformFee;
+  if (Number.isFinite(Number(req.body?.platformFee))) {
+    patch.platformFee = Number(req.body.platformFee);
   }
 
-  const doc = await Course.findOne({ _id: id, orgId: actor.orgId });
+  const doc = await Course.findById(id);
   if (!doc) return res.status(404).json({ ok: false });
 
-  const isOwner = String(doc.createdById) === String(actor._id || actor.sub);
-  if (!isOwner && actor.role !== "superadmin") {
-    return res.status(403).json({ ok: false, message: "Not allowed" });
-  }
+const actorId = String(actor._id || actor.sub);
+const actorOrgId = String(actor.orgId);
 
+const isOwner =
+  String(doc.createdById) === actorId;
+
+const isAssignedTeacher =
+  Array.isArray(doc.centerTeacherAssignments) &&
+  doc.centerTeacherAssignments.some(
+    (x) =>
+      String(x.centerId) === actorOrgId &&
+      String(x.teacherId) === actorId
+  );
+
+if (
+  !isOwner &&
+  !isAssignedTeacher &&
+  actor.role !== "superadmin"
+) {
+  return res.status(403).json({
+    ok: false,
+    message: "Not allowed"
+  });
+}
   const updated = await Course.findByIdAndUpdate(id, { $set: patch }, { new: true });
 
   // Diff-based center assignment sync (only runs when centerIds is explicitly provided)
@@ -418,13 +555,33 @@ export async function setStatus(req, res) {
   const actor = req.user;
   const { id } = req.params;
   const { status } = req.body || {};
-  const doc = await Course.findOne({ _id: id, orgId: actor.orgId });
+  const doc = await Course.findById(id);
   if (!doc) return res.status(404).json({ ok: false });
 
-  const isOwner = String(doc.createdById) === String(actor._id || actor.sub);
-  if (!isOwner && actor.role !== "superadmin") {
-    return res.status(403).json({ ok: false, message: "Not allowed" });
-  }
+const actorId = String(actor._id || actor.sub);
+const actorOrgId = String(actor.orgId);
+
+const isOwner =
+  String(doc.createdById) === actorId;
+
+const isAssignedTeacher =
+  Array.isArray(doc.centerTeacherAssignments) &&
+  doc.centerTeacherAssignments.some(
+    (x) =>
+      String(x.centerId) === actorOrgId &&
+      String(x.teacherId) === actorId
+  );
+
+if (
+  !isOwner &&
+  !isAssignedTeacher &&
+  actor.role !== "superadmin"
+) {
+  return res.status(403).json({
+    ok: false,
+    message: "Not allowed"
+  });
+}
 
   const next = await Course.findByIdAndUpdate(id, { $set: { status } }, { new: true });
   const centerMap = await fetchCenterMap([next._id]);
@@ -438,7 +595,7 @@ export async function remove(req, res) {
   const actor = req.user;
   const { id } = req.params;
 
-  const doc = await Course.findOne({ _id: id, orgId: actor.orgId });
+  const doc = await Course.findById(id);
   if (!doc) return res.status(404).json({ ok: false });
 
   // SA/global course cannot be deleted by org admins/teachers
@@ -449,10 +606,30 @@ export async function remove(req, res) {
     return res.status(403).json({ ok: false, message: "Cannot delete global course" });
   }
 
-  const isOwner = String(doc.createdById) === String(actor._id || actor.sub);
-  if (!isOwner && actor.role !== "superadmin") {
-    return res.status(403).json({ ok: false, message: "Not allowed" });
-  }
+const actorId = String(actor._id || actor.sub);
+const actorOrgId = String(actor.orgId);
+
+const isOwner =
+  String(doc.createdById) === actorId;
+
+const isAssignedTeacher =
+  Array.isArray(doc.centerTeacherAssignments) &&
+  doc.centerTeacherAssignments.some(
+    (x) =>
+      String(x.centerId) === actorOrgId &&
+      String(x.teacherId) === actorId
+  );
+
+if (
+  !isOwner &&
+  !isAssignedTeacher &&
+  actor.role !== "superadmin"
+) {
+  return res.status(403).json({
+    ok: false,
+    message: "Not allowed"
+  });
+}
 
   await Course.deleteOne({ _id: id });
   return res.json({ ok: true });
@@ -479,7 +656,9 @@ export async function bulkUpsert(req, res) {
         description: r.description || null,
         category: r.category || null,
         programType: r.programType || null,
-        price: Number.isFinite(r.price) ? r.price : 0,
+        price: Number.isFinite(Number(r.price))
+          ? Math.round(Number(r.price))
+          : 0,
         visibility: ["public", "private", "unlisted"].includes(String(r.visibility || "").toLowerCase())
           ? String(r.visibility).toLowerCase()
           : "unlisted",
@@ -499,10 +678,10 @@ export async function bulkUpsert(req, res) {
         demoVideoUrl: r.demoVideoUrl || null,
 
         // NEW bundle-level fields
-        discountPercent: Number.isFinite(r?.discountPercent) ? clampDiscount(r.discountPercent) : 0,
+        discountPercent: Number.isFinite(Number(r?.discountPercent)) ? clampDiscount(Number(r.discountPercent)) : 0,
         level: r?.level ? String(r.level).toLowerCase() : "all",
         bundleCoverUrl: r?.bundleCoverUrl || null,
-        platformFee: Number.isFinite(r?.platformFee) ? r.platformFee : getPlatformFeePaise(),
+        platformFee: Number.isFinite(Number(r?.platformFee)) ? Number(r.platformFee) : getPlatformFeePaise(),
         courseType: String(r.courseType || r.type || "paid").toLowerCase() === "free" ? "free" : "paid",
         durationText: typeof r.durationText === "string"
           ? r.durationText

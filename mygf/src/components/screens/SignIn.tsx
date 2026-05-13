@@ -7,6 +7,8 @@ import { useAuth } from '../../auth/store';
 import { api } from '../../api/client';
 import { ensureCsrfToken, getCsrfToken } from '../../config/csrf';
 // import { GoogleLogin } from '@react-oauth/google';
+import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 function routeForRole(role?: string) {
   if (role === "superadmin") return "/superadmin";
@@ -69,6 +71,9 @@ const SignIn: React.FC = () => {
     }
 
     setErrors(next);
+    if (formError) {
+      setFormError('');
+    }
     return valid;
   };
 
@@ -99,6 +104,12 @@ const SignIn: React.FC = () => {
       if (res?.mfa?.required && res?.mfaTempToken) {
         const base = routeForRole(res.user?.role);
         const from = state?.from && String(state.from).startsWith(base) ? state.from : base;
+        toast(
+          'Multi-factor authentication required',
+          {
+            icon: '🔐',
+          }
+        );
         navigate('/mfa', { state: { from, mfa: res.mfa, mfaTempToken: res.mfaTempToken } });
         return;
       }
@@ -113,23 +124,42 @@ const SignIn: React.FC = () => {
         }
         const base = routeForRole(res.user?.role);
         const from = state?.from && String(state.from).startsWith(base) ? state.from : base;
+        toast.success(
+          'Signed in successfully'
+        );
         navigate(from, { replace: true });
       } else {
         setFormError(res?.message || 'Unable to sign in. Please try again.');
       }
     } catch (error: any) {
-      const status = error?.response?.status;
-      const message = error?.response?.data?.message;
+      console.error(error);
+
+      const status =
+        error?.response?.status;
+
+      const message =
+        error?.response?.data?.message;
+
+      let finalMessage =
+        'Unable to sign in right now. Please try again later.';
 
       if (status === 401) {
-        setFormError('Incorrect email or password.');
+        finalMessage =
+          'Incorrect email or password.';
       } else if (status === 403) {
-        setFormError(message || 'Your account access is restricted.');
+        finalMessage =
+          message ||
+          'Your account access is restricted.';
       } else if (status === 429) {
-        setFormError('Too many attempts. Please wait and try again.');
-      } else {
-        setFormError(message || 'Unable to sign in right now. Please try again later.');
+        finalMessage =
+          'Too many attempts. Please wait and try again.';
+      } else if (message) {
+        finalMessage = message;
       }
+
+      setFormError(finalMessage);
+
+      toast.error(finalMessage);
     } finally {
       setSubmitting(false);
     }
@@ -176,7 +206,13 @@ const SignIn: React.FC = () => {
                   type="email"
                   className="mt-1 block w-full px-4 py-2 rounded-xl shadow-sm focus:ring-0 focus:outline-none pl-10 bg-transparent border-none"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+
+                    if (formError) {
+                      setFormError('');
+                    }
+                  }}
                   placeholder="you@example.com"
                   autoComplete="email"
                   maxLength={254}
@@ -201,7 +237,13 @@ const SignIn: React.FC = () => {
                   type="password"
                   className="mt-1 block w-full px-4 py-2 rounded-xl shadow-sm focus:ring-0 focus:outline-none pl-10 bg-transparent border-none"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+
+                    if (formError) {
+                      setFormError('');
+                    }
+                  }}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   maxLength={128}
@@ -221,11 +263,25 @@ const SignIn: React.FC = () => {
             </div>
 
             <button
+              type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full relative font-semibold py-2.5 rounded-xl text-white transition shadow-lg bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 disabled:opacity-60"
+              className="w-full relative font-semibold py-2.5 rounded-xl text-white transition shadow-lg bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Signing in…' : 'Sign In'}
+              {
+                submitting
+                  ? (
+                    <span className="inline-flex items-center gap-2 justify-center">
+                      <Loader2
+                        className="animate-spin"
+                        size={18}
+                      />
+
+                      Signing in...
+                    </span>
+                  )
+                  : 'Sign In'
+              }
             </button>
 
             {/* Divider */}
@@ -258,11 +314,16 @@ const SignIn: React.FC = () => {
                     const base = routeForRole(data?.user?.role);
                     navigate(base, { replace: true });
                   } catch (err: any) {
-                    alert(err?.response?.data?.message || 'Google login failed');
+                    toast.error(
+  err?.response?.data?.message ||
+  'Google login failed'
+);
                   }
                 }}
                 onError={() => {
-                  alert('Google Login Failed');
+                  toast.error(
+  'Google Login Failed'
+);
                 }}
               />
             </div> */}

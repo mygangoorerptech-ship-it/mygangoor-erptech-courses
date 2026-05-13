@@ -90,7 +90,7 @@ export const MENUS: RoleMenuMap = {
     {
       heading: "Engagement",
       items: [
-        { label: "Certificates", to: `${AD}/certificates`, icon: FileText },
+        // { label: "Certificates", to: `${AD}/certificates`, icon: FileText },
         { label: "Reviews",      to: `${AD}/reviews`,      icon: FileText },
         // { label: "Media",        to: `${AD}/media`,        icon: FileText },
         // { label: "Marketing",    to: `${AD}/marketing`,    icon: FileText },

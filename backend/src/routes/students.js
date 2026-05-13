@@ -10,4 +10,6 @@ const r = Router();
 r.use(requireAuth, requireRole(["superadmin","admin","teacher"]));
 r.get("/", ctrl.list);
 
+r.get("/:id/details", ctrl.getUserDetails);
+
 export default r;

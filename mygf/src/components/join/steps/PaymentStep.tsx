@@ -220,11 +220,8 @@ export default function PaymentStep(props: {
             )}
             {props.method === "cash" && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg flex items-start gap-2 md:col-span-2">
-                  At least one identifier is required.*
-                </p>
                 <label className="block">
-                  <span className="text-sm font-medium">Receipt No.</span>
+                  <span className="text-sm font-medium">Receipt No (Optional)</span>
                   <input
                     type="text"
                     value={receiptNo}
@@ -237,7 +234,7 @@ export default function PaymentStep(props: {
                 </label>
 
                 <label className="block">
-                  <span className="text-sm font-medium">Reference ID / UTR</span>
+                  <span className="text-sm font-medium">Reference ID / UTR (Optional)</span>
                   <input
                     type="text"
                     value={referenceId}

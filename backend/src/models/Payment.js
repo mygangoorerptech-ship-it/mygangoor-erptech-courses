@@ -75,6 +75,15 @@ const PaymentSchema = new mongoose.Schema({
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   verifiedAt: { type: Date, default: null },
+  verificationMode: {
+    type: String,
+    enum: [
+      "direct_admin_verify",
+      "reconciled_auto",
+      "manual_review",
+    ],
+    default: null,
+  },
   managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   settled: { type: Boolean, default: false },
   // C-2 fix: enrollment recovery flags.
@@ -112,11 +121,44 @@ const PaymentSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 PaymentSchema.index({ orgId: 1, courseId: 1, studentId: 1 });
-PaymentSchema.index({ providerOrderId: 1 }, { unique: false });
-PaymentSchema.index({ providerPaymentId: 1 }, { unique: false });
 PaymentSchema.index(
-  { providerOrderId: 1, status: 1 },
-  { unique: true, partialFilterExpression: { status: "captured" } }
+  {
+    providerPaymentId: 1,
+  },
+  {
+    unique: true,
+
+    partialFilterExpression: {
+      type: "online",
+
+      providerPaymentId: {
+        $type: "string",
+      },
+    },
+
+    name: "uniq_online_provider_payment",
+  }
+);
+PaymentSchema.index(
+  {
+    providerOrderId: 1,
+    status: 1,
+  },
+  {
+    unique: true,
+
+    partialFilterExpression: {
+      type: "online",
+
+      status: "captured",
+
+      providerOrderId: {
+        $type: "string",
+      },
+    },
+
+    name: "uniq_online_captured_provider_order",
+  }
 );
 PaymentSchema.index({ providerOrderId: 1, createdAt: -1 });
 // PERF: standalone studentId — enables Payment.find({studentId}) IXSCAN
@@ -144,15 +186,31 @@ PaymentSchema.index({
   studentId: 1,
 });
 
-PaymentSchema.index({
-  type: 1,
-  status: 1,
-  reconciliationStatus: 1,
-  createdSource: 1,
-  studentId: 1,
-  courseId: 1,
-  orgId: 1,
-  amount: 1,
-});
+PaymentSchema.index(
+  {
+    studentId: 1,
+    courseId: 1,
+    createdSource: 1,
+  },
+  {
+    unique: true,
 
+    partialFilterExpression: {
+      type: "offline",
+
+      status: {
+        $in: [
+          "pending_verification",
+          "captured",
+        ],
+      },
+
+      reconciliationStatus: {
+        $ne: "matched",
+      },
+    },
+
+    name: "uniq_active_offline_payment",
+  }
+);
 export default mongoose.models.Payment ?? mongoose.model("Payment", PaymentSchema);

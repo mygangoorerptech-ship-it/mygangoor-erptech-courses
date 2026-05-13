@@ -39,6 +39,7 @@ export interface Course {
     courseType?: CourseType   // NEW
   durationText?: string     // NEW e.g., "6hr 30min"
   teacherId?: string | null
+  centerTeacherAssignments?: CenterTeacherAssignment[]
 
   // bundle info
   isBundled?: boolean
@@ -78,3 +79,9 @@ export type CourseFilters = {
   limit?: number
 }
 
+export type CenterTeacherAssignment = {
+  centerId: string
+  teacherId: string
+  teacherName?: string
+  teacherEmail?: string
+}

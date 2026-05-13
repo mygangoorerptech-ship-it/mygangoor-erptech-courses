@@ -113,21 +113,17 @@ export default function OfflinePaymentModal({
           <Input type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} />
         </div>
 
-        <p className="text-xs text-slate-500">
-          At least one identifier is required.
-        </p>
-
         <div>
           <Label>
             <span className="inline-flex items-center gap-2">
-              <FileText size={14} /> Receipt No
+              <FileText size={14} /> Receipt No (Optional)
             </span>
           </Label>
           <Input value={receiptNo} onChange={e => setReceiptNo(e.target.value)} placeholder="UPI receipt #" />
         </div>
 
         <div className="sm:col-span-2">
-          <Label>Reference / UTR</Label>
+          <Label>Reference / UTR (Optional)</Label>
           <Input value={referenceId} onChange={e => setReferenceId(e.target.value)} placeholder="UPI transaction id / UTR" />
         </div>
 

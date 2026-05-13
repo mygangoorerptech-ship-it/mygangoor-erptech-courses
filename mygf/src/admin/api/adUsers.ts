@@ -16,6 +16,7 @@ export type AdminUserFilters = {
   role?: 'all' | AdminUserRole
   status?: 'all' | UserStatus
   showUnverified?: boolean
+  orgId?: string
 }
 
 export type CreateAdminUserPayload = {

@@ -35,6 +35,7 @@ export async function listReports(filters: ReportFilters = {}): Promise<ReportsL
 }
 
 export async function upsertReport(payload: {
+  orgId?: string | null;
   studentId: string;
   courseId: string;
   statuses?: Array<{ chapterIndex: number; status: string }>;

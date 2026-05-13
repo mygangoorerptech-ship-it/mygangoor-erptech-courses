@@ -11,6 +11,7 @@ import type {
   Chapter,
   CourseLevel,
   CourseType,
+  CenterTeacherAssignment,
 } from "../../types/course";
 import { SectionCard, Field } from "./ui";
 import { ensureCsrfToken, getCsrfToken } from "../../../config/csrf";
@@ -72,8 +73,13 @@ export default function CourseFormModal({
 
   const [courseType, setCourseType] = useState<CourseType>((initial?.courseType as CourseType) || "paid");
   const [durationText, setDurationText] = useState<string>(initial?.durationText || "");
-  const [teacherId, setTeacherId] = useState<string>(initial?.teacherId || (isTeacher ? user?.id || "" : ""));
-  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
+
+  const [teachersByCenter, setTeachersByCenter] = useState<
+    Record<string, Array<{ value: string; label: string }>>
+  >({});
+  const [centerTeacherAssignments, setCenterTeacherAssignments] = useState<CenterTeacherAssignment[]>(
+    initial?.centerTeacherAssignments || []
+  );
 
   // NEW: dynamic owners list (for SA) with fallback to provided admins
   const [ownerOptions, setOwnerOptions] = useState<Array<{ value: string; label: string }>>(admins || []);
@@ -134,6 +140,43 @@ export default function CourseFormModal({
     initial?.platformFee ? (initial!.platformFee as number) / 100 : 49
   );
 
+  function updateCenterTeacher(centerId: string, teacherId: string) {
+    setCenterTeacherAssignments((prev) => {
+      const existing = prev.find((x) => x.centerId === centerId);
+
+      if (existing) {
+        return prev.map((x) =>
+          x.centerId === centerId
+            ? {
+              ...x,
+              teacherId,
+            }
+            : x
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          centerId,
+          teacherId,
+        },
+      ];
+    });
+  }
+
+  function removeCenterTeacher(centerId: string) {
+    setCenterTeacherAssignments((prev) =>
+      prev.filter((x) => x.centerId !== centerId)
+    );
+  }
+
+  function getTeacherForCenter(centerId: string) {
+    return (
+      centerTeacherAssignments.find((x) => x.centerId === centerId)?.teacherId || ""
+    );
+  }
+
   // ── Fetch owners (admins) for SA, filtered by org ─────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -173,65 +216,76 @@ export default function CourseFormModal({
     // ★ keep deps minimal & stable; avoid re-running due to label changes
   }, [isSA, initial?.ownerEmail]); // ★
 
-  // ── Fetch teachers ────────────────────────────────────────────────────────────
+  // ── Fetch teachers per center ────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
+
     async function run() {
       try {
-        if (isSA) {
-          const all = await listSaUsers({
-            role: "teacher",
-            status: "all",
-          } as any);
-          let opts = (all || []).map((u: any) => ({
-            value: u.id,
-            label: `${u.name || u.email} (${u.email})`,
-          }));
-
-          // Seed current teacher if not in list (prevents "cleared" look on open)
-          if (initial?.teacherId && !opts.some((o) => o.value === initial!.teacherId)) {
-            const label =
-              (initial as any)?.teacherName ||
-              (initial as any)?.teacherEmail ||
-              "Current teacher";
-            opts.unshift({ value: initial!.teacherId, label });
+        if (selectedCenterIds.length === 0) {
+          if (!cancelled) {
+            setTeachersByCenter({});
           }
-
-          // ★ de-dupe by value so seeded + fetched don't double up
-          opts = dedupeByValue(opts); // ★
-
-          if (!cancelled) setTeachers(opts);
-        } else {
-          // Admin/Teacher - org scoped already, returns only same-org teachers
-          const all = await listAdUsers({ role: "teacher", status: "all" } as any);
-          let opts = (all || []).map((u: any) => ({
-            value: u.id,
-            label: `${u.name || u.email} (${u.email})`,
-          }));
-
-          if (initial?.teacherId && !opts.some((o) => o.value === initial!.teacherId)) {
-            const label =
-              (initial as any)?.teacherName ||
-              (initial as any)?.teacherEmail ||
-              "Current teacher";
-            opts.unshift({ value: initial!.teacherId, label });
-          }
-
-          // ★ de-dupe here too
-          opts = dedupeByValue(opts); // ★
-
-          if (!cancelled) setTeachers(opts);
+          return;
         }
-      } catch {
-        if (!cancelled) setTeachers([]);
+
+
+
+        const results = await Promise.all(
+          selectedCenterIds.map(async (centerId) => {
+            let users: any[] = [];
+
+            if (isSA) {
+              users = await listSaUsers({
+                role: "teacher",
+                status: "all",
+                orgId: centerId,
+              } as any);
+            } else {
+              users = await listAdUsers({
+                role: "teacher",
+                status: "all",
+                orgId: centerId,
+              } as any);
+            }
+
+            let opts = (users || []).map((u: any) => ({
+              value: String(u.id || u._id),
+              label: `${u.name || u.email} (${u.email})`,
+            }));
+
+            opts = dedupeByValue(opts);
+
+            return [centerId, opts];
+          })
+        );
+
+        const nextMap = Object.fromEntries(results);
+
+        if (!cancelled) {
+          setTeachersByCenter(nextMap);
+        }
+      } catch (err) {
+        console.error("[teachersByCenter fetch error]", err);
+
+        if (!cancelled) {
+          setTeachersByCenter({});
+        }
       }
     }
+
     run();
+
     return () => {
       cancelled = true;
     };
-    // ★ minimal deps; avoid oscillations that recreate duplicates
-  }, [isSA, selectedCenterIds, initial?.teacherId]);// ★
+  }, [isSA, selectedCenterIds]);
+
+  useEffect(() => {
+    setCenterTeacherAssignments((prev) =>
+      prev.filter((x) => selectedCenterIds.includes(x.centerId))
+    );
+  }, [selectedCenterIds]);
 
   // fetch platform default only if not present on the course
   useEffect(() => {
@@ -265,7 +319,11 @@ export default function CourseFormModal({
     setOwnerEmail(initial?.ownerEmail || "");
     setCourseType((initial?.courseType as CourseType) || "paid");
     setDurationText(initial?.durationText || "");
-    setTeacherId(initial?.teacherId || (isTeacher ? user?.id || "" : ""));
+    setCenterTeacherAssignments(
+      Array.isArray(initial?.centerTeacherAssignments)
+        ? initial.centerTeacherAssignments
+        : []
+    );
     setIsBundled(!!initial?.isBundled || (initial?.chapters?.length ?? 0) > 0);
     setChapters(initial?.chapters?.length ? initial.chapters : []);
     setDemoVideoUrl(initial?.demoVideoUrl || "");
@@ -281,24 +339,59 @@ export default function CourseFormModal({
   // Fetch centers for the selected org (admin/teacher always use their own org)
   useEffect(() => {
     let cancelled = false;
+
     async function run() {
       try {
         setCenters([]);
-        const all = await listOrganizations({
-          status: "active",
-        });
-        const opts = all.items.map((o) => ({
-          value: o._id,
-          label: o.name,
-        }));
-        if (!cancelled) setCenters(opts);
+
+        // SUPERADMIN → all centers
+        if (isSA) {
+          const all = await listOrganizations({
+            status: "active",
+          });
+
+          const opts = (all.items || []).map((o) => ({
+            value: String(o._id),
+            label: o.name,
+          }));
+
+          if (!cancelled) {
+            setCenters(opts);
+          }
+
+          return;
+        }
+
+        // ADMIN / TEACHER → only own org
+        if (user?.orgId) {
+          const ownOrg = orgs.find(
+            (o) => String(o.value) === String(user.orgId)
+          );
+
+          if (!cancelled) {
+            setCenters(
+              ownOrg
+                ? [{
+                  value: String(ownOrg.value),
+                  label: ownOrg.label,
+                }]
+                : []
+            );
+          }
+        }
       } catch {
-        if (!cancelled) setCenters([]);
+        if (!cancelled) {
+          setCenters([]);
+        }
       }
     }
+
     run();
-    return () => { cancelled = true; };
-  }, [isSA, orgId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSA, user?.orgId, orgs]);
 
   // derived UI math (₹)
   const priceAfterDiscountRs = Math.max(
@@ -397,9 +490,21 @@ export default function CourseFormModal({
     });
   }
 
+  const hasTeacherAssignments =
+    selectedCenterIds.length === 0
+      ? true
+      : selectedCenterIds.every((centerId) => {
+        const assignment = centerTeacherAssignments.find(
+          (x) => x.centerId === centerId
+        );
+
+        return !!assignment?.teacherId;
+      });
+
   const canSubmit =
     title.trim().length > 0 &&
     programType.trim().length > 0 &&
+    hasTeacherAssignments &&
     (!isBundled || chapters.every((ch) => (ch.title || "").trim().length > 0));
 
   const tagChips = useMemo(() => {
@@ -441,7 +546,10 @@ export default function CourseFormModal({
                 demoVideoUrl,
                 courseType,
                 durationText,
-                teacherId: teacherId || undefined,
+                teacherId:
+                  centerTeacherAssignments[0]?.teacherId || undefined,
+
+                centerTeacherAssignments,
                 tags: tagChips,
                 centerIds: selectedCenterIds,
                 ...(isSA
@@ -639,25 +747,7 @@ export default function CourseFormModal({
                   </div>
                 )}
 
-                {/* NEW: Teacher (required) */}
-                <div className="grid gap-3 md:grid-cols-2 mt-3">
-                  <Field label="teacher must belong to ANY selected center" required>
-                    <Select value={teacherId} onChange={(e) => setTeacherId(e.target.value)}>
-                      <option value="">Select…</option>
-                      {/* seed current teacher if not in list (prevents appearing blank on edit) */}
-                      {!!teacherId && !teachers.some((v) => v.value === teacherId) && (
-                        <option value={teacherId}>
-                          {(initial as any)?.teacherName || (initial as any)?.teacherEmail || "Current teacher"}
-                        </option>
-                      )}
-                      {teachers.map((v) => (
-                        <option key={v.value} value={v.value}>
-                          {v.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-                </div>
+
 
                 {/* NEW: Centers Selection */}
                 {centers.length > 0 && (
@@ -676,11 +766,19 @@ export default function CourseFormModal({
                               type="checkbox"
                               checked={selectedCenterIds.includes(c.value)}
                               onChange={(e) => {
-                                setSelectedCenterIds((prev) =>
-                                  e.target.checked
-                                    ? prev.includes(c.value) ? prev : [...prev, c.value]
-                                    : prev.filter((id) => id !== c.value)
-                                );
+                                const checked = e.target.checked;
+
+                                setSelectedCenterIds((prev) => {
+                                  if (checked) {
+                                    return prev.includes(c.value)
+                                      ? prev
+                                      : [...prev, c.value];
+                                  }
+
+                                  removeCenterTeacher(c.value);
+
+                                  return prev.filter((id) => id !== c.value);
+                                });
                               }}
                             />
                             {c.label}
@@ -692,6 +790,57 @@ export default function CourseFormModal({
                           This course will be GLOBAL (available to all centers)
                         </div>
                       )}
+                    </Field>
+                  </div>
+                )}
+
+                {selectedCenterIds.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    <Field
+                      label="Assign Teacher Per Center"
+                      help="Each selected center must have exactly one teacher"
+                    >
+                      <div className="space-y-3">
+                        {selectedCenterIds.map((centerId) => {
+                          const center = centers.find((c) => c.value === centerId);
+
+                          return (
+                            <div
+                              key={centerId}
+                              className="grid md:grid-cols-2 gap-3 border rounded-lg p-3"
+                            >
+                              <div>
+                                <div className="text-sm font-medium text-slate-700">
+                                  {center?.label || "Center"}
+                                </div>
+                              </div>
+
+                              <div>
+                                <Select
+                                  value={getTeacherForCenter(centerId)}
+                                  onChange={(e) =>
+                                    updateCenterTeacher(centerId, e.target.value)
+                                  }
+                                >
+                                  <option value="">Select Teacher</option>
+
+                                  {(teachersByCenter[centerId] || []).length === 0 && (
+                                    <option value="" disabled>
+                                      No teachers available
+                                    </option>
+                                  )}
+
+                                  {(teachersByCenter[centerId] || []).map((t) => (
+                                    <option key={t.value} value={t.value}>
+                                      {t.label}
+                                    </option>
+                                  ))}
+                                </Select>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </Field>
                   </div>
                 )}

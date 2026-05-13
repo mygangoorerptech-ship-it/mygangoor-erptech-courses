@@ -15,10 +15,20 @@ import { listOrganizations } from '../../api/organizations';
 import Button from '../../components/Button';
 import { Input, Label, Select } from '../../components/Input';
 import Modal from '../../components/Modal';
-import { Pencil, Trash2, FileCheck2, Download, ExternalLink } from 'lucide-react';
+import {
+  Pencil,
+  Trash2,
+  FileCheck2,
+  Download,
+  ExternalLink,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import { FilePlus2 } from 'lucide-react';
 import TemplateModal from './TemplateModal';
 import { fetchCertificateBlobFromUrl } from '../../api/certificates';
+import { Search, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 // Types for local state
 interface ReportItem {
@@ -33,12 +43,32 @@ interface ReportItem {
   updatedAt?: string;
 }
 
+type ReportStatus =
+  | 'not-started'
+  | 'complete'
+  | 'completed';
+
 type Filters = {
-  orgId?: string;
-  studentId?: string;
-  courseId?: string;
-  status?: string;
+  q: string;
+  orgId: string;
+  studentId: string;
+  courseId: string;
+  status: '' | ReportStatus;
 };
+
+type ReportSectionKey =
+  | 'today'
+  | 'yesterday'
+  | 'last7days'
+  | 'older';
+
+type SectionState = Record<
+  ReportSectionKey,
+  {
+    collapsed: boolean;
+    page: number;
+  }
+>;
 
 function CertificatePreviewModal({
   item,
@@ -77,19 +107,19 @@ function CertificatePreviewModal({
           return;
         }
 
-const { blob, filename } = await fetchCertificateBlobFromUrl(url);
+        const { blob, filename } = await fetchCertificateBlobFromUrl(url);
 
-// Ensure correct MIME so PDF viewers paint properly
-let pdfBlob = blob;
-if (blob.type !== 'application/pdf') {
-  const buf = await blob.arrayBuffer();
-  pdfBlob = new Blob([buf], { type: 'application/pdf' });
-}
+        // Ensure correct MIME so PDF viewers paint properly
+        let pdfBlob = blob;
+        if (blob.type !== 'application/pdf') {
+          const buf = await blob.arrayBuffer();
+          pdfBlob = new Blob([buf], { type: 'application/pdf' });
+        }
 
-const objUrl = window.URL.createObjectURL(pdfBlob);
-toRevoke = objUrl;
-setBlobUrl(objUrl);
-setFileName(filename || fallbackFileName);
+        const objUrl = window.URL.createObjectURL(pdfBlob);
+        toRevoke = objUrl;
+        setBlobUrl(objUrl);
+        setFileName(filename || fallbackFileName);
 
       } catch (e: any) {
         console.error('preview fetch failed', e);
@@ -126,14 +156,14 @@ setFileName(filename || fallbackFileName);
               </div>
             </div>
           )}
-{!loading && !error && blobUrl && (
-  <iframe
-    key={blobUrl}               // force repaint if URL changes
-    src={blobUrl}
-    title="Certificate Preview"
-    className="w-full h-[70vh] rounded-md shadow-sm bg-white"
-  />
-)}
+          {!loading && !error && blobUrl && (
+            <iframe
+              key={blobUrl}               // force repaint if URL changes
+              src={blobUrl}
+              title="Certificate Preview"
+              className="w-full h-[70vh] rounded-md shadow-sm bg-white"
+            />
+          )}
 
         </div>
 
@@ -160,9 +190,8 @@ setFileName(filename || fallbackFileName);
             <a
               href={blobUrl || '#'}
               download={fileName}
-              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                blobUrl ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-              }`}
+              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${blobUrl ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                }`}
               onClick={(e) => { if (!blobUrl) e.preventDefault(); }}
             >
               <Download size={16} />
@@ -173,9 +202,8 @@ setFileName(filename || fallbackFileName);
               href={blobUrl || '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                blobUrl ? 'bg-white hover:bg-slate-50 text-slate-700' : 'bg-slate-200 text-slate-500 cursor-not-allowed'
-              }`}
+              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${blobUrl ? 'bg-white hover:bg-slate-50 text-slate-700' : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+                }`}
               onClick={(e) => { if (!blobUrl) e.preventDefault(); }}
             >
               <ExternalLink size={16} />
@@ -209,10 +237,49 @@ export default function Reports() {
   const role: Role = (user?.role || '').toLowerCase() as Role;
   const isSA = role === 'superadmin';
   const isTeacher = role === 'teacher';
+  const [filters, setFilters] = useState<Filters>({
+    q: '',
+    orgId: '',
+    studentId: '',
+    courseId: '',
+    status: '',
+  });
+  const [search, setSearch] = useState('');
 
-  const PAGE_SIZE = 10;
-  const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<Filters>({});
+  const SECTION_PAGE_SIZE = 5;
+
+  const [sections, setSections] = useState<SectionState>({
+    today: {
+      collapsed: false,
+      page: 1,
+    },
+
+    yesterday: {
+      collapsed: false,
+      page: 1,
+    },
+
+    last7days: {
+      collapsed: false,
+      page: 1,
+    },
+
+    older: {
+      collapsed: true,
+      page: 1,
+    },
+  });
+
+  React.useEffect(() => {
+    const t = setTimeout(() => {
+      setFilters(prev => ({
+        ...prev,
+        q: search.trim(),
+      }));
+    }, 400);
+
+    return () => clearTimeout(t);
+  }, [search]);
   // Modal state for editing progress
   const [editItem, setEditItem] = useState<ReportItem | null>(null);
   // Modal state for updating certificate
@@ -230,69 +297,160 @@ export default function Reports() {
     },
   });
 
-  // Facets: derive dropdowns from the reports dataset itself
-  const facetsQ = useQuery<ReportsListResponse>({
-    queryKey: ['reports:facets', { role, orgId: isSA ? (filters.orgId || '') : 'self' }],
-    queryFn: async () => {
-      // Only scope by org for SA; admin/teacher are auto-scoped server-side
-      const base: any = { page: 1, limit: 50 };
-      if (isSA && filters.orgId) base.orgId = filters.orgId;
-      return listReports(base);
-    },
-    placeholderData: keepPreviousData,
-  });
-
   // Data: reports list (table)
   const reportsQ = useQuery<ReportsListResponse>({
-    queryKey: ['reports:list', { ...filters, page, limit: PAGE_SIZE, role }],
-    queryFn: async () => listReports({ ...filters, page, limit: PAGE_SIZE }),
-    placeholderData: keepPreviousData,
+    queryKey: ['reports:list', { ...filters, role }],
+
+    queryFn: async () =>
+      listReports({
+        limit: 5000,
+
+        q: filters.q || undefined,
+        orgId: filters.orgId || undefined,
+        studentId: filters.studentId || undefined,
+        courseId: filters.courseId || undefined,
+        status: filters.status || undefined,
+      }),
+
+    staleTime: 60 * 1000,
   });
 
   const reports = (reportsQ.data?.items || []) as ReportItem[];
-  const total = reportsQ.data?.total || 0;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Mutations
   const upsertMut = useMutation({
-    mutationFn: (payload: any) => upsertReport(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['reports:list'] }),
+    mutationFn: (payload: any) =>
+      upsertReport(payload),
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['reports:list'],
+        type: 'active',
+      });
+
+      toast.success(
+        'Progress updated successfully'
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to update progress'
+      );
+    },
   });
   const deleteMut = useMutation({
-    mutationFn: (id: string) => apiDeleteReport(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['reports:list'] }),
+    mutationFn: (id: string) =>
+      apiDeleteReport(id),
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['reports:list'],
+        type: 'active',
+      });
+
+      toast.success(
+        'Report deleted successfully'
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to delete report'
+      );
+    },
   });
   const publishMut = useMutation({
-    mutationFn: ({ id, url }: { id: string; url: string }) => apiPublishCertificate(id, url),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['reports:list'] }),
+    mutationFn: ({
+      id,
+      url,
+    }: {
+      id: string;
+      url: string;
+    }) =>
+      apiPublishCertificate(id, url),
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['reports:list'],
+        type: 'active',
+      });
+
+      toast.success(
+        'Certificate updated successfully'
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to update certificate'
+      );
+    },
   });
 
-  // Build Student/Course options from the reports dataset (facets)
-  const facetItems = (facetsQ.data?.items || []) as ReportItem[];
+  const studentsQ = useQuery({
+    queryKey: ['reports:students', filters.orgId],
+    queryFn: async () => {
+      const r = await listReports({
+        orgId: filters.orgId || undefined,
+        limit: 1000,
+      });
 
-  const studentOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const opts = facetItems
-      .map((it) => ({
-        value: it.student.id,
-        label: it.student.name || it.student.email,
-      }))
-      .filter((o) => o.value && !seen.has(o.value) && (seen.add(o.value), true))
-      .sort((a, b) => a.label.localeCompare(b.label));
-    return opts;
-  }, [facetItems]);
+      const map = new Map();
 
-  const courseOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const opts = facetItems
-      .map((it) => ({
-        value: it.course.id,
-        label: it.course.title,
-      }))
-      .filter((o) => o.value && !seen.has(o.value) && (seen.add(o.value), true))
-      .sort((a, b) => a.label.localeCompare(b.label));
-    return opts;
-  }, [facetItems]);
+      (r.items || []).forEach((it: any) => {
+        if (!map.has(it.student.id)) {
+          map.set(it.student.id, {
+            value: it.student.id,
+            label: it.student.name || it.student.email,
+          });
+        }
+      });
+
+      return Array.from(map.values()).sort((a: any, b: any) =>
+        a.label.localeCompare(b.label)
+      );
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const coursesQ = useQuery({
+    queryKey: ['reports:courses', filters.orgId],
+    queryFn: async () => {
+      const r = await listReports({
+        orgId: filters.orgId || undefined,
+        limit: 1000,
+      });
+
+      const map = new Map();
+
+      (r.items || []).forEach((it: any) => {
+        if (!map.has(it.course.id)) {
+          map.set(it.course.id, {
+            value: it.course.id,
+            label: it.course.title,
+          });
+        }
+      });
+
+      return Array.from(map.values()).sort((a: any, b: any) =>
+        a.label.localeCompare(b.label)
+      );
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const orgOptions = useMemo(() => {
     if (!isSA) return [];
@@ -337,238 +495,580 @@ export default function Reports() {
     return item.overallStatus || '—';
   }
 
+  function startOfDay(d: Date) {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
+
+  const groupedReports = useMemo(() => {
+    const now = new Date();
+
+    const today = startOfDay(now);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const last7 = new Date(today);
+    last7.setDate(today.getDate() - 7);
+
+    const groups: Record<ReportSectionKey, ReportItem[]> = {
+      today: [],
+      yesterday: [],
+      last7days: [],
+      older: [],
+    };
+
+    [...reports]
+      .sort((a, b) =>
+        new Date(b.updatedAt || b.createdAt || 0).getTime()
+        - new Date(a.updatedAt || a.createdAt || 0).getTime()
+      )
+      .forEach((r) => {
+        const dt = startOfDay(
+          new Date(r.updatedAt || r.createdAt || Date.now())
+        );
+
+        if (dt.getTime() === today.getTime()) {
+          groups.today.push(r);
+        } else if (dt.getTime() === yesterday.getTime()) {
+          groups.yesterday.push(r);
+        } else if (dt >= last7) {
+          groups.last7days.push(r);
+        } else {
+          groups.older.push(r);
+        }
+      });
+
+    return groups;
+  }, [reports]);
+
+  React.useEffect(() => {
+    setSections({
+      today: {
+        collapsed: false,
+        page: 1,
+      },
+
+      yesterday: {
+        collapsed: false,
+        page: 1,
+      },
+
+      last7days: {
+        collapsed: false,
+        page: 1,
+      },
+
+      older: {
+        collapsed: true,
+        page: 1,
+      },
+    });
+  }, [filters, reports.length]);
+
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <header className="grid gap-3 md:grid-cols-6">
-        {isSA && (
-          <div>
-            <Label>Organization</Label>
+      <header className="rounded-2xl border bg-white p-4 shadow-sm">
+        <div className="grid gap-4 lg:grid-cols-12">
+
+          {/* SEARCH */}
+          <div className="lg:col-span-4">
+            <Label>Search</Label>
+
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <Input
+                className="pl-9 pr-9"
+                placeholder="Search student or course..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ORG */}
+          {isSA && (
+            <div className="lg:col-span-2">
+              <Label>Organization</Label>
+
+              <Select
+                value={filters.orgId}
+                onChange={(e) => {
+                  setFilters(prev => ({
+                    ...prev,
+                    orgId: e.target.value,
+                    studentId: '',
+                    courseId: '',
+                  }));
+                }}
+              >
+                {orgOptions.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+
+          {/* STUDENT */}
+          <div className="lg:col-span-2">
+            <Label>Student</Label>
+
             <Select
-              value={filters.orgId || ''}
+              value={filters.studentId}
               onChange={(e) => {
-                const val = e.target.value || '';
-                setFilters((s) => ({ ...s, orgId: val || undefined }));
-                setPage(1);
+                setFilters(prev => ({
+                  ...prev,
+                  studentId: e.target.value,
+                }));
+
               }}
             >
-              {orgOptions.map((o) => (
+              <option value="">All Students</option>
+
+              {(studentsQ.data || []).map((o: any) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
               ))}
             </Select>
           </div>
-        )}
-        <div>
-          <Label>Student</Label>
-          <Select
-            value={filters.studentId || ''}
-            onChange={(e) => {
-              const val = e.target.value || '';
-              setFilters((s) => ({ ...s, studentId: val || undefined }));
-              setPage(1);
-            }}
-          >
-            <option value="">Any</option>
-            {studentOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
+
+          {/* COURSE */}
+          <div className="lg:col-span-2">
+            <Label>Course</Label>
+
+            <Select
+              value={filters.courseId}
+              onChange={(e) => {
+                setFilters(prev => ({
+                  ...prev,
+                  courseId: e.target.value,
+                }));
+
+              }}
+            >
+              <option value="">All Courses</option>
+
+              {(coursesQ.data || []).map((o: any) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* STATUS */}
+          <div className="lg:col-span-2">
+            <Label>Status</Label>
+
+            <Select
+              value={filters.status}
+              onChange={(e) => {
+                setFilters(prev => ({
+                  ...prev,
+                  status: e.target.value as Filters['status'],
+                }));
+
+              }}
+            >
+              <option value="">All Status</option>
+              <option value="not-started">Not Started</option>
+              <option value="complete">Chapter Complete</option>
+              <option value="completed">Fully Completed</option>
+            </Select>
+          </div>
         </div>
-        <div>
-          <Label>Course</Label>
-          <Select
-            value={filters.courseId || ''}
-            onChange={(e) => {
-              const val = e.target.value || '';
-              setFilters((s) => ({ ...s, courseId: val || undefined }));
-              setPage(1);
-            }}
-          >
-            <option value="">Any</option>
-            {courseOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div>
-          <Label>Status</Label>
-          <Select
-            value={filters.status || ''}
-            onChange={(e) => {
-              const val = e.target.value || '';
-              setFilters((s) => ({ ...s, status: val || undefined }));
-              setPage(1);
-            }}
-          >
-            <option value="">Any</option>
-            <option value="not-started">Not started</option>
-            <option value="complete">Complete (any chapter)</option>
-            <option value="completed">Completed (all)</option>
-          </Select>
-        </div>
-        {/* Spacer */}
-        <div className="md:col-span-1" />
-        <div className="md:col-span-1 flex items-end justify-end gap-2">
-          <Button variant="secondary" onClick={handleExport} title="Export CSV">
-            <Download size={16} /> Export
-          </Button>
+
+        {/* ACTIONS */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+
+          {/* ACTIVE FILTERS */}
+          <div className="flex flex-wrap items-center gap-2">
+            {filters.q && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
+                Search: {filters.q}
+              </span>
+            )}
+
+            {filters.status && (
+              <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs text-indigo-700">
+                {filters.status}
+              </span>
+            )}
+
+            {filters.studentId && (
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs text-emerald-700">
+                Student selected
+              </span>
+            )}
+
+            {filters.courseId && (
+              <span className="rounded-full bg-amber-50 px-3 py-1 text-xs text-amber-700">
+                Course selected
+              </span>
+            )}
+          </div>
+
+          {/* ACTIONS */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSearch('');
+
+                setFilters({
+                  q: '',
+                  orgId: '',
+                  studentId: '',
+                  courseId: '',
+                  status: '',
+                });
+              }}
+            >
+              Reset Filters
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={handleExport}
+            >
+              <Download size={16} />
+              Export CSV
+            </Button>
+          </div>
         </div>
       </header>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
-            <tr>
-              <th className="text-left font-medium p-3">Student</th>
-              <th className="text-left font-medium p-3">Course</th>
-              <th className="text-left font-medium p-3">Progress</th>
-              <th className="text-left font-medium p-3">Status</th>
-              <th className="text-left font-medium p-3">Certificate</th>
-              <th className="text-left font-medium p-3 w-48">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reports.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="p-3">
-                  <div className="font-medium">{r.student.name || r.student.email}</div>
-                  <div className="text-xs text-slate-500">{r.student.email}</div>
-                </td>
-                <td className="p-3">
-                  <div className="font-medium">{r.course.title}</div>
-                </td>
-                <td className="p-3">{progressSummary(r)}</td>
-                <td className="p-3">
-                  {r.overallStatus ? (
-                    <span className="rounded px-2 py-0.5 bg-slate-100 text-slate-700">
-                      {r.overallStatus}
-                    </span>
+      <div className="space-y-5">
+
+        {[
+          {
+            key: 'today',
+            label: 'Today',
+          },
+
+          {
+            key: 'yesterday',
+            label: 'Yesterday',
+          },
+
+          {
+            key: 'last7days',
+            label: 'Last 7 Days',
+          },
+
+          {
+            key: 'older',
+            label: 'Older Reports',
+          },
+        ].map((section) => {
+          const key =
+            section.key as ReportSectionKey;
+
+          const rows =
+            groupedReports[key] || [];
+
+          const state =
+            sections[key];
+
+          const totalPages =
+            Math.max(
+              1,
+              Math.ceil(rows.length / SECTION_PAGE_SIZE)
+            );
+
+          const paginatedRows =
+            rows.slice(
+              (state.page - 1) * SECTION_PAGE_SIZE,
+              state.page * SECTION_PAGE_SIZE
+            );
+
+          return (
+            <section
+              key={key}
+              className="rounded-2xl border bg-white shadow-sm overflow-hidden"
+            >
+              {/* HEADER */}
+              <button
+                type="button"
+                onClick={() =>
+                  setSections(prev => ({
+                    ...prev,
+                    [key]: {
+                      ...prev[key],
+                      collapsed: !prev[key].collapsed,
+                    },
+                  }))
+                }
+                className="flex w-full items-center justify-between bg-slate-50 px-5 py-4 text-left hover:bg-slate-100 transition"
+              >
+                <div className="flex items-center gap-3">
+                  {state.collapsed ? (
+                    <ChevronRight size={18} />
                   ) : (
-                    '—'
+                    <ChevronDown size={18} />
                   )}
-                </td>
-<td className="p-3">
-  {r.certificateUrl ? (
-    <button
-      type="button"
-      className="text-indigo-600 hover:underline"
-      onClick={() => setPreviewItem(r)}
-      title="Preview certificate"
-    >
-      View
-    </button>
-  ) : (
-    '—'
-  )}
-</td>
-                <td className="p-3 whitespace-nowrap space-x-2">
-                  <Button
-                    variant="ghost"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => setEditItem(r)}
-                  >
-                    <Pencil size={14} />
-                  </Button>
 
-                  {(() => {
-                    const statuses = (r.statuses ?? []) as ReportItem['statuses'];
-                    const completedCount = statuses.filter((s) => s.status === 'complete').length;
-                    const allComplete = r.course.isBundled
-                      ? r.course.chapterCount > 0 && completedCount >= r.course.chapterCount
-                      : r.overallStatus === 'completed';
-                    return allComplete ? (
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-2 text-xs"
-                        title={r.certificateUrl ? 'Update certificate' : 'Publish certificate'}
-                        onClick={() => setCertItem(r)}
-                      >
-                        <FileCheck2 size={14} />
-                      </Button>
-                    ) : null;
-                  })()}
+                  <div>
+                    <div className="font-semibold text-slate-800">
+                      {section.label}
+                    </div>
 
-                  {/* Issue template certificate button. Visible only when progress is complete. */}
-                  {(() => {
-                    const statuses = (r.statuses ?? []) as ReportItem['statuses'];
-                    const completedCount = statuses.filter((s) => s.status === 'complete').length;
-                    const allComplete = r.course.isBundled
-                      ? r.course.chapterCount > 0 && completedCount >= r.course.chapterCount
-                      : r.overallStatus === 'completed';
-                    return allComplete ? (
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-2 text-xs"
-                        title="Issue template certificate"
-                        onClick={() => setTemplateItem(r)}
-                      >
-                        <FilePlus2 size={14} />
-                      </Button>
-                    ) : null;
-                  })()}
+                    <div className="text-xs text-slate-500">
+                      {rows.length} reports
+                    </div>
+                  </div>
+                </div>
+              </button>
 
-                  {!isTeacher && (
-                    <Button
-                      variant="ghost"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => {
-                        if (confirm('Delete this report?')) deleteMut.mutate(r.id);
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
+              {!state.collapsed && (
+                <>
+                  {/* TABLE */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-slate-50 text-slate-600">
+                        <tr>
+                          <th className="text-left font-medium p-3">
+                            Student
+                          </th>
+
+                          <th className="text-left font-medium p-3">
+                            Course
+                          </th>
+
+                          <th className="text-left font-medium p-3">
+                            Progress
+                          </th>
+
+                          <th className="text-left font-medium p-3">
+                            Status
+                          </th>
+
+                          <th className="text-left font-medium p-3">
+                            Updated
+                          </th>
+
+                          <th className="text-left font-medium p-3">
+                            Certificate
+                          </th>
+
+                          <th className="text-left font-medium p-3 w-48">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {paginatedRows.map((r) => (
+                          <tr
+                            key={r.id}
+                            className="border-t"
+                          >
+                            <td className="p-3">
+                              <div className="font-medium">
+                                {r.student.name || r.student.email}
+                              </div>
+
+                              <div className="text-xs text-slate-500">
+                                {r.student.email}
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              {r.course.title}
+                            </td>
+
+                            <td className="p-3">
+                              {progressSummary(r)}
+                            </td>
+
+                            <td className="p-3">
+                              <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">
+                                {r.overallStatus || '—'}
+                              </span>
+                            </td>
+
+                            <td className="p-3 whitespace-nowrap text-xs text-slate-500">
+                              {new Date(
+                                r.updatedAt || r.createdAt || ''
+                              ).toLocaleString()}
+                            </td>
+
+                            <td className="p-3">
+                              {r.certificateUrl ? (
+                                <button
+                                  type="button"
+                                  className="text-indigo-600 hover:underline"
+                                  onClick={() =>
+                                    setPreviewItem(r)
+                                  }
+                                >
+                                  View
+                                </button>
+                              ) : (
+                                '—'
+                              )}
+                            </td>
+
+                            <td className="p-3 whitespace-nowrap space-x-2">
+                              <Button
+                                variant="ghost"
+                                className="h-8 px-2 text-xs"
+                                onClick={() => setEditItem(r)}
+                              >
+                                <Pencil size={14} />
+                              </Button>
+
+                              {(() => {
+                                const statuses = (r.statuses ?? []) as ReportItem['statuses'];
+                                const completedCount = statuses.filter((s) => s.status === 'complete').length;
+                                const allComplete = r.course.isBundled
+                                  ? r.course.chapterCount > 0 && completedCount >= r.course.chapterCount
+                                  : r.overallStatus === 'completed';
+                                return allComplete ? (
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 px-2 text-xs"
+                                    title={r.certificateUrl ? 'Update certificate' : 'Publish certificate'}
+                                    onClick={() => setCertItem(r)}
+                                  >
+                                    <FileCheck2 size={14} />
+                                  </Button>
+                                ) : null;
+                              })()}
+
+                              {/* Issue template certificate button. Visible only when progress is complete. */}
+                              {(() => {
+                                const statuses = (r.statuses ?? []) as ReportItem['statuses'];
+                                const completedCount = statuses.filter((s) => s.status === 'complete').length;
+                                const allComplete = r.course.isBundled
+                                  ? r.course.chapterCount > 0 && completedCount >= r.course.chapterCount
+                                  : r.overallStatus === 'completed';
+                                return allComplete ? (
+                                  <Button
+                                    variant="ghost"
+                                    className="h-8 px-2 text-xs"
+                                    title="Issue template certificate"
+                                    onClick={() => setTemplateItem(r)}
+                                  >
+                                    <FilePlus2 size={14} />
+                                  </Button>
+                                ) : null;
+                              })()}
+
+                              {!isTeacher && (
+                                <Button
+                                  variant="ghost"
+                                  className="h-8 px-2 text-xs"
+                                  onClick={() => {
+                                    if (confirm('Delete this report?')) deleteMut.mutate(r.id);
+                                  }}
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+
+                        {paginatedRows.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={7}
+                              className="p-6 text-center text-slate-500"
+                            >
+                              No reports
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* PAGINATION */}
+                  {rows.length > SECTION_PAGE_SIZE && (
+                    <div className="flex items-center justify-between border-t bg-white px-5 py-3">
+                      <div className="text-xs text-slate-500">
+                        Showing {(state.page - 1) * SECTION_PAGE_SIZE + 1}
+                        –
+                        {Math.min(
+                          state.page * SECTION_PAGE_SIZE,
+                          rows.length
+                        )}{' '}
+                        of {rows.length}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="secondary"
+                          disabled={state.page <= 1}
+                          onClick={() =>
+                            setSections(prev => ({
+                              ...prev,
+                              [key]: {
+                                ...prev[key],
+                                page: Math.max(
+                                  1,
+                                  prev[key].page - 1
+                                ),
+                              },
+                            }))
+                          }
+                        >
+                          Prev
+                        </Button>
+
+                        <span className="text-sm text-slate-600">
+                          {state.page} / {totalPages}
+                        </span>
+
+                        <Button
+                          variant="secondary"
+                          disabled={
+                            state.page >= totalPages
+                          }
+                          onClick={() =>
+                            setSections(prev => ({
+                              ...prev,
+                              [key]: {
+                                ...prev[key],
+                                page: Math.min(
+                                  totalPages,
+                                  prev[key].page + 1
+                                ),
+                              },
+                            }))
+                          }
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
                   )}
-                </td>
-              </tr>
-            ))}
-            {reports.length === 0 && (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-500">
-                  No reports
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination controls */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs text-slate-600">
-          Showing{' '}
-          {total === 0
-            ? '0'
-            : `${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)}`}{' '}
-          of {total}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page <= 1 || reportsQ.isFetching}
-            title="Previous page"
-          >
-            Prev
-          </Button>
-          <span className="text-sm text-slate-700">
-            Page {page} / {totalPages}
-          </span>
-          <Button
-            variant="secondary"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page >= totalPages || reportsQ.isFetching}
-            title="Next page"
-          >
-            Next
-          </Button>
-        </div>
+                </>
+              )}
+            </section>
+          );
+        })}
       </div>
 
       {/* Edit progress modal */}
@@ -578,6 +1078,7 @@ export default function Reports() {
           onClose={() => setEditItem(null)}
           onSave={async (payload) => {
             await upsertMut.mutateAsync({
+              orgId: editItem.orgId,
               studentId: editItem.student.id,
               courseId: editItem.course.id,
               ...payload,
@@ -608,11 +1109,11 @@ export default function Reports() {
       )}
 
       {previewItem && (
-  <CertificatePreviewModal
-    item={previewItem}
-    onClose={() => setPreviewItem(null)}
-  />
-)}
+        <CertificatePreviewModal
+          item={previewItem}
+          onClose={() => setPreviewItem(null)}
+        />
+      )}
     </div>
   );
 }
@@ -633,6 +1134,8 @@ function ProgressModal({
   onSave: (payload: { statuses?: Array<{ chapterIndex: number; status: string }>; overallStatus?: string }) => Promise<void>;
 }) {
   const isBundled = item.course.isBundled;
+  const [saving, setSaving] =
+    useState(false);
   const [states, setStates] = useState(() => {
     if (isBundled) {
       // Build array for each chapter index with existing status or default
@@ -660,12 +1163,28 @@ function ProgressModal({
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
-    if (isBundled) {
-      await onSave({ statuses: states as any });
-    } else {
-      await onSave({ overallStatus: (states as any).overallStatus });
+
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      if (isBundled) {
+        await onSave({
+          statuses: states as any,
+        });
+      } else {
+        await onSave({
+          overallStatus:
+            (states as any).overallStatus,
+        });
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -713,7 +1232,14 @@ function ProgressModal({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Save</Button>
+          <Button
+            type="submit"
+            disabled={saving}
+          >
+            {saving
+              ? 'Saving...'
+              : 'Save'}
+          </Button>
         </div>
       </form>
     </Modal>
@@ -733,6 +1259,7 @@ function CertificateModal({
   onClose: () => void;
   onSave: (url: string) => Promise<void>;
 }) {
+  const [saving, setSaving] = useState(false);
   // Certificate modal now supports three modes:
   // 1. URL – paste a link to a hosted PDF certificate
   // 2. Upload – upload a local PDF file; the file will be converted to a Data URL
@@ -781,17 +1308,32 @@ function CertificateModal({
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
     e.preventDefault();
-    let finalUrl = '';
-    if (mode === 'url') {
-      finalUrl = url.trim();
-    } else if (mode === 'upload') {
-      finalUrl = fileDataUrl.trim();
-    } else if (mode === 'template') {
-      finalUrl = `template:${selectedTemplate}`;
+
+    if (saving) return;
+
+    try {
+      setSaving(true);
+
+      let finalUrl = '';
+
+      if (mode === 'url') {
+        finalUrl = url.trim();
+      } else if (mode === 'upload') {
+        finalUrl =
+          fileDataUrl.trim();
+      } else if (mode === 'template') {
+        finalUrl =
+          `template:${selectedTemplate}`;
+      }
+
+      await onSave(finalUrl);
+    } finally {
+      setSaving(false);
     }
-    await onSave(finalUrl);
   };
 
   return (
@@ -860,8 +1402,17 @@ function CertificateModal({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={mode === 'upload' && !fileDataUrl}>
-            Save
+          <Button
+            type="submit"
+            disabled={
+              saving ||
+              (mode === 'upload' &&
+                !fileDataUrl)
+            }
+          >
+            {saving
+              ? 'Saving...'
+              : 'Save'}
           </Button>
         </div>
       </form>

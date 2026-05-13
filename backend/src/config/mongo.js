@@ -23,17 +23,24 @@ export async function connectMongo() {
   mongoose.set("strictQuery", true);
   await mongoose.connect(uri, {
     dbName: env("MONGO_DB") || undefined,
-    // Fail fast (5 s) instead of the 30 s driver default — prevents login hanging
+
+    // Rebuild schema indexes automatically
+    autoIndex: true,
+
+    // Fail fast (5 s) instead of the 30 s driver default
     serverSelectionTimeoutMS: 5_000,
-    // Abort stalled socket operations after 30 s to avoid indefinite hangs
+
+    // Abort stalled socket operations
     socketTimeoutMS: 30_000,
-    // Allow up to 50 concurrent DB operations before queuing (was 10 — too low for prod)
+
+    // Connection pool
     maxPoolSize: 50,
-    // Pre-warm 5 connections on startup to eliminate cold-start latency
     minPoolSize: 5,
-    // Detect primary election / failover within 10 s
+
+    // Detect failover quickly
     heartbeatFrequencyMS: 10_000,
-    // Fail queued connection requests after 5 s instead of hanging indefinitely
+
+    // Prevent indefinite queue hangs
     waitQueueTimeoutMS: 5_000,
   });
 

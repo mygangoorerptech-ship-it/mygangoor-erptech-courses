@@ -49,6 +49,37 @@ const CourseSchema = new mongoose.Schema({
   courseType: { type: String, enum: ["free", "paid"], default: "paid" },
   durationText: { type: String, trim: true, default: "" },
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  centerTeacherAssignments: [
+    {
+      centerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Organization",
+        required: true,
+        index: true,
+      },
+
+      teacherId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+        index: true,
+      },
+
+      teacherName: {
+        type: String,
+        trim: true,
+        default: null,
+      },
+
+      teacherEmail: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: null,
+      },
+      _id: false,
+    },
+  ],
 
   chapters: [ChapterSchema],
   demoVideoUrl: { type: String, trim: true }, // always a 10s clip at delivery
