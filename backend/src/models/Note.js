@@ -2,7 +2,7 @@
 import mongoose from "mongoose";
 
 const NoteSchema = new mongoose.Schema({
-  orgId:       { type: mongoose.Schema.Types.ObjectId, ref: "Organization", index: true, required: true },
+  orgId:       { type: mongoose.Schema.Types.ObjectId, ref: "Organization", index: true, sparse: true, required: false, default: null },
   courseId:    { type: mongoose.Schema.Types.ObjectId, ref: "Course", index: true, required: true },
   ownerId:     { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true, required: true }, // who created
   title:       { type: String, required: true, trim: true, maxlength: 200 },

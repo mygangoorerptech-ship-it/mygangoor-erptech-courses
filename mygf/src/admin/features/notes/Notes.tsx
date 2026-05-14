@@ -28,10 +28,10 @@ import {
   Loader2,
 } from "lucide-react";
 
-// prefer id, else slug, else exact title (backend supports any)
-function courseIdForServer(c?: Course | null) {
+function courseIdForServer(c?: Course | null): string {
   if (!c) return "";
-  return (c as any).id ?? (c as any)._id ?? (c as any).slug ?? c!.title ?? "";
+  const id = c.id || c._id;
+  return typeof id === "string" ? id : "";
 }
 
 type Tab = "rich" | "pdf";
@@ -67,10 +67,10 @@ export default function NotesFeature() {
     queryFn: () => listCourses({ q, status: "published", limit: 200 }),
   });
 
-const courses: Course[] = useMemo(
-  () => coursesResp?.items || [],
-  [coursesResp]
-);
+  const courses: Course[] = useMemo(
+    () => coursesResp?.items || [],
+    [coursesResp]
+  );
 
   const { data: notes = [], isFetching: notesLoading } = useQuery({
     enabled: !!selectedCourseId,
@@ -241,10 +241,10 @@ const courses: Course[] = useMemo(
               {courses.map((c) => {
                 const cid = courseIdForServer(c);
                 return (
-<option key={cid} value={cid}>
-  {c.title}
-  {c.orgName ? ` — ${c.orgName}` : ""}
-</option>
+                  <option key={cid} value={cid}>
+                    {c.title}
+                    {c.orgName ? ` — ${c.orgName}` : ""}
+                  </option>
                 );
               })}
             </Select>
@@ -258,18 +258,16 @@ const courses: Course[] = useMemo(
           <button
             type="button"
             onClick={() => setActiveTab("rich")}
-            className={`px-4 py-2 text-sm ${
-              activeTab === "rich" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-600"
-            }`}
+            className={`px-4 py-2 text-sm ${activeTab === "rich" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-600"
+              }`}
           >
             Rich Text
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("pdf")}
-            className={`px-4 py-2 text-sm ${
-              activeTab === "pdf" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-600"
-            }`}
+            className={`px-4 py-2 text-sm ${activeTab === "pdf" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-600"
+              }`}
           >
             PDF
           </button>
@@ -316,13 +314,13 @@ const courses: Course[] = useMemo(
             </div>
             <div>
               <Label>PDF file</Label>
-<input
-  ref={fileInputRef}
-  type="file"
-  accept="application/pdf"
-  onChange={onPdfFileChange}
-  className="hidden"
-/>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf"
+                onChange={onPdfFileChange}
+                className="hidden"
+              />
               {pdfFile && (
                 <div className="text-xs text-slate-600 mt-1">
                   Selected: <b>{pdfFile.name}</b> {Math.round(pdfFile.size / 1024)} KB
@@ -335,22 +333,22 @@ const courses: Course[] = useMemo(
             </div>
 
             <div className="flex items-center gap-3">
-<Button
-  variant="secondary"
-  onClick={async () => {
-    // If no file selected → open file browser
-    if (!pdfFile) {
-      fileInputRef.current?.click();
-      return;
-    }
-    
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  // If no file selected → open file browser
+                  if (!pdfFile) {
+                    fileInputRef.current?.click();
+                    return;
+                  }
 
-    // If file selected → upload
-    await ensurePdfUploaded();
-    if (pdfMeta?.url) toast.success("PDF uploaded");
-  }}
-  disabled={pdfUploading}
->
+
+                  // If file selected → upload
+                  await ensurePdfUploaded();
+                  if (pdfMeta?.url) toast.success("PDF uploaded");
+                }}
+                disabled={pdfUploading}
+              >
                 {pdfUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <File className="w-4 h-4" />}
                 {pdfUploading ? "Uploading…" : "Upload PDF"}
               </Button>

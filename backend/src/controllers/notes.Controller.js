@@ -105,7 +105,17 @@ async function canManageCourse(actor, course) {
         course.managerId &&
         String(course.managerId) === String(actor.sub);
 
-      return ownerOk || mgrOk;
+      const centerAssigned =
+        Array.isArray(course.centerTeacherAssignments) &&
+        course.centerTeacherAssignments.some(
+          (a) =>
+            a?.centerId &&
+            a?.teacherId &&
+            String(a.centerId) === String(actor.orgId) &&
+            String(a.teacherId) === String(actor.sub)
+        );
+
+      return ownerOk || mgrOk || centerAssigned;
     }
   }
 
@@ -143,7 +153,17 @@ async function canManageCourse(actor, course) {
           course.ownerId &&
           String(course.ownerId) === String(actor.sub);
 
-        return teacherAssigned || teacherOwner;
+        const centerAssigned =
+          Array.isArray(course.centerTeacherAssignments) &&
+          course.centerTeacherAssignments.some(
+            (a) =>
+              a?.centerId &&
+              a?.teacherId &&
+              String(a.centerId) === String(actor.orgId) &&
+              String(a.teacherId) === String(actor.sub)
+          );
+
+        return teacherAssigned || teacherOwner || centerAssigned;
       }
     }
   }
@@ -246,6 +266,7 @@ export async function list(req, res) {
             orgId: 1,
             ownerId: 1,
             managerId: 1,
+            centerTeacherAssignments: 1,
           }
         ).lean();
 
@@ -308,7 +329,7 @@ export async function create(req, res) {
   if (!rawCourseId || !title || !kind) return res.status(400).json({ ok: false, message: "courseId,title,kind required" });
   if (!["rich", "pdf"].includes(kind)) return res.status(400).json({ ok: false, message: "invalid kind" });
 
-  const pick = { _id: 1, orgId: 1, ownerId: 1, managerId: 1 };
+  const pick = { _id: 1, orgId: 1, ownerId: 1, managerId: 1, centerTeacherAssignments: 1 };
 
   let courseDoc = null;
   if (isOid(rawCourseId)) {
@@ -340,7 +361,10 @@ export async function create(req, res) {
     });
   }
 
-  const noteOrgId = actor?.role === "superadmin" ? courseDoc.orgId : actor.orgId;
+  const noteOrgId =
+    actor?.role === "superadmin"
+      ? (courseDoc.orgId ?? null)
+      : actor.orgId;
 
   try {
     const doc = await Note.create({
