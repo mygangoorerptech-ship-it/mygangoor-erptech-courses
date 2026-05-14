@@ -31,6 +31,8 @@ import {
   Activity,
   Wallet,
   IndianRupee,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 type CountCardProps = {
@@ -62,6 +64,7 @@ export default function OverviewUnified() {
   const isTeacher = role === "teacher";
 
   const enabled = status === "ready" && !!user;
+  const [activityExpanded, setActivityExpanded] = React.useState(false);
 
   // ----------------- PAYMENTS / REVENUE (real backend) -----------------
   const saPaymentsQ = useQuery({
@@ -424,40 +427,78 @@ export default function OverviewUnified() {
 
       {/* Recent activity (audit) */}
       <div className="rounded-xl border bg-white">
-        <div className="border-b p-3 font-medium">
-          Recent activity (admins & teachers)
-        </div>
-        <div className="divide-y">
-          {(auditQ.data ?? []).map((log: any) => (
-            <div
-              key={log.id || log._id}
-              className="p-3 flex items-center justify-between"
-            >
-              <div className="space-y-0.5">
-                <div className="text-sm font-medium">
-                  {log.message || log.action || "—"}
+        <button
+          type="button"
+          onClick={() => setActivityExpanded((v) => !v)}
+          className="
+    w-full
+    border-b
+    p-3
+    flex
+    items-center
+    justify-between
+    gap-3
+    text-left
+    hover:bg-slate-50
+    transition-colors
+  "
+        >
+          <div className="font-medium">
+            Recent activity (admins & teachers)
+          </div>
+
+          <div className="shrink-0 text-slate-500">
+            {activityExpanded ? (
+              <ChevronUp size={18} />
+            ) : (
+              <ChevronDown size={18} />
+            )}
+          </div>
+        </button>
+        <div
+          className={`
+    overflow-hidden
+    transition-all
+    duration-300
+    ease-in-out
+    ${activityExpanded
+              ? "max-h-[1200px] opacity-100"
+              : "max-h-0 opacity-0"
+            }
+  `}
+        >
+          <div className="divide-y">
+            {(auditQ.data ?? []).map((log: any) => (
+              <div
+                key={log.id || log._id}
+                className="p-3 flex items-center justify-between"
+              >
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">
+                    {log.message || log.action || "—"}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {log.actorName || log.actorEmail || log.actorRole || "—"}
+                  </div>
                 </div>
                 <div className="text-xs text-slate-500">
-                  {log.actorName || log.actorEmail || log.actorRole || "—"}
+                  {log.createdAt ? new Date(log.createdAt).toLocaleString() : ""}
                 </div>
               </div>
-              <div className="text-xs text-slate-500">
-                {log.createdAt ? new Date(log.createdAt).toLocaleString() : ""}
+            ))}
+            {auditQ.isLoading && (
+              <div className="p-3 text-center text-slate-500 text-sm">
+                Loading…
               </div>
-            </div>
-          ))}
-          {auditQ.isLoading && (
-            <div className="p-3 text-center text-slate-500 text-sm">
-              Loading…
-            </div>
-          )}
-          {!auditQ.isLoading && (auditQ.data ?? []).length === 0 && (
-            <div className="p-6 text-center text-slate-500 text-sm">
-              No recent activity
-            </div>
-          )}
+            )}
+{!auditQ.isLoading && (auditQ.data ?? []).length === 0 && (
+  <div className="p-6 text-center text-slate-500 text-sm">
+    No recent activity
+  </div>
+)}
+          </div>
         </div>
       </div>
-    </div>
-  );
+      </div>
+      );
 }

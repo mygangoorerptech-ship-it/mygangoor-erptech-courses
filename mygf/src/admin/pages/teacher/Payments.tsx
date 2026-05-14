@@ -449,7 +449,7 @@ export default function VEPayments() {
                       </Button>
                     )} */}
 
-                      {p.status === 'captured' && (
+                      {/* {p.status === 'captured' && (
                         <Button
                           variant="danger"
                           disabled={refundMut.isPending}
@@ -457,7 +457,7 @@ export default function VEPayments() {
                         >
                           <RotateCcw size={16} /> Refund
                         </Button>
-                      )}
+                      )} */}
 
                       <Button
                         variant="ghost"
@@ -598,7 +598,7 @@ export default function VEPayments() {
               );
             })()}
             <div className="flex justify-end gap-2 pt-2">
-              {target.status === 'captured' && (
+              {/* {target.status === 'captured' && (
                 <Button
                   variant="danger"
                   disabled={refundMut.isPending}
@@ -634,7 +634,7 @@ export default function VEPayments() {
                       )
                   }
                 </Button>
-              )}
+              )} */}
               <Button
                 onClick={() => setTarget(null)}
                 disabled={refundMut.isPending}
