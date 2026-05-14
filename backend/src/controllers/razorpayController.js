@@ -7,6 +7,7 @@ import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import { ensureEnrollment } from "../services/enrollmentService.js";
 import { upsertFormProfileInternal } from "./studentFormProfileController.js";
+import Enrollment from "../models/Enrollment.js";
 
 const isOid = (v) => mongoose.isValidObjectId(v);
 
