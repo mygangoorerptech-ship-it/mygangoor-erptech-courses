@@ -151,8 +151,8 @@ export default function VEPayments() {
   }
 
   return (
-    <div className="space-y-4">
-      <header className="grid gap-3 md:grid-cols-5">
+    <div className="space-y-4 w-full min-w-0 overflow-x-hidden">
+      <header className="grid gap-3 md:grid-cols-5 w-full min-w-0 overflow-hidden">
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
           <div className="relative">
@@ -244,9 +244,9 @@ export default function VEPayments() {
         </div>
       </header>
 
-      <div className="w-full rounded-xl border bg-white overflow-hidden">
-        <div className="w-full overflow-x-auto">
-          <table className="min-w-[1400px] w-full text-sm">
+<div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
+  <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+          <table className="min-w-[1200px] text-sm">
             <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
               <tr>
                 <th className="text-left font-medium p-3">When</th>

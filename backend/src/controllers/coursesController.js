@@ -521,9 +521,15 @@ const isAssignedTeacher =
       String(x.teacherId) === actorId
   );
 
+const centerIdsForCourse = await fetchCenterIdsForCourse(id);
+const isOwnCenterAdmin =
+  actor.role === "admin" &&
+  centerIdsForCourse.some((cId) => cId === actorOrgId);
+
 if (
   !isOwner &&
   !isAssignedTeacher &&
+  !isOwnCenterAdmin &&
   actor.role !== "superadmin"
 ) {
   return res.status(403).json({
@@ -531,11 +537,32 @@ if (
     message: "Not allowed"
   });
 }
+
+  if (isOwnCenterAdmin && actor.role !== "superadmin") {
+    const existing = Array.isArray(doc.centerTeacherAssignments)
+      ? doc.centerTeacherAssignments
+      : [];
+
+    if (patch.centerTeacherAssignments !== undefined) {
+      const ownEntry = patch.centerTeacherAssignments.find(
+        (x) => String(x.centerId) === actorOrgId
+      );
+      const existingOwnEntry = existing.find(
+        (x) => String(x.centerId) === actorOrgId
+      );
+      patch.centerTeacherAssignments = [
+        ...existing.filter((x) => String(x.centerId) !== actorOrgId),
+        ...(ownEntry ? [ownEntry] : existingOwnEntry ? [existingOwnEntry] : []),
+      ];
+    }
+    delete patch.teacherId;
+  }
+
   const updated = await Course.findByIdAndUpdate(id, { $set: patch }, { new: true });
 
   // Diff-based center assignment sync (only runs when centerIds is explicitly provided)
   const { centerIds } = req.body || {};
-  if (Array.isArray(centerIds)) {
+  if (Array.isArray(centerIds) && !isOwnCenterAdmin) {
     await syncCenterAssignments(
       updated._id,
       updated.orgId,

@@ -28,16 +28,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-// --- helpers ---
-function dedupeByTitle(items: Course[]) {
-  const m = new Map<string, Course>();
-  for (const c of items) {
-    const key = (c.title || "").trim().toLowerCase();
-    if (!m.has(key)) m.set(key, c);
-  }
-  return Array.from(m.values());
-}
-
 // prefer id, else slug, else exact title (backend supports any)
 function courseIdForServer(c?: Course | null) {
   if (!c) return "";
@@ -77,10 +67,10 @@ export default function NotesFeature() {
     queryFn: () => listCourses({ q, status: "published", limit: 200 }),
   });
 
-  const courses: Course[] = useMemo(
-    () => dedupeByTitle(coursesResp?.items || []),
-    [coursesResp]
-  );
+const courses: Course[] = useMemo(
+  () => coursesResp?.items || [],
+  [coursesResp]
+);
 
   const { data: notes = [], isFetching: notesLoading } = useQuery({
     enabled: !!selectedCourseId,
@@ -251,9 +241,10 @@ export default function NotesFeature() {
               {courses.map((c) => {
                 const cid = courseIdForServer(c);
                 return (
-                  <option key={cid} value={cid}>
-                    {c.title}
-                  </option>
+<option key={cid} value={cid}>
+  {c.title}
+  {c.orgName ? ` — ${c.orgName}` : ""}
+</option>
                 );
               })}
             </Select>

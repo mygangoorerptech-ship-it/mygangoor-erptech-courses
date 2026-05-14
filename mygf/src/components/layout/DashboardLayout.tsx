@@ -1,3 +1,4 @@
+// src/components/layout/DashboardLayout.tsx
 import React, { Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";

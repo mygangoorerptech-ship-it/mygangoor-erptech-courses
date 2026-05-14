@@ -121,7 +121,30 @@ async function canManageCourse(actor, course) {
       });
 
     if (assigned) {
-      return actor.role === "admin";
+      /**
+       * Admins can manage any course
+       * assigned to their center.
+       */
+      if (actor.role === "admin") {
+        return true;
+      }
+
+      /**
+       * Teachers can manage notes
+       * ONLY if they are explicitly
+       * assigned to this course.
+       */
+      if (actor.role === "teacher") {
+        const teacherAssigned =
+          course.managerId &&
+          String(course.managerId) === String(actor.sub);
+
+        const teacherOwner =
+          course.ownerId &&
+          String(course.ownerId) === String(actor.sub);
+
+        return teacherAssigned || teacherOwner;
+      }
     }
   }
 
@@ -178,7 +201,7 @@ export async function list(req, res) {
         and.push({ courseId: rawCourseId });
         dlog(req, "list: filtering by OID", { courseId: rawCourseId });
       } else {
-        const courseFilter = actor?.role === "superadmin" ? {} : { orgId: actor.orgId };
+        const courseFilter = {};
 
         const bySlug = await Course.findOne(
           { ...courseFilter, slug: rawCourseId },
@@ -291,7 +314,7 @@ export async function create(req, res) {
   if (isOid(rawCourseId)) {
     courseDoc = await Course.findById(rawCourseId, pick).lean();
   } else {
-    const courseFilter = actor?.role === "superadmin" ? {} : { orgId: actor.orgId };
+    const courseFilter = {};
     const bySlug = await Course.findOne({ ...courseFilter, slug: rawCourseId }, pick).lean();
     courseDoc = bySlug || await Course.findOne({ ...courseFilter, title: new RegExp(`^${esc(rawCourseId)}$`, "i") }, pick).lean();
   }

@@ -1,6 +1,6 @@
 // src/teacher/pages/teacher/Students.tsx
 import React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../../../api/client";
 import { useAuth } from "../../auth/store";
 
@@ -35,20 +35,10 @@ async function fetchStudents(params: {
   return data as StudentsResponse;
 }
 
-async function markComplete(studentId: string, courseId: string) {
-  const res = await api.post(
-    `/teacher/students/${studentId}/courses/${courseId}/complete`,
-    {},
-    { withCredentials: true }
-  );
-  return res.data as { ok: boolean; overallStatus: string; certificateUrl: string | null };
-}
-
 const PAGE_SIZE = 20;
 
 export default function VEStudents() {
   const { user } = useAuth() as any;
-  const queryClient = useQueryClient();
   const [page, setPage] = React.useState(1);
   const [courseFilter, setCourseFilter] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("");
@@ -64,14 +54,6 @@ export default function VEStudents() {
       }),
     enabled: !!user,
     retry: false,
-  });
-
-  const completeMutation = useMutation({
-    mutationFn: ({ studentId, courseId }: { studentId: string; courseId: string }) =>
-      markComplete(studentId, courseId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teacher:students"] });
-    },
   });
 
   const items = query.data?.items ?? [];
@@ -120,12 +102,6 @@ export default function VEStudents() {
         </div>
       )}
 
-      {completeMutation.isError && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-          Failed to mark completion. Please try again.
-        </div>
-      )}
-
       {/* Table */}
       {query.isSuccess && items.length === 0 && (
         <div className="py-16 text-center text-sm text-slate-400">No students found.</div>
@@ -140,7 +116,6 @@ export default function VEStudents() {
                   <th className="px-4 py-3">Student</th>
                   <th className="px-4 py-3">Course</th>
                   <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Progress</th>
                   <th className="px-4 py-3">Completion</th>
                   <th className="px-4 py-3">Enrolled</th>
                   <th className="px-4 py-3">Action</th>
@@ -149,10 +124,6 @@ export default function VEStudents() {
               <tbody className="divide-y divide-slate-100 bg-white">
                 {items.map((s) => {
                   const isCompleted = s.overallStatus === "completed";
-                  const isMarking =
-                    completeMutation.isPending &&
-                    (completeMutation.variables as any)?.studentId === s.studentId &&
-                    (completeMutation.variables as any)?.courseId === s.courseId;
 
                   return (
                     <tr key={s.enrollmentId} className="hover:bg-slate-50">
@@ -162,18 +133,14 @@ export default function VEStudents() {
                       </td>
                       <td className="px-4 py-3 text-slate-700">{s.courseTitle || s.courseId}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          s.enrollmentStatus === "premium"
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${s.enrollmentStatus === "premium"
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : s.enrollmentStatus === "revoked"
-                            ? "bg-red-50 text-red-700 border border-red-200"
-                            : "bg-slate-100 text-slate-600 border border-slate-200"
-                        }`}>
+                              ? "bg-red-50 text-red-700 border border-red-200"
+                              : "bg-slate-100 text-slate-600 border border-slate-200"
+                          }`}>
                           {s.enrollmentStatus}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {s.progressPercent != null ? `${s.progressPercent}%` : "—"}
                       </td>
                       <td className="px-4 py-3">
                         {isCompleted ? (
@@ -199,21 +166,14 @@ export default function VEStudents() {
                               View Certificate
                             </a>
                           ) : (
-                            <span className="text-xs text-slate-400">Certificate pending</span>
+                            <span className="text-xs text-slate-400">
+                              Certificate pending
+                            </span>
                           )
                         ) : (
-                          <button
-                            disabled={isMarking || s.enrollmentStatus === "revoked"}
-                            onClick={() =>
-                              completeMutation.mutate({
-                                studentId: s.studentId,
-                                courseId: s.courseId,
-                              })
-                            }
-                            className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {isMarking ? "Marking…" : "Mark Complete"}
-                          </button>
+                          <span className="text-xs text-slate-400">
+                            Not completed
+                          </span>
                         )}
                       </td>
                     </tr>
