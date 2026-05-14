@@ -11,6 +11,7 @@ import { reconcileOfflinePayment } from "../services/paymentReconciliationServic
 import { upsertFormProfileInternal } from "./studentFormProfileController.js";
 import Organization from "../models/Organization.js";
 import Enrollment from "../models/Enrollment.js";
+import StudentFormProfile from "../models/StudentFormProfile.js";
 
 // ---- monitoring alert (non-blocking, non-throwing) ----
 function sendAlert(label, data) {
@@ -315,10 +316,26 @@ export async function list(req, res) {
       .sort({ createdAt: -1 })
       .lean();
 
+    const sanitized = await Promise.all((docs || []).map(sanitize));
+
+    // Bulk-attach student form profiles so the UI can show join form
+    // details even for offline payments where notes has no joinForm.
+    const studentIds = [...new Set(sanitized.map(p => p.studentId).filter(Boolean))];
+    const profileMap = {};
+    if (studentIds.length > 0) {
+      const profiles = await StudentFormProfile.find({
+        studentId: { $in: studentIds },
+      }).lean();
+      for (const pf of profiles) {
+        profileMap[String(pf.studentId)] = pf;
+      }
+    }
+
     return res.json(
-      await Promise.all(
-        (docs || []).map(sanitize)
-      )
+      sanitized.map(p => ({
+        ...p,
+        formProfile: p.studentId ? (profileMap[p.studentId] || null) : null,
+      }))
     );
   } catch (e) {
     console.error("[payments.list]", e);

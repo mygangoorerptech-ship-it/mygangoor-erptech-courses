@@ -1,8 +1,12 @@
 // src/teacher/pages/teacher/Students.tsx
-import React from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../../api/client";
 import { useAuth } from "../../auth/store";
+import Modal from "../../components/Modal";
+import { getUserDetails } from "../../../api/students";
+import { Eye, Loader2, Mail, Phone, MapPin, Calendar } from "lucide-react";
+import toast from "react-hot-toast";
 
 type TeacherStudent = {
   enrollmentId: string;
@@ -39,9 +43,10 @@ const PAGE_SIZE = 20;
 
 export default function VEStudents() {
   const { user } = useAuth() as any;
-  const [page, setPage] = React.useState(1);
-  const [courseFilter, setCourseFilter] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("");
+  const [page, setPage] = useState(1);
+  const [courseFilter, setCourseFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [viewStudentId, setViewStudentId] = useState<string | null>(null);
 
   const query = useQuery<StudentsResponse>({
     queryKey: ["teacher:students", { courseFilter, statusFilter, page }],
@@ -155,26 +160,35 @@ export default function VEStudents() {
                         {s.enrolledAt ? new Date(s.enrolledAt).toLocaleDateString() : "—"}
                       </td>
                       <td className="px-4 py-3">
-                        {isCompleted ? (
-                          s.certificateUrl ? (
-                            <a
-                              href={s.certificateUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-indigo-600 hover:underline"
-                            >
-                              View Certificate
-                            </a>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setViewStudentId(s.studentId)}
+                            className="rounded p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            title="View student details"
+                          >
+                            <Eye size={14} />
+                          </button>
+                          {isCompleted ? (
+                            s.certificateUrl ? (
+                              <a
+                                href={s.certificateUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-indigo-600 hover:underline"
+                              >
+                                View Certificate
+                              </a>
+                            ) : (
+                              <span className="text-xs text-slate-400">
+                                Certificate pending
+                              </span>
+                            )
                           ) : (
                             <span className="text-xs text-slate-400">
-                              Certificate pending
+                              Not completed
                             </span>
-                          )
-                        ) : (
-                          <span className="text-xs text-slate-400">
-                            Not completed
-                          </span>
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -210,6 +224,166 @@ export default function VEStudents() {
           )}
         </>
       )}
+
+      {viewStudentId && (
+        <StudentDetailsModal
+          userId={viewStudentId}
+          onClose={() => setViewStudentId(null)}
+        />
+      )}
     </div>
+  );
+}
+
+type StudentDetailResponse = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    orgId?: string | null;
+    createdAt?: string | null;
+  } | null;
+  formProfile: {
+    fullName?: string;
+    mobile?: string;
+    gender?: string;
+    age?: number | string;
+    birth?: string;
+    address?: string;
+  } | null;
+} | null;
+
+function StudentDetailsModal({
+  userId,
+  onClose,
+}: {
+  userId: string;
+  onClose: () => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<StudentDetailResponse>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function load() {
+      try {
+        setLoading(true);
+        const res = await getUserDetails(userId);
+        if (mounted) setData(res);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load student details");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
+
+  const user = data?.user;
+  const profile = data?.formProfile;
+
+  return (
+    <Modal open onClose={onClose} title="Student Details">
+      <div className="max-h-[80vh] overflow-y-auto">
+        {loading ? (
+          <div className="py-12 flex justify-center">
+            <Loader2 className="animate-spin" size={28} />
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="rounded-xl border p-4">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    {user?.name || "—"}
+                  </h2>
+                  <div className="mt-2 space-y-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <Mail size={16} />
+                      {user?.email || "—"}
+                    </div>
+                    {profile?.mobile && (
+                      <div className="flex items-center gap-2">
+                        <Phone size={16} />
+                        {profile.mobile}
+                      </div>
+                    )}
+                    {profile?.address && (
+                      <div className="flex items-center gap-2">
+                        <MapPin size={16} />
+                        {profile.address}
+                      </div>
+                    )}
+                    {user?.createdAt && (
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} />
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-2 py-1 rounded bg-slate-100 text-sm">
+                    {user?.role || "—"}
+                  </span>
+                  <span
+                    className={
+                      user?.status === "active"
+                        ? "px-2 py-1 rounded bg-green-100 text-green-700 text-sm"
+                        : "px-2 py-1 rounded bg-red-100 text-red-700 text-sm"
+                    }
+                  >
+                    {user?.status || "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {(user?.role === "student" || user?.role === "orguser") && profile && (
+              <div className="rounded-xl border p-4">
+                <h3 className="font-semibold text-slate-900 mb-4">
+                  Student Form Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-slate-500">Full Name</div>
+                    <div className="font-medium">{profile?.fullName || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Mobile</div>
+                    <div className="font-medium">{profile?.mobile || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Gender</div>
+                    <div className="font-medium">{profile?.gender || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Age</div>
+                    <div className="font-medium">{profile?.age || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-500">Birth</div>
+                    <div className="font-medium">{profile?.birth || "—"}</div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="text-slate-500">Address</div>
+                    <div className="font-medium">{profile?.address || "—"}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }

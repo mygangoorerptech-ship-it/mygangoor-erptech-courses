@@ -244,8 +244,8 @@ export default function VEPayments() {
         </div>
       </header>
 
-<div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
-  <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+      <div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
+        <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
             <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
               <tr>
@@ -533,48 +533,41 @@ export default function VEPayments() {
               </div>
             </div>
             {(() => {
-              let form = null
+              // Step 1: try to extract joinForm from notes
+              let joinFormData: Record<string, unknown> | null = null;
+              let notesHasError = false;
 
               try {
-
-                if (!target.notes) {
-
-                  form = null;
-
-                } else {
-
-                  const parsed =
-                    JSON.parse(target.notes);
-
-                  form =
-                    typeof parsed === "object"
-                      ? parsed
-                      : null;
+                if (target.notes) {
+                  const parsed = JSON.parse(target.notes);
+                  if (typeof parsed === 'object' && parsed !== null) {
+                    if (parsed.error) {
+                      notesHasError = true;
+                    } else if (parsed.joinForm && typeof parsed.joinForm === 'object') {
+                      joinFormData = parsed.joinForm;
+                    }
+                  }
                 }
+              } catch { /* plain-text note — not JSON */ }
 
-              } catch {
-
-                // plain text note
-                form = null;
-              }
-
-              if (!form) return null
-
-              if (form.error) {
+              if (notesHasError) {
                 return (
                   <div className="mt-4 border-t pt-3 text-xs text-red-500">
                     Invalid join form data
                   </div>
-                )
+                );
               }
 
-              const f =
-                form?.joinForm &&
-                  typeof form.joinForm === "object"
-                  ? form.joinForm
-                  : form || {};
+              // Step 2: fallback to formProfile attached by the backend
+              // (present for offline payments where notes has no joinForm)
+              if (!joinFormData && target.formProfile) {
+                joinFormData = target.formProfile;
+              }
 
-              const fields: [string, any][] = [
+              if (!joinFormData) return null;
+
+              const f = joinFormData;
+              const fields: [string, unknown][] = [
                 ['Full Name', f.fullName],
                 ['Age', f.age],
                 ['Gender', f.gender],
@@ -584,6 +577,8 @@ export default function VEPayments() {
                 ['Address', f.address],
               ];
 
+              if (!fields.some(([, val]) => val != null)) return null;
+
               return (
                 <div className="mt-4 border-t pt-3">
                   <div className="text-xs text-slate-500 mb-2 font-medium">
@@ -592,15 +587,15 @@ export default function VEPayments() {
                   <div className="grid grid-cols-2 gap-3">
                     {fields.map(([label, val]) =>
                       val != null ? (
-                        <div key={label}>
-                          <div className="text-xs text-slate-500">{label}</div>
+                        <div key={label as string}>
+                          <div className="text-xs text-slate-500">{label as string}</div>
                           <div className="text-sm">{String(val)}</div>
                         </div>
                       ) : null
                     )}
                   </div>
                 </div>
-              )
+              );
             })()}
             <div className="flex justify-end gap-2 pt-2">
               {target.status === 'captured' && (
