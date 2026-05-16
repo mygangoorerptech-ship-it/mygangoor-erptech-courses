@@ -27,12 +27,12 @@ export default function EnrolledStats({
       subtitle: "Courses",
       icon: BookOpen,
     },
-    {
-      title: "In Progress",
-      value: inProgressCourses,
-      subtitle: "Courses",
-      icon: LoaderCircle,
-    },
+    // {
+    //   title: "In Progress",
+    //   value: inProgressCourses,
+    //   subtitle: "Courses",
+    //   icon: LoaderCircle,
+    // },
     {
       title: "Completed",
       value: completedCourses,
@@ -48,7 +48,7 @@ export default function EnrolledStats({
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {stats.map((item) => {
         const Icon = item.icon;
 

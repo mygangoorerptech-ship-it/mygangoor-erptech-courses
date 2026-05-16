@@ -31,18 +31,18 @@ export default function EnrolledTabs({
       label: `All Courses (${counts.all})`,
       value: "all" as EnrolledTabValue,
     },
-    {
-      label: `In Progress (${counts.inProgress})`,
-      value: "progress" as EnrolledTabValue,
-    },
+    // {
+    //   label: `In Progress (${counts.inProgress})`,
+    //   value: "progress" as EnrolledTabValue,
+    // },
     {
       label: `Completed (${counts.completed})`,
       value: "completed" as EnrolledTabValue,
     },
-    {
-      label: `Pinned (${counts.pinned || 0})`,
-      value: "pinned" as EnrolledTabValue,
-    },
+    // {
+    //   label: `Pinned (${counts.pinned || 0})`,
+    //   value: "pinned" as EnrolledTabValue,
+    // },
   ];
 
   return (

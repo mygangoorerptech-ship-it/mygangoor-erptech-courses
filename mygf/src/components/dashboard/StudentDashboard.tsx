@@ -168,7 +168,7 @@ export default function StudentDashboard() {
   const quickStats: QuickStat[] = [
     { id: "s1", label: "Total Courses", value: "12", iconClass: "fas fa-book", iconBg: "bg-blue-100", iconColor: "text-blue-600", valueColor: "text-blue-600" },
     { id: "s2", label: "Completed", value: "8", iconClass: "fas fa-check-circle", iconBg: "bg-green-100", iconColor: "text-green-600", valueColor: "text-green-600" },
-    { id: "s3", label: "In Progress", value: "4", iconClass: "fas fa-clock", iconBg: "bg-yellow-100", iconColor: "text-yellow-600", valueColor: "text-yellow-600" },
+    // { id: "s3", label: "In Progress", value: "4", iconClass: "fas fa-clock", iconBg: "bg-yellow-100", iconColor: "text-yellow-600", valueColor: "text-yellow-600" },
     { id: "s4", label: "Certificates", value: "8", iconClass: "fas fa-certificate", iconBg: "bg-purple-100", iconColor: "text-purple-600", valueColor: "text-purple-600" },
   ];
 

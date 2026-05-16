@@ -174,6 +174,10 @@ async function sanitize(p) {
                 ? String(toId(x.teacherId))
                 : null,
 
+            teacherIds: Array.isArray(x?.teacherIds)
+              ? x.teacherIds.map((id) => String(id)).filter(Boolean)
+              : (x?.teacherId ? [String(toId(x.teacherId))] : []),
+
             teacherName:
               x?.teacherName || null,
 

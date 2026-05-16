@@ -141,7 +141,7 @@ export default function ProfileInfoCard({
 
       {/* Courses Enrolled */}
       <div className="mt-6 border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
+        {/* <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-gray-900">Courses Enrolled</div>
             <div className="text-xs text-gray-700">{subtitle}</div>
@@ -159,25 +159,25 @@ export default function ProfileInfoCard({
               <i className={`fas ${expanded ? "fa-angles-up" : "fa-angles-down"} transition-transform duration-200`} />
             </button>
           )}
-        </div>
+        </div> */}
 
         {/* Animated list container */}
-        <div
+        {/* <div
           id="enrolled-courses"
           className={`overflow-hidden transition-all duration-300 ease-out ${expanded ? "max-h-[36rem] mt-4 opacity-100" : "max-h-0 opacity-0"
             }`}
         >
-          <div className="grid gap-3">
+          <div className="grid gap-3"> */}
             {/* Skeleton while catalog is loading */}
-            {coursesLoading && (
+            {/* {coursesLoading && (
               <div className="rounded-xl border border-blue-200 bg-white/60 backdrop-blur-sm p-4 animate-pulse">
                 <div className="h-4 w-1/3 bg-blue-200 rounded mb-2" />
                 <div className="h-3 w-1/4 bg-blue-100 rounded" />
               </div>
-            )}
+            )} */}
 
             {/* Step 5: render enrolled courses from catalog */}
-            {!coursesLoading &&
+            {/* {!coursesLoading &&
               enrolledCourses.map((course) => {
                 const href = `/course/${course.id}`;
                 return (
@@ -205,7 +205,7 @@ export default function ProfileInfoCard({
                 );
               })}
           </div>
-        </div>
+        </div> */}
 
         {/* No courses → simple note */}
         {!hasCourses && !coursesLoading && (

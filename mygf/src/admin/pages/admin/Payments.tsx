@@ -1,5 +1,5 @@
 // mygf/src/admin/pages/admin/Payments.tsx
-import { useState } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { formatINRFromPaise } from '../../utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listPayments, refundPayment, createOfflinePayment, verifyPayment } from '../../../api/payments'
@@ -16,6 +16,9 @@ import {
 } from 'lucide-react'
 
 import toast from 'react-hot-toast'
+import { updateCourse } from '../../api/courses'
+import { listAdUsers } from '../../api/adUsers'
+import { useAuth } from '../../auth/store'
 
 type PaymentStatus =
   | 'pending_verification'
@@ -33,6 +36,16 @@ export default function ADPayments() {
   const [teacherModal, setTeacherModal] = useState<any | null>(null)
   const [openOffline, setOpenOffline] = useState(false)
   const [verifyingId, setVerifyingId] = useState<string | null>(null)
+  const [teacherEditMode, setTeacherEditMode] = useState(false)
+  const [editCenterAssignments, setEditCenterAssignments] = useState<
+    Array<{ centerId: string; teacherIds: string[]; teacherId?: string }>
+  >([])
+  const [teachersByCenterEdit, setTeachersByCenterEdit] = useState<
+    Record<string, Array<{ value: string; label: string }>>
+  >({})
+  const [openEditDropdown, setOpenEditDropdown] = useState<string | null>(null)
+  const [savingTeachers, setSavingTeachers] = useState(false)
+  const editDropdownRef = useRef<HTMLDivElement>(null)
 
   const query = useQuery({
     queryKey: ['admin-payments', filters],
@@ -148,6 +161,91 @@ export default function ADPayments() {
   })
 
   const rows = query.data ?? []
+
+  const { user } = useAuth()
+  const actorOrgId = user?.orgId ? String(user.orgId) : ''
+
+  const centerIdsKey = useMemo(
+    () => [...editCenterAssignments.map(a => a.centerId)].sort().join(','),
+    [editCenterAssignments]
+  )
+
+  function enterEditMode() {
+    const assignments = (teacherModal?.courseTeacherAssignments || []).map((a) => ({
+      centerId: a.centerId,
+      teacherIds: a.teacherIds?.length
+        ? a.teacherIds.map(String)
+        : (a.teacherId ? [String(a.teacherId)] : []),
+      teacherId: a.teacherId ? String(a.teacherId) : '',
+    }))
+    setEditCenterAssignments(assignments)
+    setTeacherEditMode(true)
+  }
+
+  useEffect(() => {
+    if (!teacherEditMode) return
+    let cancelled = false
+    const centerIds = centerIdsKey ? centerIdsKey.split(',').filter(Boolean) : []
+    if (centerIds.length === 0) { setTeachersByCenterEdit({}); return }
+
+    async function run() {
+      try {
+        const results = await Promise.all(
+          centerIds.map(async (centerId) => {
+            const users = await listAdUsers({ role: 'teacher', status: 'all', orgId: centerId } as any)
+            const opts = (users || []).map((u: any) => ({
+              value: String(u.id || u._id),
+              label: `${u.name || u.email} (${u.email})`,
+            }))
+            return [centerId, opts] as const
+          })
+        )
+        if (!cancelled) setTeachersByCenterEdit(Object.fromEntries(results))
+      } catch {
+        if (!cancelled) setTeachersByCenterEdit({})
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [teacherEditMode, centerIdsKey])
+
+  useEffect(() => {
+    if (!teacherEditMode) return
+    function handleClick(e: MouseEvent) {
+      if (editDropdownRef.current && !editDropdownRef.current.contains(e.target as Node)) {
+        setOpenEditDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [teacherEditMode])
+
+  async function saveTeacherAssignments() {
+    if (!teacherModal?.courseId) return
+    setSavingTeachers(true)
+    try {
+      await updateCourse(teacherModal.courseId, {
+        centerTeacherAssignments: editCenterAssignments.map(a => ({
+          centerId: a.centerId,
+          teacherIds: a.teacherIds ?? (a.teacherId ? [a.teacherId] : []),
+        })),
+        teacherId: editCenterAssignments[0]?.teacherIds?.[0]
+          ?? editCenterAssignments[0]?.teacherId
+          ?? undefined,
+      })
+      await qc.refetchQueries({ queryKey: ['admin-payments'], type: 'active' })
+      setTeacherEditMode(false)
+      setEditCenterAssignments([])
+      setTeachersByCenterEdit({})
+      setOpenEditDropdown(null)
+      setTeacherModal(null)
+      toast.success('Teacher assignments updated')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update teacher assignments')
+    } finally {
+      setSavingTeachers(false)
+    }
+  }
 
   const teacherSummary = (p: any) => {
     const rows =
@@ -701,81 +799,160 @@ export default function ADPayments() {
 
       <Modal
         open={!!teacherModal}
-        onClose={() => setTeacherModal(null)}
+        onClose={() => {
+          setTeacherModal(null)
+          setTeacherEditMode(false)
+          setEditCenterAssignments([])
+          setTeachersByCenterEdit({})
+          setOpenEditDropdown(null)
+        }}
         title="Assigned Teachers"
       >
-        {
-          teacherModal && (
-            <div className="space-y-4">
-              <div className="border rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="text-left p-3 font-medium">
-                        Center
-                      </th>
-
-                      <th className="text-left p-3 font-medium">
-                        Teacher
-                      </th>
-
-                      <th className="text-left p-3 font-medium">
-                        Email
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {
-                      (
-                        Array.isArray(
-                          teacherModal.courseTeacherAssignments
-                        )
-                          ? teacherModal.courseTeacherAssignments
-                          : []
-                      ).map(
-                        (x: any, idx: number) => (
-                          <tr
-                            key={`${x.centerId}-${idx}`}
-                            className="border-t"
-                          >
-                            <td className="p-3">
-                              <div className="space-y-1">
-                                <div>
-                                  {x.centerName || 'Center'}
-                                </div>
-
-                                <div className="text-[11px] text-slate-400 font-mono break-all">
-                                  {x.centerId || '—'}
-                                </div>
+        {teacherModal && (
+          <div className="space-y-4">
+            {!teacherEditMode ? (
+              <>
+                <div className="border rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="text-left p-3 font-medium">Center</th>
+                        <th className="text-left p-3 font-medium">Teacher</th>
+                        <th className="text-left p-3 font-medium">Email</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(Array.isArray(teacherModal.courseTeacherAssignments)
+                        ? teacherModal.courseTeacherAssignments
+                        : []
+                      ).map((x, idx: number) => (
+                        <tr key={`${x.centerId}-${idx}`} className="border-t">
+                          <td className="p-3">
+                            <div className="space-y-1">
+                              <div>{x.centerName || 'Center'}</div>
+                              <div className="text-[11px] text-slate-400 font-mono break-all">
+                                {x.centerId || '—'}
                               </div>
-                            </td>
-
-                            <td className="p-3 font-medium">
-                              {x.teacherName || '—'}
-                            </td>
-
-                            <td className="p-3 text-slate-600">
-                              {x.teacherEmail || '—'}
-                            </td>
-                          </tr>
-                        )
+                            </div>
+                          </td>
+                          <td className="p-3 font-medium">{x.teacherName || '—'}</td>
+                          <td className="p-3 text-slate-600">{x.teacherEmail || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="flex justify-end gap-2">
+                  {teacherModal.courseId && (
+                    <Button variant="ghost" onClick={enterEditMode}>
+                      Edit Assignments
+                    </Button>
+                  )}
+                  <Button onClick={() => {
+                    setTeacherModal(null)
+                    setTeacherEditMode(false)
+                  }}>
+                    Close
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div ref={editDropdownRef}>
+                <div className="space-y-3">
+                  {editCenterAssignments.length === 0 ? (
+                    <div className="text-sm text-slate-500 p-3">No center assignments to edit.</div>
+                  ) : (
+                    editCenterAssignments.map((assignment) => {
+                      const centerId = assignment.centerId
+                      const isExternal = centerId !== actorOrgId
+                      const centerName = (teacherModal.courseTeacherAssignments || [])
+                        .find((a) => a.centerId === centerId)?.centerName || centerId
+                      const selected = assignment.teacherIds || []
+                      const options = teachersByCenterEdit[centerId] || []
+                      const isOpen = openEditDropdown === centerId
+                      return (
+                        <div
+                          key={centerId}
+                          className={`grid md:grid-cols-2 gap-3 border rounded-lg p-3${isExternal ? ' opacity-60 bg-slate-50' : ''}`}
+                        >
+                          <div className="flex items-center">
+                            <div className="text-sm font-medium text-slate-700">
+                              {centerName}
+                              {isExternal && (
+                                <span className="ml-2 text-xs font-normal text-slate-400">(read-only)</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="relative" data-teacher-dropdown>
+                            <button
+                              type="button"
+                              disabled={isExternal}
+                              onClick={() => setOpenEditDropdown(isOpen ? null : centerId)}
+                              className="w-full text-left border rounded px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                              {selected.length === 0
+                                ? <span className="text-slate-400">Select Teachers…</span>
+                                : <span>{selected.length} teacher{selected.length > 1 ? 's' : ''} selected</span>
+                              }
+                            </button>
+                            {isOpen && !isExternal && (
+                              <div className="absolute z-20 mt-1 w-full border rounded bg-white shadow-lg max-h-48 overflow-y-auto">
+                                {options.length === 0 ? (
+                                  <div className="px-3 py-2 text-sm text-slate-400">No teachers available</div>
+                                ) : (
+                                  options.map((t) => (
+                                    <label key={t.value} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm">
+                                      <input
+                                        type="checkbox"
+                                        className="h-4 w-4"
+                                        checked={selected.includes(t.value)}
+                                        onChange={(e) => {
+                                          const next = e.target.checked
+                                            ? [...selected, t.value]
+                                            : selected.filter((id) => id !== t.value)
+                                          setEditCenterAssignments((prev) =>
+                                            prev.map((a) => a.centerId === centerId
+                                              ? { ...a, teacherIds: next, teacherId: next[0] ?? '' }
+                                              : a
+                                            )
+                                          )
+                                        }}
+                                      />
+                                      {t.label}
+                                    </label>
+                                  ))
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )
+                    })
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setTeacherEditMode(false)
+                      setTeachersByCenterEdit({})
+                      setOpenEditDropdown(null)
+                    }}
+                    disabled={savingTeachers}
+                  >
+                    Cancel
+                  </Button>
+                  <Button onClick={saveTeacherAssignments} disabled={savingTeachers}>
+                    {savingTeachers
+                      ? <><Loader2 className="animate-spin" size={16} /> Saving...</>
+                      : 'Save Changes'
                     }
-                  </tbody>
-                </table>
+                  </Button>
+                </div>
               </div>
-
-              <div className="flex justify-end">
-                <Button
-                  onClick={() => setTeacherModal(null)}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )
-        }
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   )

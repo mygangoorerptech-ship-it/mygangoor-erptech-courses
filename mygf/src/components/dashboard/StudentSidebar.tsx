@@ -103,13 +103,13 @@ export default function StudentSidebar() {
             </nav>
 
             {/* BOTTOM */}
-            <div className="px-3 py-3">
+            {/* <div className="px-3 py-3">
                 {!collapsed && (
                     <div className="text-xs text-gray-400 dark:text-gray-500">
                         Student Panel
                     </div>
                 )}
-            </div>
+            </div> */}
         </aside>
     );
 }

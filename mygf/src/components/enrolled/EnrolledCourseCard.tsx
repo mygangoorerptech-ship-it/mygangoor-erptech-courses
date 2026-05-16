@@ -7,12 +7,14 @@ import {
 } from "lucide-react";
 
 import type { EnrolledCourse } from "./types";
+import { useNavigate } from "react-router-dom";
 
 export default function EnrolledCourseCard({
   course,
 }: {
   course: EnrolledCourse;
 }) {
+  const navigate = useNavigate();
   return (
     <div className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
       {/* Image */}
@@ -98,19 +100,25 @@ export default function EnrolledCourseCard({
         <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* Buttons */}
           <div className="flex flex-wrap items-center gap-3">
-            <button className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-indigo-700 active:scale-[0.98]">
+            <button className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-indigo-700 active:scale-[0.98]"
+                          onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/course/${course.id}`);
+              }}
+            >
               Continue Learning
             </button>
 
-            <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]">
+            {/* <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]">
               View Details
-            </button>
+            </button> */}
           </div>
 
           {/* Duration */}
-          <span className="text-sm font-semibold text-slate-500">
+          {/* <span className="text-sm font-semibold text-slate-500">
             {course.duration}
-          </span>
+          </span> */}
         </div>
       </div>
     </div>
