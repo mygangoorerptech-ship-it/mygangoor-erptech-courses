@@ -76,7 +76,7 @@ export default function DashboardLayout({ role }: { role: Role }) {
           <Sidebar role={role} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
 
           {/* Main content */}
-          <main className="flex-1 pt-4 lg:pt-6 lg:pl-6">
+          <main className="flex-1 min-w-0 pt-4 lg:pt-6 lg:pl-6">
             <div className="rounded-2xl bg-white shadow-sm ring-1 ring-black/5 p-4 sm:p-6">
               <Suspense fallback={<PageLoader />}>
                 <OutletErrorBoundary key={boundaryKey} onReset={resetBoundary}>

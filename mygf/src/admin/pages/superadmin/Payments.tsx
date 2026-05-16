@@ -7,6 +7,7 @@ import { Input, Label, Select } from '../../components/Input'
 import OfflinePaymentModal from '../../features/payments/OfflinePaymentModal'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
+import AssignTeachersModal from '../../features/payments/AssignTeachersModal'
 import {
   RotateCcw,
   Search,
@@ -267,7 +268,7 @@ export default function SAPayments() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       <header className="grid gap-3 md:grid-cols-5">
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
@@ -360,8 +361,9 @@ export default function SAPayments() {
         </div>
       </header>
 
-      <div className="w-full rounded-xl border bg-white overflow-x-auto overscroll-x-contain">
-          <table className="min-w-[1200px] text-sm">
+      <div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
+        <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[1200px] text-sm">
             <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
               <tr>
                 <th className="text-left font-medium p-3">When</th>
@@ -374,18 +376,18 @@ export default function SAPayments() {
                 </th>
 
                 {/* NEW */}
-                <th className="text-left font-medium p-3 w-[220px]">
+                <th className="text-left font-medium p-3 min-w-[180px]">
                   Course
                 </th>
 
-                <th className="text-left font-medium p-3 w-[220px]">
+                <th className="text-left font-medium p-3 min-w-[180px]">
                   Assigned Teachers
                 </th>
 
                 <th className="text-left font-medium p-3">Amount</th>
                 <th className="text-left font-medium p-3">Method</th>
                 <th className="text-left font-medium p-3">Status</th>
-                <th className="text-left font-medium p-3 w-40">
+                <th className="text-left font-medium p-3 min-w-[140px]">
                   Actions
                 </th>
               </tr>
@@ -592,6 +594,7 @@ export default function SAPayments() {
               )}
             </tbody>
           </table>
+        </div>
       </div>
 
       <Modal open={!!target} onClose={() => setTarget(null)} title="Payment details">
@@ -778,7 +781,7 @@ export default function SAPayments() {
         }}
       />
 
-      <Modal
+      <AssignTeachersModal
         open={!!teacherModal}
         onClose={() => {
           setTeacherModal(null)
@@ -928,7 +931,7 @@ export default function SAPayments() {
             )}
           </div>
         )}
-      </Modal>
+      </AssignTeachersModal>
     </div>
   )
 }

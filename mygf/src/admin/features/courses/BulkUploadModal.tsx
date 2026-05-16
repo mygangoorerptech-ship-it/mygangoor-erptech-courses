@@ -1,6 +1,6 @@
 // mygf/src/admin/features/courses/BulkUploadModal.tsx
 import { useMemo, useState } from "react";
-import Modal from "../../components/Modal";
+import BulkModal from "./BulkModal";
 import Button from "../../components/Button";
 import { Label, Select } from "../../components/Input";
 import { Info, Upload, FileDown, FileSpreadsheet } from "lucide-react";
@@ -337,7 +337,7 @@ export default function BulkUploadModal({
   const canImport = rows.length > 0;
 
   return (
-    <Modal open title="Bulk Upload Courses" onClose={onClose}>
+    <BulkModal open title="Bulk Upload Courses" onClose={onClose}>
       <div className="w-[92vw] max-w-4xl space-y-4">
         <div className="rounded-lg border p-3 bg-slate-50 text-slate-700 flex items-start gap-2">
           <Info size={18} className="mt-0.5" />
@@ -441,6 +441,6 @@ export default function BulkUploadModal({
           </Button>
         </div>
       </div>
-    </Modal>
+    </BulkModal>
   );
 }

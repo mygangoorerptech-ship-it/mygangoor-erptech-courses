@@ -276,7 +276,7 @@ export default function ADPayments() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       <header className="grid gap-3 md:grid-cols-5">
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
@@ -369,7 +369,8 @@ export default function ADPayments() {
         </div>
       </header>
 
-      <div className="w-full rounded-xl border bg-white overflow-x-auto overscroll-x-contain">
+      <div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
+        <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
             <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
               <tr>
@@ -614,6 +615,7 @@ export default function ADPayments() {
               )}
             </tbody>
           </table>
+        </div>
       </div>
 
       <Modal open={!!target} onClose={() => setTarget(null)} title="Payment details">
