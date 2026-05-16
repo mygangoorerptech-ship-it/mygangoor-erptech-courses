@@ -182,7 +182,9 @@ function CertificatePreviewModal({
           <div className="mb-6">
             <div className="text-xs uppercase tracking-wide text-slate-500">Status</div>
             <div className="inline-block rounded px-2 py-0.5 bg-slate-100 text-slate-700 text-sm">
-              {item.overallStatus || '—'}
+              {item.overallStatus === 'not-started'
+                ? 'started'
+                : (item.overallStatus || '—')}
             </div>
           </div>
 
@@ -690,7 +692,7 @@ export default function Reports() {
               }}
             >
               <option value="">All Status</option>
-              <option value="not-started">Not Started</option>
+              <option value="not-started">Started</option>
               <option value="complete">Chapter Complete</option>
               <option value="completed">Fully Completed</option>
             </Select>
@@ -710,7 +712,9 @@ export default function Reports() {
 
             {filters.status && (
               <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs text-indigo-700">
-                {filters.status}
+                {filters.status === 'not-started'
+                  ? 'started'
+                  : filters.status}
               </span>
             )}
 
@@ -903,7 +907,9 @@ export default function Reports() {
 
                             <td className="p-3">
                               <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">
-                                {r.overallStatus || '—'}
+                                {r.overallStatus === 'not-started'
+                                  ? 'started'
+                                  : (r.overallStatus || '—')}
                               </span>
                             </td>
 
@@ -1210,7 +1216,7 @@ function ProgressModal({
                   value={(states as any)[idx]?.status || 'not-started'}
                   onChange={(e) => handleChange(idx, e.target.value)}
                 >
-                  <option value="not-started">Not started</option>
+                  <option value="not-started">Started</option>
                   <option value="complete">Complete</option>
                 </Select>
               </div>
@@ -1223,7 +1229,7 @@ function ProgressModal({
               value={(states as any).overallStatus || 'not-started'}
               onChange={(e) => handleChange(0, e.target.value)}
             >
-              <option value="not-started">Not started</option>
+              <option value="not-started">Started</option>
               <option value="completed">Completed</option>
             </Select>
           </div>

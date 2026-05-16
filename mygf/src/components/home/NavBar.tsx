@@ -32,7 +32,7 @@ function BrandLogo() {
 }
 export default function NavBar() {
   const navigate = useNavigate();
-  const user = useAuth(s => s.user);
+  // const user = useAuth(s => s.user);
   const role = useAuth(s => s.user?.role);
   const isAuthenticated = useAuth(s => !!s.user);
   const isAuthed = isAuthenticated;
@@ -126,14 +126,14 @@ export default function NavBar() {
               </button>
             )}
             {/* Centers (only if authenticated) */}
-            {isAuthed && (
+            {/* {isAuthed && (
               <button
                 onClick={() => navigate("/centers")}
                 className="text-gray-700 hover:text-pink-500 transition-colors"
               >
                 Centers
               </button>
-            )}
+            )} */}
 
             {/* Notification bell */}
             {isAuthed && <NotificationBell />}
@@ -238,7 +238,7 @@ export default function NavBar() {
           )}
 
           {/* Centers */}
-          {isAuthed && (
+          {/* {isAuthed && (
             <button
               onClick={() => {
                 setMobileOpen(false);
@@ -249,7 +249,7 @@ export default function NavBar() {
               <i className="fa-solid fa-building-columns text-gray-600" />
               <span>Centers</span>
             </button>
-          )}
+          )} */}
 
           <button
             onClick={goDashOrLogin}

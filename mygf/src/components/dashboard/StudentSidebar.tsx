@@ -5,12 +5,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
     LayoutDashboard,
     BookOpen,
-    Building2,
-    Settings,
+    // Building2,
+    // Settings,
     ChevronLeft,
     ChevronRight,
     GraduationCap,
-    Award,
 } from "lucide-react";
 
 export default function StudentSidebar() {
@@ -37,7 +36,7 @@ export default function StudentSidebar() {
         { label: "Enrolled Courses", icon: GraduationCap, path: "/enrolled" },
         // { label: "My Certificates", icon: Award, path: "#" },
 
-        { label: "Center", icon: Building2, path: "/centers" },
+        // { label: "Center", icon: Building2, path: "/centers" },
         // { label: "Settings", icon: Settings, path: "#" },
     ];
 

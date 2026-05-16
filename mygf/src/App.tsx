@@ -83,7 +83,7 @@ import VESettings from "./admin/pages/teacher/Settings";
 
 // ---------- Centralized guards ----------
 import Shell from "./shell";
-import CentersPage from "./components/centers/CentersPage";
+// import CentersPage from "./components/centers/CentersPage";
 
 // PHASE 2: poll interval in ms — check session every 4 minutes.
 const SESSION_POLL_MS = 4 * 60 * 1000;
@@ -167,7 +167,7 @@ export default function App() {
 
         {/* Public: Tracks catalog is accessible without authentication */}
         <Route path="/tracks" element={<TracksAndCollectionsSection />} />
-        <Route path="/centers" element={<CentersPage />} />
+        {/* <Route path="/centers" element={<CentersPage />} /> */}
 
         <Route
           path="/course/:courseId"
