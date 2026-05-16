@@ -134,6 +134,26 @@ async function sanitize(p) {
     }
   }
 
+  // Request-local teacher name resolution (discarded after response — avoids unbounded cache growth)
+  const allTeacherIds = courseTeacherAssignments
+    .flatMap((x) =>
+      Array.isArray(x?.teacherIds)
+        ? x.teacherIds.map((id) => String(id))
+        : x?.teacherId ? [String(toId(x.teacherId))] : []
+    )
+    .filter(Boolean);
+
+  const localTeacherMap = new Map();
+  if (allTeacherIds.length > 0) {
+    const uniqueIds = [...new Set(allTeacherIds)];
+    const teachers = await User.find({ _id: { $in: uniqueIds } })
+      .select("_id name")
+      .lean();
+    for (const t of teachers) {
+      localTeacherMap.set(String(t._id), t.name || null);
+    }
+  }
+
   return {
     id: String(o._id),
     type: o.type,
@@ -161,6 +181,10 @@ async function sanitize(p) {
               ? String(toId(x.centerId))
               : null;
 
+          const resolvedIds = Array.isArray(x?.teacherIds)
+            ? x.teacherIds.map((id) => String(id)).filter(Boolean)
+            : (x?.teacherId ? [String(toId(x.teacherId))] : []);
+
           return {
             centerId,
 
@@ -174,9 +198,11 @@ async function sanitize(p) {
                 ? String(toId(x.teacherId))
                 : null,
 
-            teacherIds: Array.isArray(x?.teacherIds)
-              ? x.teacherIds.map((id) => String(id)).filter(Boolean)
-              : (x?.teacherId ? [String(toId(x.teacherId))] : []),
+            teacherIds: resolvedIds,
+
+            teacherNames: resolvedIds
+              .map((id) => localTeacherMap.get(id) || null)
+              .filter(Boolean),
 
             teacherName:
               x?.teacherName || null,

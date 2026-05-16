@@ -7,8 +7,9 @@ import { uploadImage, uploadVideo, uploadDemoClip, uploadPdf } from "../controll
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 200 * 1024 * 1024 } });
 const r = Router();
 
-r.use(requireAuth, requireAnyRole(["superadmin","admin","teacher"]));
-r.post("/image", upload.single("file"), uploadImage);
+r.post("/image", requireAuth, upload.single("file"), uploadImage);
+
+r.use(requireAuth, requireAnyRole(["superadmin","admin","teacher","orguser","orgadmin"]));
 r.post("/video", upload.single("file"), uploadVideo);
 r.post("/demo-video", upload.single("file"), uploadDemoClip);
 r.post("/pdf", upload.single("file"), uploadPdf);

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 
 import toast from 'react-hot-toast'
-import { updateCourse } from '../../api/courses'
+import { updateSaCourse } from '../../api/saCourses'
 import { listSaUsers } from '../../api/saUsers'
 
 type PaymentStatus =
@@ -215,7 +215,7 @@ export default function SAPayments() {
     if (!teacherModal?.courseId) return
     setSavingTeachers(true)
     try {
-      await updateCourse(teacherModal.courseId, {
+      await updateSaCourse(teacherModal.courseId, {
         centerTeacherAssignments: editCenterAssignments.map(a => ({
           centerId: a.centerId,
           teacherIds: a.teacherIds ?? (a.teacherId ? [a.teacherId] : []),
@@ -360,8 +360,7 @@ export default function SAPayments() {
         </div>
       </header>
 
-      <div className="w-full rounded-xl border bg-white overflow-hidden">
-        <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+      <div className="w-full rounded-xl border bg-white overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
             <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
               <tr>
@@ -593,7 +592,6 @@ export default function SAPayments() {
               )}
             </tbody>
           </table>
-        </div>
       </div>
 
       <Modal open={!!target} onClose={() => setTarget(null)} title="Payment details">
@@ -801,7 +799,7 @@ export default function SAPayments() {
                       <tr>
                         <th className="text-left p-3 font-medium">Center</th>
                         <th className="text-left p-3 font-medium">Teacher</th>
-                        <th className="text-left p-3 font-medium">Email</th>
+                        {/* <th className="text-left p-3 font-medium">Email</th> */}
                       </tr>
                     </thead>
                     <tbody>
@@ -813,8 +811,17 @@ export default function SAPayments() {
                           <td className="p-3">
                             <div>{x.centerName || '—'}</div>
                           </td>
-                          <td className="p-3 font-medium">{x.teacherName || '—'}</td>
-                          <td className="p-3 text-slate-600">{x.teacherEmail || '—'}</td>
+                          <td className="p-3 font-medium">
+                            {Array.isArray(x.teacherNames) && x.teacherNames.length > 0
+                              ? <ol className="list-decimal list-inside space-y-0.5">
+                                  {x.teacherNames.map((name: string, i: number) => (
+                                    <li key={i} className="text-sm">{name}</li>
+                                  ))}
+                                </ol>
+                              : (x.teacherName || '—')
+                            }
+                          </td>
+                          {/* <td className="p-3 text-slate-600">{x.teacherEmail || '—'}</td> */}
                         </tr>
                       ))}
                     </tbody>

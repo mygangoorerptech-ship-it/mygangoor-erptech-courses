@@ -113,8 +113,8 @@ export default function JoinNowModal({
 
   // Prevent re-payment of an already-enrolled course
   const alreadyEnrolled =
-  !!selectedCourse &&
-  premiumIds.has(String(selectedCourse.id));
+    !!selectedCourse &&
+    premiumIds.has(String(selectedCourse.id));
 
   // ⛔️ STOP refetching on every select:
   // Only (re)load when we actually show Step 1 AND auth is ready.
@@ -140,18 +140,18 @@ export default function JoinNowModal({
   const [courseStates, setCourseStates] = React.useState<Record<string, CourseState>>({});
 
   // CRITICAL:
-// Direct-open flows (selectedCourseId) bypass Step-1 CourseStep disabling.
-// We must still block payment if backend reports any active pending state.
-const selectedCoursePendingState =
-  selectedCourse
-    ? (
+  // Direct-open flows (selectedCourseId) bypass Step-1 CourseStep disabling.
+  // We must still block payment if backend reports any active pending state.
+  const selectedCoursePendingState =
+    selectedCourse
+      ? (
         courseStates[selectedCourse.id]?.payment?.status || ""
       ).toLowerCase()
-    : "";
+      : "";
 
-const hasActivePendingPayment =
-  selectedCoursePendingState === "pending" ||
-  selectedCoursePendingState === "pending_verification";
+  const hasActivePendingPayment =
+    selectedCoursePendingState === "pending" ||
+    selectedCoursePendingState === "pending_verification";
 
   // NEW: one clear fetch to the dedicated endpoint
   React.useEffect(() => {
@@ -233,16 +233,50 @@ const hasActivePendingPayment =
   // Upload photo to server and return a persistent URL (or empty string on failure)
   async function uploadPhotoIfNeeded(): Promise<string> {
     if (!photo) return photoUrl || "";
+
     try {
       const fd = new FormData();
       fd.append("file", photo);
-      const r = await api.post("/upload", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-        withCredentials: true,
-      });
-      return r.data?.url ?? "";
-    } catch {
-      throw new Error("Photo upload failed. Please try again.");
+
+      const r = await api.post(
+        "/uploads/image",
+        fd,
+        {
+          withCredentials: true,
+
+          // Cloudinary uploads can exceed global axios timeout
+          timeout: 60000,
+
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      if (import.meta.env.DEV) {
+        console.log("[PHOTO UPLOAD RESPONSE]", r.data);
+      }
+
+      if (!r.data?.url) {
+        throw new Error("Upload API returned no URL");
+      }
+
+      return r.data.url;
+
+    } catch (e: any) {
+
+      console.error(
+        "[PHOTO UPLOAD ERROR]",
+        e?.response?.status,
+        e?.response?.data,
+        e
+      );
+
+      throw new Error(
+        e?.response?.data?.message ||
+        e?.message ||
+        "Photo upload failed"
+      );
     }
   }
 

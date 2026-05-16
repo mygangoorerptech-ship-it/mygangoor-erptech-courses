@@ -114,7 +114,7 @@ export default function StudentDashboard() {
     (async () => {
       try {
         const res = await api.get("/student/profile/form", { withCredentials: true });
-        if (!aborted) setFormProfileData(res?.data ?? null);
+        if (!aborted) setFormProfileData(res?.data?.profile ?? null);
       } catch {
         if (!aborted) setFormProfileData(null);
       }

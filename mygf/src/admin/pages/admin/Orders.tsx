@@ -15,8 +15,7 @@ type Filters = {
   q: string
   status: 'all'|'pending'|'paid'|'failed'|'refunded'|'partial_refund'
   method: 'all'|'razorpay'|'stripe'|'paypal'|'manual'
-  dateFrom?: string
-  dateTo?: string
+  preset?: 'today'|'yesterday'|'older'
 }
 
 /** Extra fields the invoice view needs (added by GET /orders/:id) */
@@ -102,9 +101,21 @@ export default function Orders(){
         </div>
         <div className="space-y-2">
           <Label>Date</Label>
-          <div className="flex gap-2">
-            <Input type="date" value={filters.dateFrom||''} onChange={(e)=>setFilters(f=>({...f,dateFrom:e.target.value||undefined}))}/>
-            <Input type="date" value={filters.dateTo||''} onChange={(e)=>setFilters(f=>({...f,dateTo:e.target.value||undefined}))}/>
+          <div className="flex gap-1 flex-wrap">
+            {(['today','yesterday','older'] as const).map(p => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setFilters(f => ({ ...f, preset: f.preset === p ? undefined : p }))}
+                className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                  filters.preset === p
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                {p === 'today' ? 'Today' : p === 'yesterday' ? 'Yesterday' : 'Older'}
+              </button>
+            ))}
           </div>
         </div>
       </header>

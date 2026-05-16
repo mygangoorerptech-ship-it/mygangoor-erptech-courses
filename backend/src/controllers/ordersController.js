@@ -34,7 +34,20 @@ export async function list(req, res) {
       providerOrderId: { $exists: true, $ne: null },     // treat anything with an order id as an Order
     };
     if (method !== "all") match.method = method;
-    if (dateFrom || dateTo) {
+    const preset = (req.query?.preset || "").toLowerCase();
+    if (["today", "yesterday", "older"].includes(preset)) {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd   = new Date(todayStart.getTime() + 86400000);
+      const yestStart  = new Date(todayStart.getTime() - 86400000);
+      if (preset === "today") {
+        match.createdAt = { $gte: todayStart, $lt: todayEnd };
+      } else if (preset === "yesterday") {
+        match.createdAt = { $gte: yestStart, $lt: todayStart };
+      } else if (preset === "older") {
+        match.createdAt = { $lt: yestStart };
+      }
+    } else if (dateFrom || dateTo) {
       const gte = dateFrom ? new Date(`${dateFrom}T00:00:00.000Z`) : new Date(0);
       const lte = dateTo ? new Date(`${dateTo}T23:59:59.999Z`) : new Date();
       match.createdAt = { $gte: gte, $lte: lte };

@@ -369,8 +369,7 @@ export default function ADPayments() {
         </div>
       </header>
 
-      <div className="w-full rounded-xl border bg-white overflow-hidden">
-        <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
+      <div className="w-full rounded-xl border bg-white overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
             <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
               <tr>
@@ -615,7 +614,6 @@ export default function ADPayments() {
               )}
             </tbody>
           </table>
-        </div>
       </div>
 
       <Modal open={!!target} onClose={() => setTarget(null)} title="Payment details">
@@ -835,7 +833,16 @@ export default function ADPayments() {
                               </div>
                             </div>
                           </td>
-                          <td className="p-3 font-medium">{x.teacherName || '—'}</td>
+                          <td className="p-3 font-medium">
+                            {Array.isArray(x.teacherNames) && x.teacherNames.length > 0
+                              ? <ol className="list-decimal list-inside space-y-0.5">
+                                  {x.teacherNames.map((name: string, i: number) => (
+                                    <li key={i} className="text-sm">{name}</li>
+                                  ))}
+                                </ol>
+                              : (x.teacherName || '—')
+                            }
+                          </td>
                           <td className="p-3 text-slate-600">{x.teacherEmail || '—'}</td>
                         </tr>
                       ))}

@@ -1,7 +1,7 @@
 // src/admin/api/orders.ts
 import { api } from './client'
 
-export async function listOrders(params?: { q?: string; status?: 'all'|'pending'|'paid'|'failed'|'refunded'|'partial_refund'; method?: 'all'|'razorpay'|'stripe'|'paypal'|'manual'; dateFrom?: string; dateTo?: string }){
+export async function listOrders(params?: { q?: string; status?: 'all'|'pending'|'paid'|'failed'|'refunded'|'partial_refund'; method?: 'all'|'razorpay'|'stripe'|'paypal'|'manual'; preset?: 'today'|'yesterday'|'older'; dateFrom?: string; dateTo?: string }){
   const { data } = await api.get('/orders', { params })
   return data
 }
