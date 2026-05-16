@@ -21,9 +21,11 @@ export interface ReportsListResponse {
 }
 
 export interface ReportFilters {
+  q?: string;
   orgId?: string;
   studentId?: string;
   courseId?: string;
+  teacherId?: string;
   status?: string;
   page?: number;
   limit?: number;

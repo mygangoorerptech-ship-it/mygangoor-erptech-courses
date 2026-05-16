@@ -82,7 +82,8 @@ export type CourseFilters = {
 
 export type CenterTeacherAssignment = {
   centerId: string
-  teacherId: string
+  teacherId?: string        // kept for backward compat
+  teacherIds?: string[]     // new: array of teacher IDs
   teacherName?: string
   teacherEmail?: string
 }

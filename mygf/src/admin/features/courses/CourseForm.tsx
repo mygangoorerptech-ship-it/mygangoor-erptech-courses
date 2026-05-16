@@ -140,41 +140,38 @@ export default function CourseFormModal({
     initial?.platformFee ? (initial!.platformFee as number) / 100 : 49
   );
 
-  function updateCenterTeacher(centerId: string, teacherId: string) {
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!openDropdown) return;
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-teacher-dropdown]")) {
+        setOpenDropdown(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [openDropdown]);
+
+  function getTeachersForCenter(centerId: string): string[] {
+    const a = centerTeacherAssignments.find((x) => x.centerId === centerId);
+    if (a?.teacherIds?.length) return a.teacherIds;
+    if (a?.teacherId) return [a.teacherId]; // backward compat
+    return [];
+  }
+
+  function updateCenterTeachers(centerId: string, teacherIds: string[]) {
     setCenterTeacherAssignments((prev) => {
       const existing = prev.find((x) => x.centerId === centerId);
-
       if (existing) {
         return prev.map((x) =>
-          x.centerId === centerId
-            ? {
-              ...x,
-              teacherId,
-            }
-            : x
+          x.centerId === centerId ? { ...x, teacherIds, teacherId: teacherIds[0] ?? "" } : x
         );
       }
-
-      return [
-        ...prev,
-        {
-          centerId,
-          teacherId,
-        },
-      ];
+      return [...prev, { centerId, teacherIds, teacherId: teacherIds[0] ?? "" }];
     });
-  }
-
-  function removeCenterTeacher(centerId: string) {
-    setCenterTeacherAssignments((prev) =>
-      prev.filter((x) => x.centerId !== centerId)
-    );
-  }
-
-  function getTeacherForCenter(centerId: string) {
-    return (
-      centerTeacherAssignments.find((x) => x.centerId === centerId)?.teacherId || ""
-    );
   }
 
   const ownCenterIdSet = useMemo(
@@ -336,9 +333,15 @@ export default function CourseFormModal({
     setCourseType((initial?.courseType as CourseType) || "paid");
     setDurationText(initial?.durationText || "");
     setCenterTeacherAssignments(
-      Array.isArray(initial?.centerTeacherAssignments)
+      (Array.isArray(initial?.centerTeacherAssignments)
         ? initial.centerTeacherAssignments
         : []
+      ).map((a) => ({
+        ...a,
+        teacherIds: a.teacherIds?.length
+          ? a.teacherIds.map(String)
+          : (a.teacherId ? [String(a.teacherId)] : []),
+      }))
     );
     setIsBundled(!!initial?.isBundled || (initial?.chapters?.length ?? 0) > 0);
     setChapters(initial?.chapters?.length ? initial.chapters : []);
@@ -514,7 +517,7 @@ export default function CourseFormModal({
           (x) => x.centerId === centerId
         );
 
-        return !!assignment?.teacherId;
+        return (assignment?.teacherIds?.length ?? 0) > 0 || !!assignment?.teacherId;
       });
 
   const canSubmit =
@@ -563,9 +566,14 @@ export default function CourseFormModal({
                 courseType,
                 durationText,
                 teacherId:
-                  centerTeacherAssignments[0]?.teacherId || undefined,
+                  centerTeacherAssignments[0]?.teacherIds?.[0]
+                  ?? centerTeacherAssignments[0]?.teacherId
+                  ?? undefined,
 
-                centerTeacherAssignments,
+                centerTeacherAssignments: centerTeacherAssignments.map((a) => ({
+                  centerId: a.centerId,
+                  teacherIds: a.teacherIds ?? (a.teacherId ? [a.teacherId] : []),
+                })),
                 tags: tagChips,
                 centerIds: selectedCenterIds,
                 ...(isSA
@@ -790,7 +798,7 @@ export default function CourseFormModal({
                                   const checked = e.target.checked;
                                   setSelectedCenterIds((prev) => {
                                     if (checked) return prev.includes(c.value) ? prev : [...prev, c.value];
-                                    removeCenterTeacher(c.value);
+                                    setCenterTeacherAssignments((a) => a.filter((x) => x.centerId !== c.value));
                                     return prev.filter((id) => id !== c.value);
                                   });
                                 }}
@@ -821,20 +829,23 @@ export default function CourseFormModal({
                 {selectedCenterIds.length > 0 && (
                   <div className="mt-4 space-y-3">
                     <Field
-                      label="Assign Teacher Per Center"
-                      help="Each selected center must have exactly one teacher"
+                      label="Assign Teachers Per Center"
+                      help="Select one or more teachers for each center"
                     >
                       <div className="space-y-3">
                         {selectedCenterIds.map((centerId) => {
                           const isExternal = !isSA && !ownCenterIdSet.has(centerId);
                           const label = centerLabelMap[centerId] || "Center";
+                          const selected = getTeachersForCenter(centerId);
+                          const options = teachersByCenter[centerId] || [];
+                          const isOpen = openDropdown === centerId;
 
                           return (
                             <div
                               key={centerId}
                               className={`grid md:grid-cols-2 gap-3 border rounded-lg p-3${isExternal ? " opacity-60 bg-slate-50" : ""}`}
                             >
-                              <div>
+                              <div className="flex items-center">
                                 <div className="text-sm font-medium text-slate-700">
                                   {label}
                                   {isExternal && (
@@ -843,28 +854,45 @@ export default function CourseFormModal({
                                 </div>
                               </div>
 
-                              <div>
-                                <Select
-                                  value={getTeacherForCenter(centerId)}
+                              <div className="relative" data-teacher-dropdown>
+                                <button
+                                  type="button"
                                   disabled={isExternal}
-                                  onChange={(e) => {
-                                    if (!isExternal) updateCenterTeacher(centerId, e.target.value);
-                                  }}
+                                  onClick={() => setOpenDropdown(isOpen ? null : centerId)}
+                                  className="w-full text-left border rounded px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
-                                  <option value="">Select Teacher</option>
-
-                                  {(teachersByCenter[centerId] || []).length === 0 && (
-                                    <option value="" disabled>
-                                      No teachers available
-                                    </option>
-                                  )}
-
-                                  {(teachersByCenter[centerId] || []).map((t) => (
-                                    <option key={t.value} value={t.value}>
-                                      {t.label}
-                                    </option>
-                                  ))}
-                                </Select>
+                                  {selected.length === 0
+                                    ? <span className="text-slate-400">Select Teachers…</span>
+                                    : <span>{selected.length} teacher{selected.length > 1 ? "s" : ""} selected</span>
+                                  }
+                                </button>
+                                {isOpen && !isExternal && (
+                                  <div className="absolute z-20 mt-1 w-full border rounded bg-white shadow-lg max-h-48 overflow-y-auto">
+                                    {options.length === 0 ? (
+                                      <div className="px-3 py-2 text-sm text-slate-400">No teachers available</div>
+                                    ) : (
+                                      options.map((t) => (
+                                        <label
+                                          key={t.value}
+                                          className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm"
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            className="h-4 w-4"
+                                            checked={selected.includes(t.value)}
+                                            onChange={(e) => {
+                                              const next = e.target.checked
+                                                ? [...selected, t.value]
+                                                : selected.filter((id) => id !== t.value);
+                                              updateCenterTeachers(centerId, next);
+                                            }}
+                                          />
+                                          {t.label}
+                                        </label>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

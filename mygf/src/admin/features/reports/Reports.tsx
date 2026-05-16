@@ -12,6 +12,8 @@ import {
   type ReportsListResponse,
 } from '../../api/reports';
 import { listOrganizations } from '../../api/organizations';
+import { listAdUsers } from '../../api/adUsers';
+import { listSaUsers } from '../../api/saUsers';
 import Button from '../../components/Button';
 import { Input, Label, Select } from '../../components/Input';
 import Modal from '../../components/Modal';
@@ -53,6 +55,7 @@ type Filters = {
   orgId: string;
   studentId: string;
   courseId: string;
+  teacherId: string;
   status: '' | ReportStatus;
 };
 
@@ -244,6 +247,7 @@ export default function Reports() {
     orgId: '',
     studentId: '',
     courseId: '',
+    teacherId: '',
     status: '',
   });
   const [search, setSearch] = useState('');
@@ -311,6 +315,7 @@ export default function Reports() {
         orgId: filters.orgId || undefined,
         studentId: filters.studentId || undefined,
         courseId: filters.courseId || undefined,
+        teacherId: filters.teacherId || undefined,
         status: filters.status || undefined,
       }),
 
@@ -465,6 +470,22 @@ export default function Reports() {
 
   const [previewItem, setPreviewItem] = useState<ReportItem | null>(null);
 
+  // Teachers lookup (for SA and admin only — hidden from teacher role)
+  const teachersQ = useQuery({
+    enabled: !isTeacher,
+    queryKey: ['reports:teachers', filters.orgId],
+    queryFn: async () => {
+      const users = isSA
+        ? await listSaUsers({ role: 'teacher', status: 'all', orgId: filters.orgId || undefined })
+        : await listAdUsers({ role: 'teacher', status: 'all' });
+      return (users || []).map((u) => ({
+        value: String(u.id),
+        label: u.name || u.email || '',
+      }));
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Handle CSV export
   const handleExport = async () => {
     try {
@@ -479,6 +500,84 @@ export default function Reports() {
       window.URL.revokeObjectURL(url);
     } catch (e) {
       console.error('export csv failed', e);
+      toast.error('Export failed. Please try again.');
+    }
+  };
+
+  // Handle PDF export — client-side using html2canvas + jsPDF
+  const handleExportPdf = async () => {
+    try {
+      const allRows = (reportsQ.data?.items || []) as ReportItem[];
+      const exportRows = allRows.slice(0, 500);
+      const tooLarge = allRows.length > 500;
+
+      const { jsPDF } = await import('jspdf');
+      const html2canvas = (await import('html2canvas')).default;
+
+      const container = document.createElement('div');
+      container.style.cssText = [
+        'position:absolute', 'left:-9999px', 'top:0',
+        'width:1100px', 'background:white', 'padding:24px',
+        'font-family:Inter,system-ui,sans-serif', 'font-size:12px', 'color:#1e293b',
+      ].join(';');
+
+      container.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h2 style="margin:0;font-size:16px;font-weight:700">Reports Export</h2>
+          <span style="font-size:11px;color:#64748b">${new Date().toLocaleDateString()}</span>
+        </div>
+        ${tooLarge ? `<p style="color:#b45309;font-size:11px;margin-bottom:8px">Showing first 500 of ${allRows.length} records. Use CSV export for full dataset.</p>` : ''}
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead>
+            <tr style="background:#f1f5f9">
+              <th style="padding:8px 10px;text-align:left;border:1px solid #e2e8f0;font-weight:600">Student</th>
+              <th style="padding:8px 10px;text-align:left;border:1px solid #e2e8f0;font-weight:600">Email</th>
+              <th style="padding:8px 10px;text-align:left;border:1px solid #e2e8f0;font-weight:600">Course</th>
+              <th style="padding:8px 10px;text-align:left;border:1px solid #e2e8f0;font-weight:600">Status</th>
+              <th style="padding:8px 10px;text-align:left;border:1px solid #e2e8f0;font-weight:600">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${exportRows.map((r, i) => `
+              <tr style="background:${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
+                <td style="padding:6px 10px;border:1px solid #e2e8f0">${r.student?.name || '—'}</td>
+                <td style="padding:6px 10px;border:1px solid #e2e8f0">${r.student?.email || '—'}</td>
+                <td style="padding:6px 10px;border:1px solid #e2e8f0">${r.course?.title || '—'}</td>
+                <td style="padding:6px 10px;border:1px solid #e2e8f0">${r.overallStatus || '—'}</td>
+                <td style="padding:6px 10px;border:1px solid #e2e8f0">${r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : '—'}</td>
+              </tr>
+            `).join('')}
+            ${exportRows.length === 0 ? '<tr><td colspan="5" style="padding:16px;text-align:center;color:#94a3b8;border:1px solid #e2e8f0">No records found</td></tr>' : ''}
+          </tbody>
+        </table>
+      `;
+
+      document.body.appendChild(container);
+      const canvas = await html2canvas(container, { scale: 1.5, useCORS: true, logging: false });
+      document.body.removeChild(container);
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const imgW = pageW - margin * 2;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      let posY = margin;
+      let remaining = imgH;
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'PNG', margin, posY, imgW, imgH);
+        remaining -= (pageH - margin * 2);
+        if (remaining > 0) {
+          pdf.addPage();
+          posY = margin - (imgH - remaining);
+        }
+      }
+      pdf.save('reports.pdf');
+    } catch (e) {
+      console.error('export pdf failed', e);
+      toast.error('PDF export failed. Please try again.');
     }
   };
 
@@ -490,11 +589,20 @@ export default function Reports() {
         status: string;
         updatedAt?: string;
       }>;
-      const completed = statuses.filter((s) => s.status === 'complete').length;
-      const totalCh = item.course.chapterCount || 0;
+
+      const completed = statuses.filter(
+        (s) => s.status === 'complete'
+      ).length;
+
+      const totalCh =
+        item.course.chapterCount || 0;
+
       return `${completed}/${totalCh}`;
     }
-    return item.overallStatus || '—';
+
+    return item.overallStatus === 'not-started'
+      ? 'started'
+      : (item.overallStatus || '—');
   }
 
   function startOfDay(d: Date) {
@@ -677,6 +785,29 @@ export default function Reports() {
             </Select>
           </div>
 
+          {/* TEACHER — hidden for teacher role */}
+          {!isTeacher && (
+            <div className="lg:col-span-2">
+              <Label>Teacher</Label>
+              <Select
+                value={filters.teacherId}
+                onChange={(e) => {
+                  setFilters(prev => ({
+                    ...prev,
+                    teacherId: e.target.value,
+                  }));
+                }}
+              >
+                <option value="">All Teachers</option>
+                {(teachersQ.data || []).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+
           {/* STATUS */}
           <div className="lg:col-span-2">
             <Label>Status</Label>
@@ -729,6 +860,12 @@ export default function Reports() {
                 Course selected
               </span>
             )}
+
+            {filters.teacherId && !isTeacher && (
+              <span className="rounded-full bg-violet-50 px-3 py-1 text-xs text-violet-700">
+                Teacher selected
+              </span>
+            )}
           </div>
 
           {/* ACTIONS */}
@@ -743,6 +880,7 @@ export default function Reports() {
                   orgId: '',
                   studentId: '',
                   courseId: '',
+                  teacherId: '',
                   status: '',
                 });
               }}
@@ -756,6 +894,14 @@ export default function Reports() {
             >
               <Download size={16} />
               Export CSV
+            </Button>
+
+            <Button
+              variant="secondary"
+              onClick={handleExportPdf}
+            >
+              <Download size={16} />
+              Export PDF
             </Button>
           </div>
         </div>

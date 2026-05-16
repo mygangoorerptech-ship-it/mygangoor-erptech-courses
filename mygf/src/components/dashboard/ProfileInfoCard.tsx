@@ -8,6 +8,7 @@ import type { Course } from "../pages/tracks/types";
 
 type Props = {
   initials: string;
+  photoUrl?: string | null;
   name: string;
   handle: string;
   statusBadges: { text: string; bg: string; textColor: string }[];
@@ -19,6 +20,7 @@ type Props = {
 
 export default function ProfileInfoCard({
   initials,
+  photoUrl,
   name,
   handle,
   statusBadges,
@@ -81,9 +83,18 @@ export default function ProfileInfoCard({
     <Card className="mb-6">
       <div className="flex items-center space-x-6 mb-8">
         <div className="relative">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 text-xl font-semibold">
-            {initials}
-          </div>
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt={name}
+              className="w-20 h-20 rounded-full object-cover border border-slate-200"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          ) : (
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 text-xl font-semibold">
+              {initials}
+            </div>
+          )}
           <div className="absolute -bottom-2 -right-2 bg-green-500 w-8 h-8 rounded-full flex items-center justify-center">
             <i className="fas fa-check text-white text-sm" />
           </div>

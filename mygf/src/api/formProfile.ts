@@ -9,6 +9,7 @@ export type SavedFormProfile = {
   address: string;
   mobile: string;
   email: string;
+  photoUrl?: string;
 };
 
 export async function fetchFormProfile(): Promise<SavedFormProfile | null> {

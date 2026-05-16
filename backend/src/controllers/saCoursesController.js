@@ -149,6 +149,9 @@ function sanitize(doc, centerIds = []) {
             mongoose.Types.ObjectId.isValid(idOf(x.teacherId))
             ? String(idOf(x.teacherId))
             : null,
+        teacherIds: Array.isArray(x?.teacherIds)
+          ? x.teacherIds.map(id => String(id)).filter(Boolean)
+          : (x?.teacherId ? [String(idOf(x.teacherId))] : []),
         teacherName: x?.teacherName || null,
         teacherEmail: x?.teacherEmail || null,
       }))
@@ -317,15 +320,15 @@ export async function create(req, res) {
     const Organization = (await import("../models/Organization.js")).default;
 
     for (const item of centerTeacherAssignments) {
-      if (!item?.centerId || !item?.teacherId) continue;
+      if (!item?.centerId) continue;
 
-      if (!mongoose.Types.ObjectId.isValid(item.centerId)) {
-        continue;
-      }
+      if (!mongoose.Types.ObjectId.isValid(item.centerId)) continue;
 
-      if (!mongoose.Types.ObjectId.isValid(item.teacherId)) {
-        continue;
-      }
+      const rawTeacherIds = item.teacherIds?.length
+        ? item.teacherIds.filter(id => mongoose.Types.ObjectId.isValid(id))
+        : (item.teacherId && mongoose.Types.ObjectId.isValid(item.teacherId) ? [item.teacherId] : []);
+
+      if (rawTeacherIds.length === 0) continue;
 
       const center = await Organization.findOne({
         _id: item.centerId,
@@ -333,34 +336,28 @@ export async function create(req, res) {
         status: "active",
       }).select("_id");
 
-      if (!center) {
-        continue;
-      }
+      if (!center) continue;
 
-      const teacher = await User.findOne({
-        _id: item.teacherId,
+      const alreadyExists = validatedCenterTeacherAssignments.some(
+        (x) => String(idOf(x.centerId)) === String(idOf(item.centerId))
+      );
+      if (alreadyExists) continue;
+
+      const validatedTeachers = await User.find({
+        _id: { $in: rawTeacherIds },
         role: "teacher",
         orgId: item.centerId,
-      }).select("_id name email orgId");
+      }).select("_id name email orgId").lean();
 
-      if (!teacher) {
-        continue;
-      }
+      if (validatedTeachers.length === 0) continue;
 
-      const alreadyExists =
-        validatedCenterTeacherAssignments.some(
-          (x) => String(idOf(x.centerId)) === String(idOf(item.centerId))
-        );
-
-      if (alreadyExists) {
-        continue;
-      }
-
+      const firstTeacher = validatedTeachers[0];
       validatedCenterTeacherAssignments.push({
         centerId: String(idOf(item.centerId)),
-        teacherId: teacher._id,
-        teacherName: teacher.name || null,
-        teacherEmail: teacher.email || null,
+        teacherId: firstTeacher._id,
+        teacherIds: validatedTeachers.map(t => t._id),
+        teacherName: firstTeacher.name || null,
+        teacherEmail: firstTeacher.email || null,
       });
     }
   }
@@ -458,15 +455,15 @@ export async function patch(req, res) {
     const Organization = (await import("../models/Organization.js")).default;
 
     for (const item of req.body.centerTeacherAssignments) {
-      if (!item?.centerId || !item?.teacherId) continue;
+      if (!item?.centerId) continue;
 
-      if (!mongoose.Types.ObjectId.isValid(idOf(item.centerId))) {
-        continue;
-      }
+      if (!mongoose.Types.ObjectId.isValid(idOf(item.centerId))) continue;
 
-      if (!mongoose.Types.ObjectId.isValid(idOf(item.teacherId))) {
-        continue;
-      }
+      const rawTeacherIds = item.teacherIds?.length
+        ? item.teacherIds.filter(id => mongoose.Types.ObjectId.isValid(id))
+        : (item.teacherId && mongoose.Types.ObjectId.isValid(idOf(item.teacherId)) ? [idOf(item.teacherId)] : []);
+
+      if (rawTeacherIds.length === 0) continue;
 
       const center = await Organization.findOne({
         _id: idOf(item.centerId),
@@ -474,34 +471,28 @@ export async function patch(req, res) {
         status: "active",
       }).select("_id");
 
-      if (!center) {
-        continue;
-      }
+      if (!center) continue;
 
-      const teacher = await User.findOne({
-        _id: idOf(item.teacherId),
+      const alreadyExists = validated.some(
+        (x) => String(idOf(x.centerId)) === String(idOf(item.centerId))
+      );
+      if (alreadyExists) continue;
+
+      const validatedTeachers = await User.find({
+        _id: { $in: rawTeacherIds.map(id => idOf(id)) },
         role: "teacher",
         orgId: idOf(item.centerId),
-      }).select("_id name email orgId");
+      }).select("_id name email orgId").lean();
 
-      if (!teacher) {
-        continue;
-      }
+      if (validatedTeachers.length === 0) continue;
 
-      const alreadyExists =
-        validated.some(
-          (x) => String(idOf(x.centerId)) === String(idOf(item.centerId))
-        );
-
-      if (alreadyExists) {
-        continue;
-      }
-
+      const firstTeacher = validatedTeachers[0];
       validated.push({
         centerId: String(idOf(item.centerId)),
-        teacherId: teacher._id,
-        teacherName: teacher.name || null,
-        teacherEmail: teacher.email || null,
+        teacherId: firstTeacher._id,
+        teacherIds: validatedTeachers.map(t => t._id),
+        teacherName: firstTeacher.name || null,
+        teacherEmail: firstTeacher.email || null,
       });
     }
 

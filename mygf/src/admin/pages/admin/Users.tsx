@@ -745,37 +745,53 @@ function UserDetailsModal({
           <div className="space-y-5">
             <div className="rounded-xl border p-4">
               <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
-                    {user?.name || '—'}
-                  </h2>
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    {profile?.photoUrl ? (
+                      <img
+                        src={profile.photoUrl}
+                        alt={user?.name || 'User'}
+                        className="w-16 h-16 rounded-full object-cover border border-slate-200"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 text-xl font-semibold">
+                        {(user?.name || user?.email || '?')[0].toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-slate-900">
+                      {user?.name || '—'}
+                    </h2>
 
-                  <div className="mt-2 space-y-2 text-sm text-slate-600">
-                    <div className="flex items-center gap-2">
-                      <Mail size={16} />
-                      {user?.email || '—'}
+                    <div className="mt-2 space-y-2 text-sm text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Mail size={16} />
+                        {user?.email || '—'}
+                      </div>
+
+                      {(profile?.mobile) && (
+                        <div className="flex items-center gap-2">
+                          <Phone size={16} />
+                          {profile.mobile}
+                        </div>
+                      )}
+
+                      {(profile?.address) && (
+                        <div className="flex items-center gap-2">
+                          <MapPin size={16} />
+                          {profile.address}
+                        </div>
+                      )}
+
+                      {user?.createdAt && (
+                        <div className="flex items-center gap-2">
+                          <Calendar size={16} />
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
-
-                    {(profile?.mobile) && (
-                      <div className="flex items-center gap-2">
-                        <Phone size={16} />
-                        {profile.mobile}
-                      </div>
-                    )}
-
-                    {(profile?.address) && (
-                      <div className="flex items-center gap-2">
-                        <MapPin size={16} />
-                        {profile.address}
-                      </div>
-                    )}
-
-                    {user?.createdAt && (
-                      <div className="flex items-center gap-2">
-                        <Calendar size={16} />
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </div>
-                    )}
                   </div>
                 </div>
 

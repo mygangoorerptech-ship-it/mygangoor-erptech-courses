@@ -35,6 +35,7 @@ export async function list(req, res) {
       courseId,
       status,
       q: searchQuery,
+      teacherId: filterTeacherId,
     } = req.query || {};
     const pg = Math.max(1, parseInt(req.query?.page) || 1);
     const sz = Math.min(50, Math.max(1, parseInt(req.query?.limit) || 20));
@@ -62,8 +63,10 @@ export async function list(req, res) {
             centerTeacherAssignments: {
               $elemMatch: {
                 $or: [
-                  { centerId: orgIdStr,                                teacherId: actorIdStr },
+                  { centerId: orgIdStr,                               teacherId: actorIdStr },
                   { centerId: new mongoose.Types.ObjectId(orgIdStr),  teacherId: new mongoose.Types.ObjectId(actorIdStr) },
+                  { centerId: orgIdStr,                               teacherIds: actorIdStr },
+                  { centerId: new mongoose.Types.ObjectId(orgIdStr),  teacherIds: new mongoose.Types.ObjectId(actorIdStr) },
                 ]
               }
             }
@@ -79,6 +82,24 @@ export async function list(req, res) {
     } else {
       if (courseId) enrollmentQuery.courseId = courseId;
     }
+
+    // Teacher filter (for SA/admin only — teachers are already scoped to own courses above)
+    if (filterTeacherId && actor.role !== "teacher") {
+      const teacherCourseIds = await Course.find({
+        $or: [
+          { teacherId: filterTeacherId },
+          { teacherId: new mongoose.Types.ObjectId(filterTeacherId) },
+          { centerTeacherAssignments: { $elemMatch: { teacherId: filterTeacherId } } },
+          { centerTeacherAssignments: { $elemMatch: { teacherIds: filterTeacherId } } },
+        ]
+      }).distinct("_id");
+      enrollmentQuery.courseId = enrollmentQuery.courseId
+        ? (Array.isArray(enrollmentQuery.courseId?.$in)
+          ? { $in: enrollmentQuery.courseId.$in.filter(id => teacherCourseIds.some(t => String(t) === String(id))) }
+          : { $in: teacherCourseIds })
+        : { $in: teacherCourseIds };
+    }
+
     const searchText =
       typeof searchQuery === "string"
         ? searchQuery.trim().toLowerCase()
@@ -420,17 +441,65 @@ export async function exportCsv(req, res) {
     const actor = req.user;
     if (!actor) return res.status(403).json({ ok: false });
 
-    const { orgId, studentId, courseId, status } = req.query || {};
+    const { orgId, studentId, courseId, status, teacherId: filterTeacherId } = req.query || {};
 
     const enrollmentQuery = {
       status: "premium",
     };
-    if (actor.role !== "superadmin") q.orgId = actor.orgId;
-    else if (orgId) q.orgId = orgId;
-    if (studentId) q.studentId = studentId;
-    if (courseId) q.courseId = courseId;
+    if (actor.role !== "superadmin") enrollmentQuery.orgId = actor.orgId;
+    else if (orgId) enrollmentQuery.orgId = orgId;
+    if (studentId) enrollmentQuery.studentId = studentId;
 
-    const enrolls = await Enrollment.find(q)
+    if (actor.role === "teacher") {
+      const actorId    = actor._id || actor.id || actor.sub;
+      const actorIdStr = String(actorId);
+      const orgIdStr   = String(actor.orgId);
+      const teacherCourseIds = await Course.find({
+        $or: [
+          { teacherId: actorIdStr },
+          { teacherId: new mongoose.Types.ObjectId(actorIdStr) },
+          {
+            centerTeacherAssignments: {
+              $elemMatch: {
+                $or: [
+                  { centerId: orgIdStr,                               teacherId: actorIdStr },
+                  { centerId: new mongoose.Types.ObjectId(orgIdStr),  teacherId: new mongoose.Types.ObjectId(actorIdStr) },
+                  { centerId: orgIdStr,                               teacherIds: actorIdStr },
+                  { centerId: new mongoose.Types.ObjectId(orgIdStr),  teacherIds: new mongoose.Types.ObjectId(actorIdStr) },
+                ]
+              }
+            }
+          }
+        ]
+      }).distinct("_id");
+
+      if (courseId && !teacherCourseIds.some(id => String(id) === String(courseId))) {
+        enrollmentQuery.courseId = { $in: [] };
+      } else {
+        enrollmentQuery.courseId = courseId ? courseId : { $in: teacherCourseIds };
+      }
+    } else {
+      if (courseId) enrollmentQuery.courseId = courseId;
+    }
+
+    // Teacher filter (for SA/admin only)
+    if (filterTeacherId && actor.role !== "teacher") {
+      const teacherCourseIds = await Course.find({
+        $or: [
+          { teacherId: filterTeacherId },
+          { teacherId: new mongoose.Types.ObjectId(filterTeacherId) },
+          { centerTeacherAssignments: { $elemMatch: { teacherId: filterTeacherId } } },
+          { centerTeacherAssignments: { $elemMatch: { teacherIds: filterTeacherId } } },
+        ]
+      }).distinct("_id");
+      enrollmentQuery.courseId = enrollmentQuery.courseId
+        ? (Array.isArray(enrollmentQuery.courseId?.$in)
+          ? { $in: enrollmentQuery.courseId.$in.filter(id => teacherCourseIds.some(t => String(t) === String(id))) }
+          : { $in: teacherCourseIds })
+        : { $in: teacherCourseIds };
+    }
+
+    const enrolls = await Enrollment.find(enrollmentQuery)
       .populate({ path: "studentId", select: "_id name email" })
       .populate({ path: "courseId", select: "_id title isBundled chapters" })
       .lean();
@@ -514,6 +583,15 @@ console.log(
         chapterStatuses: JSON.stringify(p?.statuses || []),
       };
     });
+
+    const searchText = typeof req.query?.q === "string" ? req.query.q.trim().toLowerCase() : "";
+    if (searchText) {
+      rows = rows.filter(r =>
+        r.studentName.toLowerCase().includes(searchText) ||
+        r.studentEmail.toLowerCase().includes(searchText) ||
+        r.courseTitle.toLowerCase().includes(searchText)
+      );
+    }
 
     if (status) {
       rows = rows.filter(r =>

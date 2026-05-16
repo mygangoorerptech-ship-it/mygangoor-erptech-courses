@@ -26,9 +26,10 @@ export async function upsertFormProfileInternal(studentId, joinForm) {
   const address = String(joinForm?.address || "").trim();
   const mobile = String(joinForm?.mobile || "").trim();
   const email = String(joinForm?.email || "").trim();
+  const photoUrl = String(joinForm?.photoUrl || "").trim();
   return StudentFormProfile.findOneAndUpdate(
     { studentId },
-    { $set: { fullName, age, gender, birth, address, mobile, email, source: "enrollment" } },
+    { $set: { fullName, age, gender, birth, address, mobile, email, photoUrl, source: "enrollment" } },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   ).catch((e) => console.error("[formProfile.upsert]", e?.message));
 }

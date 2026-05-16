@@ -13,7 +13,7 @@ const StudentFormProfileSchema = new Schema(
     mobile:    { type: String, default: "" },
     email:     { type: String, default: "" },
     source:    { type: String, default: "enrollment" },
-    // No photoUrl — blob URLs are ephemeral and cannot be persisted across sessions
+    photoUrl:  { type: String, default: "" },
   },
   { timestamps: true }
 );

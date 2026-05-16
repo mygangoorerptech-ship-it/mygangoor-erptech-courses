@@ -230,19 +230,36 @@ const hasActivePendingPayment =
   })();
   const total = Math.max(0, base - discount);
 
+  // Upload photo to server and return a persistent URL (or empty string on failure)
+  async function uploadPhotoIfNeeded(): Promise<string> {
+    if (!photo) return photoUrl || "";
+    try {
+      const fd = new FormData();
+      fd.append("file", photo);
+      const r = await api.post("/upload", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
+      });
+      return r.data?.url ?? "";
+    } catch {
+      throw new Error("Photo upload failed. Please try again.");
+    }
+  }
+
   // ---- payment flow
   async function handleOnlinePay() {
     if (!selectedCourse || !user) return;
     setIsPaying(true);
     setPayError(null);
-    if (import.meta.env.DEV) {
-      console.log("[PAYMENT REQUEST]", {
-        courseId: selectedCourse.id,
-        sentOrgId: String(selectedOrgId),
-        method: "online"
-      });
-    }
     try {
+      const uploadedPhotoUrl = await uploadPhotoIfNeeded();
+      if (import.meta.env.DEV) {
+        console.log("[PAYMENT REQUEST]", {
+          courseId: selectedCourse.id,
+          sentOrgId: String(selectedOrgId),
+          method: "online"
+        });
+      }
       const order = await rzpCreateOrder({
         courseId: selectedCourse.id,
         orgId: selectedOrgId ?? user.orgId ?? undefined,
@@ -284,7 +301,7 @@ const hasActivePendingPayment =
                 address: address.trim(),
                 mobile,
                 email,
-                photoUrl, // ✅ consistent naming
+                photoUrl: uploadedPhotoUrl,
               },
             });
             if (import.meta.env.DEV) {
@@ -357,6 +374,8 @@ const hasActivePendingPayment =
     setIsPaying(true);
 
     try {
+      const uploadedPhotoUrl = await uploadPhotoIfNeeded();
+
       const rupees =
         mode === "part"
           ? Number(partAmount) || 0
@@ -394,7 +413,7 @@ const hasActivePendingPayment =
           address: address.trim(),
           mobile,
           email,
-          photoUrl,
+          photoUrl: uploadedPhotoUrl,
         },
 
         courseId: selectedCourse.id,

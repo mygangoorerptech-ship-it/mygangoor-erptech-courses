@@ -70,6 +70,7 @@ export default function StudentDashboard() {
   // Backend-fetched extras
   const [orgName, setOrgName] = useState<string | null>(null);
   const [dobRaw, setDobRaw] = useState<string | null>(null);
+  const [formProfileData, setFormProfileData] = useState<{ birth?: string; photoUrl?: string } | null>(null);
 
   useEffect(() => {
     let aborted = false;
@@ -108,6 +109,19 @@ export default function StudentDashboard() {
     };
   }, [uOrgId]);
 
+  useEffect(() => {
+    let aborted = false;
+    (async () => {
+      try {
+        const res = await api.get("/student/profile/form", { withCredentials: true });
+        if (!aborted) setFormProfileData(res?.data ?? null);
+      } catch {
+        if (!aborted) setFormProfileData(null);
+      }
+    })();
+    return () => { aborted = true; };
+  }, []);
+
   const profile = useMemo(() => {
     const name = uName || "Student";
     const handle = uEmail || "student@example.com"; // handle == email
@@ -133,11 +147,14 @@ export default function StudentDashboard() {
     const accountStatus: "Active" | "Suspended" =
       uStatus === "active" ? "Active" : "Suspended";
 
-    // DOB display: keep header, and show fallback if null
-    const dobDisplay = dobRaw ? formatDate(dobRaw) : "-- / -- / ----";
+    // DOB: prefer form profile birth field, fall back to payment dob
+    const dobDisplay = (formProfileData?.birth || dobRaw)
+      ? formatDate(formProfileData?.birth || dobRaw)
+      : "-- / -- / ----";
 
     return {
       initials: initialsFrom(name, handle),
+      photoUrl: formProfileData?.photoUrl ?? null,
       name,
       handle,
       statusBadges,
@@ -146,7 +163,7 @@ export default function StudentDashboard() {
       paymentStatus: "Paid" as const, // dummy (unchanged)
       accountStatus,                  // real (status)
     };
-  }, [uName, uEmail, uStatus, uCreatedAt, uVerified, orgName, dobRaw]);
+  }, [uName, uEmail, uStatus, uCreatedAt, uVerified, orgName, dobRaw, formProfileData]);
 
   const quickStats: QuickStat[] = [
     { id: "s1", label: "Total Courses", value: "12", iconClass: "fas fa-book", iconBg: "bg-blue-100", iconColor: "text-blue-600", valueColor: "text-blue-600" },
@@ -187,6 +204,7 @@ return (
             <div className="lg:col-span-2 space-y-6">
               <ProfileInfoCard
                 initials={profile.initials}
+                photoUrl={profile.photoUrl}
                 name={profile.name}
                 handle={profile.handle}
                 statusBadges={profile.statusBadges}
