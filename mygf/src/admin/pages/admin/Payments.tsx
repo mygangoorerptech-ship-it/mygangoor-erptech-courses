@@ -6,6 +6,7 @@ import { listPayments, refundPayment, createOfflinePayment, verifyPayment } from
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
+import AssignTeachersModal from '../../features/payments/AssignTeachersModal'
 import OfflinePaymentModal from '../../features/payments/OfflinePaymentModal'
 import {
   RotateCcw,
@@ -390,6 +391,7 @@ export default function ADPayments() {
 
                 <th className="text-left font-medium p-3 w-[220px]">
                   Assigned Teachers
+                  <div className="text-[11px] font-normal text-slate-400 mt-0.5">Manage via row click</div>
                 </th>
 
                 <th className="text-left font-medium p-3">
@@ -441,7 +443,7 @@ export default function ADPayments() {
                   </td>
 
                   <td className="p-3 break-words max-w-[220px]">
-                    {p.studentEmail || p.student?.email || '—'}
+                    {p.studentName || p.student?.name || p.studentEmail || p.student?.email || '—'}
                   </td>
 
                   {/* CENTER */}
@@ -466,6 +468,7 @@ export default function ADPayments() {
                           <button
                             type="button"
                             onClick={() => setTeacherModal(p)}
+                            title="Edit teacher assignments"
                             className="
             text-left
             w-full
@@ -489,9 +492,18 @@ export default function ADPayments() {
                           </button>
                         )
                         : (
-                          <span className="text-slate-400">
-                            —
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditCenterAssignments([{ centerId: actorOrgId, teacherIds: [], teacherId: '' }])
+                              setTeacherEditMode(true)
+                              setTeacherModal(p)
+                            }}
+                            title="Assign a teacher to this enrollment"
+                            className="text-xs text-indigo-500 border border-dashed border-indigo-200 rounded px-2 py-1 hover:bg-indigo-50 hover:border-indigo-400 transition"
+                          >
+                            Assign
+                          </button>
                         )
                     }
                   </td>
@@ -797,7 +809,7 @@ export default function ADPayments() {
         }}
       />
 
-      <Modal
+      <AssignTeachersModal
         open={!!teacherModal}
         onClose={() => {
           setTeacherModal(null)
@@ -874,8 +886,10 @@ export default function ADPayments() {
                     editCenterAssignments.map((assignment) => {
                       const centerId = assignment.centerId
                       const isExternal = centerId !== actorOrgId
-                      const centerName = (teacherModal.courseTeacherAssignments || [])
-                        .find((a) => a.centerId === centerId)?.centerName || centerId
+                      const existingCenterName = (teacherModal.courseTeacherAssignments || [])
+                        .find((a: { centerId: string; centerName?: string | null }) => a.centerId === centerId)?.centerName
+                      const centerName = existingCenterName
+                        || (centerId === actorOrgId ? teacherModal.orgName || centerId : centerId)
                       const selected = assignment.teacherIds || []
                       const options = teachersByCenterEdit[centerId] || []
                       const isOpen = openEditDropdown === centerId
@@ -962,7 +976,7 @@ export default function ADPayments() {
             )}
           </div>
         )}
-      </Modal>
+      </AssignTeachersModal>
     </div>
   )
 }

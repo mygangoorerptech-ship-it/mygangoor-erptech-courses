@@ -229,6 +229,7 @@ async function sanitize(p) {
           : null,
     studentId,
     studentEmail,
+    studentName: (o?.studentId && typeof o.studentId === 'object' ? o.studentId.name : null) || null,
     receiptNo: o.receiptNo || null,
     referenceId: o.referenceId || null,
     notes: o.notes || null,
