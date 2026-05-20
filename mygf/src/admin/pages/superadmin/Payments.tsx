@@ -382,6 +382,7 @@ export default function SAPayments() {
 
                 <th className="text-left font-medium p-3 min-w-[180px]">
                   Assigned Teachers
+                  <div className="text-[11px] font-normal text-slate-400 mt-0.5">Manage via row click</div>
                 </th>
 
                 <th className="text-left font-medium p-3">Amount</th>
@@ -424,7 +425,7 @@ export default function SAPayments() {
                   </td>
 
                   <td className="p-3 break-words max-w-[220px]">
-                    {p.studentEmail || p.student?.email || '—'}
+                    {p.studentName || p.studentEmail || p.student?.email || '—'}
                   </td>
 
                   {/* NEW CENTER COLUMN */}
@@ -449,6 +450,7 @@ export default function SAPayments() {
                           <button
                             type="button"
                             onClick={() => setTeacherModal(p)}
+                            title="Edit teacher assignments"
                             className="
             text-left
             w-full
@@ -472,9 +474,14 @@ export default function SAPayments() {
                           </button>
                         )
                         : (
-                          <span className="text-slate-400">
-                            —
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setTeacherModal(p)}
+                            title="Assign a teacher to this enrollment"
+                            className="text-xs text-indigo-500 border border-dashed border-indigo-200 rounded px-2 py-1 hover:bg-indigo-50 hover:border-indigo-400 transition"
+                          >
+                            Assign
+                          </button>
                         )
                     }
                   </td>
