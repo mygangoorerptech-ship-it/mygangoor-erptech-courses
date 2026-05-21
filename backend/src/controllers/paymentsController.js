@@ -79,7 +79,7 @@ async function resolveManagerId(orgId) {
   }
 }
 
-async function sanitize(p) {
+async function sanitize(p, enrollmentOrgMap = new Map()) {
   if (!p) return p;
   const o = p.toObject ? p.toObject() : p;
 
@@ -214,19 +214,16 @@ async function sanitize(p) {
         : [],
 
     orgName:
-      o?.orgId &&
-        typeof o.orgId === "object" &&
-        "name" in o.orgId
+      // Tier 1: direct payment.orgId (populated)
+      (o?.orgId && typeof o.orgId === "object" && "name" in o.orgId)
         ? o.orgId.name || null
-        : (
-          o?.courseId &&
-          typeof o.courseId === "object" &&
-          o.courseId?.orgId &&
-          typeof o.courseId.orgId === "object" &&
-          "name" in o.courseId.orgId
-        )
-          ? o.courseId.orgId.name || null
-          : null,
+      // Tier 2: course owner org (populated via nested populate)
+      : (o?.courseId && typeof o.courseId === "object" &&
+         o.courseId?.orgId && typeof o.courseId.orgId === "object" &&
+         "name" in o.courseId.orgId)
+        ? o.courseId.orgId.name || null
+      // Tier 3: enrollment-based fallback for payments where orgId was never set
+      : enrollmentOrgMap.get(String(o._id)) || null,
     studentId,
     studentEmail,
     studentName: (o?.studentId && typeof o.studentId === 'object' ? o.studentId.name : null) || null,
@@ -1265,10 +1262,13 @@ export async function refund(req, res) {
 // GET /sa/payments  (superadmin — cross-org listing)
 export async function listAll(req, res) {
   try {
-    const { q, status, type, broken } = req.query || {};
+    const { q, status, type, broken, orgId } = req.query || {};
     const and = [];
     if (status && String(status).toLowerCase() !== "all") and.push({ status: String(status).toLowerCase() });
     if (type && String(type).toLowerCase() !== "all") and.push({ type: String(type).toLowerCase() });
+    if (orgId && String(orgId).toLowerCase() !== "all" && isOid(orgId)) {
+      and.push({ orgId: new Types.ObjectId(String(orgId)) });
+    }
     if (q) {
       const rx = {
         $regex: safeRegex(q),
@@ -1306,9 +1306,27 @@ export async function listAll(req, res) {
       .populate("orgId", "name")
       .sort({ createdAt: -1 })
       .lean();
+
+    // Batch-resolve orgId for payments where payment.orgId was never set (old/manual/global records)
+    const nullOrgDocs = (docs || []).filter(d => !d.orgId);
+    const enrollmentOrgMap = new Map();
+    if (nullOrgDocs.length > 0) {
+      const enrollments = await Enrollment.find({
+        paymentId: { $in: nullOrgDocs.map(d => d._id) },
+      })
+        .populate("orgId", "name")
+        .select("paymentId orgId")
+        .lean();
+      for (const e of enrollments) {
+        if (e.orgId && typeof e.orgId === "object" && e.orgId.name) {
+          enrollmentOrgMap.set(String(e.paymentId), e.orgId.name);
+        }
+      }
+    }
+
     return res.json(
       await Promise.all(
-        (docs || []).map(sanitize)
+        (docs || []).map(d => sanitize(d, enrollmentOrgMap))
       )
     );
   } catch (e) {

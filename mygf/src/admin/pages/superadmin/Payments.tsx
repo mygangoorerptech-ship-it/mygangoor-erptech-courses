@@ -19,6 +19,7 @@ import {
 import toast from 'react-hot-toast'
 import { updateSaCourse } from '../../api/saCourses'
 import { listSaUsers } from '../../api/saUsers'
+import { listOrganizations } from '../../api/organizations'
 
 type PaymentStatus =
   | 'pending_verification'
@@ -27,11 +28,11 @@ type PaymentStatus =
   | 'refunded'
   | 'rejected'
   | 'reconciled'
-type Filters = { q?: string; status: 'all' | PaymentStatus }
+type Filters = { q?: string; status: 'all' | PaymentStatus; orgId: 'all' | string }
 
 export default function SAPayments() {
   const qc = useQueryClient()
-  const [filters, setFilters] = useState<Filters>({ q: '', status: 'all' })
+  const [filters, setFilters] = useState<Filters>({ q: '', status: 'all', orgId: 'all' })
   const [openOffline, setOpenOffline] = useState(false)
   const [target, setTarget] = useState<any | null>(null)
   const [teacherModal, setTeacherModal] = useState<any | null>(null)
@@ -46,7 +47,16 @@ export default function SAPayments() {
   const [openEditDropdown, setOpenEditDropdown] = useState<string | null>(null)
   const [savingTeachers, setSavingTeachers] = useState(false)
   const editDropdownRef = useRef<HTMLDivElement>(null)
-  const query = useQuery({ queryKey: ['sa-payments', filters], queryFn: () => listSaPayments({ q: filters.q || undefined, status: filters.status }) })
+  const orgsQuery = useQuery({ queryKey: ['sa-orgs'], queryFn: () => listOrganizations({ status: 'active', limit: 200 }), staleTime: 5 * 60 * 1000 })
+  const orgs = orgsQuery.data?.items ?? []
+  const query = useQuery({
+    queryKey: ['sa-payments', filters],
+    queryFn: () => listSaPayments({
+      q: filters.q || undefined,
+      status: filters.status,
+      orgId: filters.orgId !== 'all' ? filters.orgId : undefined,
+    })
+  })
   const rows = query.data ?? []
 
   const refundMut = useMutation({
@@ -269,7 +279,7 @@ export default function SAPayments() {
 
   return (
     <div className="space-y-4 w-full min-w-0">
-      <header className="grid gap-3 md:grid-cols-5">
+      <header className="grid gap-3 md:grid-cols-6">
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
           <div className="relative">
@@ -317,6 +327,18 @@ export default function SAPayments() {
             <option value="reconciled">
               Reconciled
             </option>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Organization</Label>
+          <Select
+            value={filters.orgId}
+            onChange={e => setFilters(f => ({ ...f, orgId: e.target.value }))}
+          >
+            <option value="all">All</option>
+            {orgs.map(o => (
+              <option key={o._id} value={o._id}>{o.name}</option>
+            ))}
           </Select>
         </div>
         <div className="flex items-end justify-end md:col-span-2 gap-2">

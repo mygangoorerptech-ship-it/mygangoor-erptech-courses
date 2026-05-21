@@ -48,7 +48,7 @@ export async function claimReceipt(payload: {
   return r.data;
 }
 
-export async function listSaPayments(params?: { q?: string; status?: string; type?: string }){
+export async function listSaPayments(params?: { q?: string; status?: string; type?: string; orgId?: string }){
   const r = await api.get('/sa/payments', { params })
   return r.data || []
 }

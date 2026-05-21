@@ -9,13 +9,26 @@ import Enrollment from "../models/Enrollment.js";
 import { safeRegex } from "../utils/safeRegex.js";
 
 function canSeeAll(actor) { return actor?.role === "superadmin"; }
-function scopeMatch(actor) {
+
+// Mirror paymentsController.list() broad-OR scope so Orders visibility matches Payments visibility.
+// Admin/teacher see orders for: payments in their org + students in their org + courses they own.
+async function scopeMatch(actor) {
   if (canSeeAll(actor)) return {};
   if (actor?.role === "admin" || actor?.role === "teacher") {
     let orgId = actor.orgId;
     if (orgId && typeof orgId === "object" && orgId._id) orgId = orgId._id;
     try { orgId = new Types.ObjectId(String(orgId)); } catch { return { _id: null }; }
-    return { orgId };
+    const [studentIds, courseIds] = await Promise.all([
+      User.find({ orgId }).distinct("_id"),
+      Course.find({ orgId }).distinct("_id"),
+    ]);
+    return {
+      $or: [
+        { orgId },
+        { studentId: { $in: studentIds } },
+        { courseId:  { $in: courseIds  } },
+      ]
+    };
   }
   return { _id: null };
 }
@@ -29,8 +42,9 @@ export async function list(req, res) {
     const dateFrom = req.query?.dateFrom; // "YYYY-MM-DD"
     const dateTo = req.query?.dateTo;
 
+    const scope = await scopeMatch(actor);
     const match = {
-      ...scopeMatch(actor),
+      ...scope,
       providerOrderId: { $exists: true, $ne: null },     // treat anything with an order id as an Order
     };
     if (method !== "all") match.method = method;
@@ -141,10 +155,11 @@ export async function getOne(req, res) {
     if (!orderId) return res.status(400).json({ ok: false });
 
     // scope to org (unless superadmin)
-    const scope = scopeMatch(actor); // {} | {orgId} | {_id:null}
+    const scope = await scopeMatch(actor); // {} | {$or:[...]} | {_id:null}
     const and = [{ providerOrderId: orderId }];
-    if (scope.orgId) and.push({ orgId: scope.orgId });
-    if (Object.prototype.hasOwnProperty.call(scope, "_id")) and.push(scope); // {_id:null} => match none
+    if (scope.$or) and.push({ $or: scope.$or });
+    else if (scope.orgId) and.push({ orgId: scope.orgId });
+    else if (Object.prototype.hasOwnProperty.call(scope, "_id")) and.push(scope); // {_id:null} => match none
 
     // gather all payments for this order
     const pays = await Payment.find({ $and: and }).sort({ createdAt: 1 }).lean();
@@ -243,9 +258,12 @@ export async function refund(req, res) {
     const amount = Math.max(0, Number(req.body?.amount || 0)); // paise
     const reason = (req.body?.reason || "").toString();
 
-    // pick a captured payment for this order + org scoping
+    // pick a captured payment for this order + org scoping (mirrors list() scope)
+    const scope = await scopeMatch(actor);
     const and = [{ providerOrderId: orderId, status: "captured" }];
-    if (actor?.role !== "superadmin") and.push({ orgId: actor.orgId });
+    if (scope.$or) and.push({ $or: scope.$or });
+    else if (scope.orgId) and.push({ orgId: scope.orgId });
+    else if (Object.prototype.hasOwnProperty.call(scope, "_id")) and.push(scope);
     const pay = await Payment.findOne({ $and: and }).lean();
     if (!pay) return res.status(404).json({ ok: false, message: "no captured payment for refund" });
 
