@@ -79,7 +79,12 @@ async function resolveManagerId(orgId) {
   }
 }
 
-async function sanitize(p, enrollmentOrgMap = new Map()) {
+async function sanitize(p, enrollmentOrgMap) {
+  const orgMap =
+    enrollmentOrgMap instanceof Map
+      ? enrollmentOrgMap
+      : new Map();
+
   if (!p) return p;
   const o = p.toObject ? p.toObject() : p;
 
@@ -217,13 +222,13 @@ async function sanitize(p, enrollmentOrgMap = new Map()) {
       // Tier 1: direct payment.orgId (populated)
       (o?.orgId && typeof o.orgId === "object" && "name" in o.orgId)
         ? o.orgId.name || null
-      // Tier 2: course owner org (populated via nested populate)
-      : (o?.courseId && typeof o.courseId === "object" &&
-         o.courseId?.orgId && typeof o.courseId.orgId === "object" &&
-         "name" in o.courseId.orgId)
-        ? o.courseId.orgId.name || null
-      // Tier 3: enrollment-based fallback for payments where orgId was never set
-      : enrollmentOrgMap.get(String(o._id)) || null,
+        // Tier 2: course owner org (populated via nested populate)
+        : (o?.courseId && typeof o.courseId === "object" &&
+          o.courseId?.orgId && typeof o.courseId.orgId === "object" &&
+          "name" in o.courseId.orgId)
+          ? o.courseId.orgId.name || null
+          // Tier 3: enrollment-based fallback for payments where orgId was never set
+          : orgMap.get(String(o._id))?.name || null,
     studentId,
     studentEmail,
     studentName: (o?.studentId && typeof o.studentId === 'object' ? o.studentId.name : null) || null,
@@ -262,9 +267,9 @@ export async function list(req, res) {
 
     let mainFilter;
     if (actor.role === "teacher") {
-      const actorId    = actor._id || actor.id || actor.sub;
+      const actorId = actor._id || actor.id || actor.sub;
       const actorIdStr = String(actorId);
-      const orgIdStr   = String(actor.orgId);
+      const orgIdStr = String(actor.orgId);
       const teacherCourseIds = await Course.find({
         $or: [
           { teacherId: actorIdStr },
@@ -273,8 +278,8 @@ export async function list(req, res) {
             centerTeacherAssignments: {
               $elemMatch: {
                 $or: [
-                  { centerId: orgIdStr,                              teacherId: actorIdStr },
-                  { centerId: new Types.ObjectId(orgIdStr),         teacherId: new Types.ObjectId(actorIdStr) },
+                  { centerId: orgIdStr, teacherId: actorIdStr },
+                  { centerId: new Types.ObjectId(orgIdStr), teacherId: new Types.ObjectId(actorIdStr) },
                 ]
               }
             }
@@ -284,7 +289,7 @@ export async function list(req, res) {
       mainFilter = { courseId: { $in: teacherCourseIds } };
     } else {
       const studentIds = await User.find({ orgId }).distinct("_id");
-      const courseIds  = await Course.find({ orgId }).distinct("_id");
+      const courseIds = await Course.find({ orgId }).distinct("_id");
       mainFilter = {
         $or: [
           // payments belonging to org
@@ -292,7 +297,7 @@ export async function list(req, res) {
           // student of org purchased elsewhere
           { studentId: { $in: studentIds } },
           // course owned by org
-          { courseId:  { $in: courseIds  } },
+          { courseId: { $in: courseIds } },
         ],
       };
     }
@@ -1106,7 +1111,7 @@ export async function verify(req, res) {
     const populated =
       await Payment.findById(finalDoc._id)
 
-        .populate("studentId", "email")
+        .populate("studentId", "email name")
 
         .populate({
           path: "courseId",
@@ -1166,7 +1171,7 @@ export async function reject(req, res) {
       { $set: { status: "rejected" } },
       { new: true }
     )
-      .populate("studentId", "email")
+      .populate("studentId", "email name")
 
       .populate({
         path: "courseId",
@@ -1226,7 +1231,7 @@ export async function refund(req, res) {
       { $set: { status: "refunded" } },
       { new: true }
     )
-      .populate("studentId", "email")
+      .populate("studentId", "email name")
 
       .populate({
         path: "courseId",
@@ -1266,8 +1271,15 @@ export async function listAll(req, res) {
     const and = [];
     if (status && String(status).toLowerCase() !== "all") and.push({ status: String(status).toLowerCase() });
     if (type && String(type).toLowerCase() !== "all") and.push({ type: String(type).toLowerCase() });
-    if (orgId && String(orgId).toLowerCase() !== "all" && isOid(orgId)) {
-      and.push({ orgId: new Types.ObjectId(String(orgId)) });
+    let requestedOrgId = null;
+
+    if (
+      orgId &&
+      String(orgId).toLowerCase() !== "all" &&
+      isOid(orgId)
+    ) {
+      requestedOrgId =
+        new Types.ObjectId(String(orgId));
     }
     if (q) {
       const rx = {
@@ -1310,6 +1322,41 @@ export async function listAll(req, res) {
     // Batch-resolve orgId for payments where payment.orgId was never set (old/manual/global records)
     const nullOrgDocs = (docs || []).filter(d => !d.orgId);
     const enrollmentOrgMap = new Map();
+    let filteredDocs = docs || [];
+
+    if (requestedOrgId) {
+      const requestedOrgIdStr =
+        String(requestedOrgId);
+
+      filteredDocs =
+        filteredDocs.filter((d) => {
+
+          // Tier 1:
+          // direct payment org
+          if (d?.orgId) {
+            const paymentOrgId =
+              String(toId(d.orgId));
+
+            if (paymentOrgId === requestedOrgIdStr) {
+              return true;
+            }
+          }
+
+          // Tier 2:
+          // enrollment fallback org
+          const enrollmentOrgName =
+            enrollmentOrgMap.get(String(d._id));
+
+          if (
+            enrollmentOrgName &&
+            d?.courseId?.orgId?.name === enrollmentOrgName
+          ) {
+            return true;
+          }
+
+          return false;
+        });
+    }
     if (nullOrgDocs.length > 0) {
       const enrollments = await Enrollment.find({
         paymentId: { $in: nullOrgDocs.map(d => d._id) },
@@ -1319,14 +1366,22 @@ export async function listAll(req, res) {
         .lean();
       for (const e of enrollments) {
         if (e.orgId && typeof e.orgId === "object" && e.orgId.name) {
-          enrollmentOrgMap.set(String(e.paymentId), e.orgId.name);
+          enrollmentOrgMap.set(
+            String(e.paymentId),
+            {
+              id: String(e.orgId._id),
+              name: e.orgId.name,
+            }
+          );
         }
       }
     }
 
     return res.json(
       await Promise.all(
-        (docs || []).map(d => sanitize(d, enrollmentOrgMap))
+        filteredDocs.map(d =>
+          sanitize(d, enrollmentOrgMap)
+        )
       )
     );
   } catch (e) {
