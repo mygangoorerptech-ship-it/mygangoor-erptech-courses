@@ -349,7 +349,27 @@ export async function list(req, res) {
       .sort({ createdAt: -1 })
       .lean();
 
-    const sanitized = await Promise.all((docs || []).map(sanitize));
+    const nullOrgDocs = (docs || []).filter((d) => !toId(d?.orgId));
+    const enrollmentOrgMap = new Map();
+
+    if (nullOrgDocs.length > 0) {
+      const enrollments = await Enrollment.find({
+        paymentId: { $in: nullOrgDocs.map(d => d._id) },
+      })
+        .populate("orgId", "name")
+        .select("paymentId orgId")
+        .lean();
+      for (const e of enrollments) {
+        if (e.orgId && typeof e.orgId === "object" && e.orgId.name) {
+          enrollmentOrgMap.set(
+            String(e.paymentId),
+            { id: String(e.orgId._id), name: e.orgId.name }
+          );
+        }
+      }
+    }
+
+    const sanitized = await Promise.all((docs || []).map(d => sanitize(d, enrollmentOrgMap)));
 
     // Bulk-attach student form profiles so the UI can show join form
     // details even for offline payments where notes has no joinForm.
@@ -472,6 +492,12 @@ export async function createOffline(req, res) {
       // ignore malformed notes payload
     }
 
+    // Fallback: use course owner org if no enrollment center was specified
+    // Matches claimReceipt() behavior (line 671)
+    if (!resolvedOrgId && course?.orgId) {
+      resolvedOrgId = toId(course.orgId);
+    }
+
     // Prevent duplicate pending/captured offline payments
     const existingPayment = await Payment.findOne({
       studentId: toId(studentId),
@@ -514,7 +540,7 @@ export async function createOffline(req, res) {
       status: "pending_verification", // offline payments require verification
       amount: Math.floor(Number(amount)),
       currency: "INR",
-      orgId: resolvedOrgId || null,          // FIXED: course.orgId, not actor.orgId
+      orgId: resolvedOrgId || null,          // notes.orgId → course.orgId → null
       courseId: toId(courseId),
       studentId: toId(studentId),
       receiptNo: receiptNo || undefined,

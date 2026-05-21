@@ -9,7 +9,7 @@ export interface Payment {
   status: PaymentStatus;
   amount: number;             // paise
   currency: string;           // "INR"
-  orgId: string;
+  orgId?: string | null;
   courseId: string;
   studentId?: string | null;
   receiptNo?: string | null;
@@ -27,4 +27,18 @@ export interface Payment {
   studentEmail?: string | null;
   studentName?: string | null;
   courseTitle?: string | null;
+  orgName?: string | null;
+  courseTeacherAssignments?: Array<{
+    centerId: string | null;
+    centerName: string | null;
+    teacherId?: string | null;
+    teacherIds?: string[];
+    teacherNames?: string[];
+    teacherName?: string | null;
+    teacherEmail?: string | null;
+  }>;
+  needsEnrollment?: boolean;
+  enrollmentRetryCount?: number;
+  lastEnrollmentError?: string | null;
+  lastEnrollmentRetryAt?: string | null;
 }
