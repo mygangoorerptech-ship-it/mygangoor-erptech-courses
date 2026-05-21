@@ -8,6 +8,7 @@ import Organization from "../models/Organization.js";
 import { ensureEnrollment } from "../services/enrollmentService.js";
 import { upsertFormProfileInternal } from "./studentFormProfileController.js";
 import Enrollment from "../models/Enrollment.js";
+import CourseAssignment from "../models/CourseAssignment.js";
 
 const isOid = (v) => mongoose.isValidObjectId(v);
 
@@ -99,7 +100,19 @@ export async function createOrder(req, res) {
     if (!course) return res.status(404).json({ ok: false, message: "course not found" });
 
     // Authoritative orgId comes from the course record (non-negotiable)
-    const orgId = course.orgId ? String(course.orgId) : null;
+    let orgId = course.orgId ? String(course.orgId) : null;
+
+    // For global courses (course.orgId = null), accept the student's selected center
+    // if it is an active CourseAssignment. Mirrors createOffline()'s notes.orgId logic.
+    if (!orgId && isOid(req.body.orgId)) {
+      const assignment = await CourseAssignment.findOne({
+        courseId: course._id,
+        centerId: toId(req.body.orgId),
+        isActive: true,
+      }).lean();
+      if (assignment) orgId = String(req.body.orgId);
+    }
+
     const managerId = orgId ? await resolveManagerId(orgId) : null;
 
     // Course.price is stored in paise (integer). Keep as-is for Razorpay: 

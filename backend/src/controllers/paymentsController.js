@@ -1348,6 +1348,28 @@ export async function listAll(req, res) {
     // Batch-resolve orgId for payments where payment.orgId was never set (old/manual/global records)
     const nullOrgDocs = (docs || []).filter(d => !d.orgId);
     const enrollmentOrgMap = new Map();
+
+    // Populate map BEFORE the requestedOrgId filter so Tier 2 (enrollment fallback) is available
+    if (nullOrgDocs.length > 0) {
+      const enrollments = await Enrollment.find({
+        paymentId: { $in: nullOrgDocs.map(d => d._id) },
+      })
+        .populate("orgId", "name")
+        .select("paymentId orgId")
+        .lean();
+      for (const e of enrollments) {
+        if (e.orgId && typeof e.orgId === "object" && e.orgId.name) {
+          enrollmentOrgMap.set(
+            String(e.paymentId),
+            {
+              id: String(e.orgId._id),
+              name: e.orgId.name,
+            }
+          );
+        }
+      }
+    }
+
     let filteredDocs = docs || [];
 
     if (requestedOrgId) {
@@ -1375,32 +1397,13 @@ export async function listAll(req, res) {
 
           if (
             enrollmentOrgName &&
-            d?.courseId?.orgId?.name === enrollmentOrgName
+            enrollmentOrgName.id === requestedOrgIdStr
           ) {
             return true;
           }
 
           return false;
         });
-    }
-    if (nullOrgDocs.length > 0) {
-      const enrollments = await Enrollment.find({
-        paymentId: { $in: nullOrgDocs.map(d => d._id) },
-      })
-        .populate("orgId", "name")
-        .select("paymentId orgId")
-        .lean();
-      for (const e of enrollments) {
-        if (e.orgId && typeof e.orgId === "object" && e.orgId.name) {
-          enrollmentOrgMap.set(
-            String(e.paymentId),
-            {
-              id: String(e.orgId._id),
-              name: e.orgId.name,
-            }
-          );
-        }
-      }
     }
 
     return res.json(
