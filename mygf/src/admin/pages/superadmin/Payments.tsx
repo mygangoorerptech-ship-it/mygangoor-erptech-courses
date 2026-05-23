@@ -28,11 +28,23 @@ type PaymentStatus =
   | 'refunded'
   | 'rejected'
   | 'reconciled'
-type Filters = { q?: string; status: 'all' | PaymentStatus; orgId: 'all' | string }
+type PaymentMethodFilter = 'all' | 'offline' | 'online'
+
+type Filters = {
+  q?: string
+  status: 'all' | PaymentStatus
+  orgId: 'all' | string
+  method: PaymentMethodFilter
+}
 
 export default function SAPayments() {
   const qc = useQueryClient()
-  const [filters, setFilters] = useState<Filters>({ q: '', status: 'all', orgId: 'all' })
+  const [filters, setFilters] = useState<Filters>({
+    q: '',
+    status: 'all',
+    orgId: 'all',
+    method: 'all',
+  })
   const [openOffline, setOpenOffline] = useState(false)
   const [target, setTarget] = useState<any | null>(null)
   const [teacherModal, setTeacherModal] = useState<any | null>(null)
@@ -54,7 +66,14 @@ export default function SAPayments() {
     queryFn: () => listSaPayments({
       q: filters.q || undefined,
       status: filters.status,
-      orgId: filters.orgId !== 'all' ? filters.orgId : undefined,
+      orgId: filters.orgId !== 'all'
+        ? filters.orgId
+        : undefined,
+
+      type:
+        filters.method === 'all'
+          ? undefined
+          : filters.method,
     })
   })
   const rows = query.data ?? []
@@ -330,6 +349,29 @@ export default function SAPayments() {
           </Select>
         </div>
         <div className="space-y-2">
+          <Label>Method</Label>
+
+          <Select
+            value={filters.method}
+            onChange={e =>
+              setFilters(f => ({
+                ...f,
+                method: e.target.value as PaymentMethodFilter,
+              }))
+            }
+          >
+            <option value="all">All</option>
+
+            <option value="offline">
+              Cash
+            </option>
+
+            <option value="online">
+              Razorpay
+            </option>
+          </Select>
+        </div>
+        <div className="space-y-2">
           <Label>Organization</Label>
           <Select
             value={filters.orgId}
@@ -409,6 +451,9 @@ export default function SAPayments() {
 
                 <th className="text-left font-medium p-3">Amount</th>
                 <th className="text-left font-medium p-3">Method</th>
+                <th className="text-left font-medium p-3 whitespace-nowrap">
+  Payment Type
+</th>
                 <th className="text-left font-medium p-3">Status</th>
                 <th className="text-left font-medium p-3 min-w-[140px]">
                   Actions
@@ -522,6 +567,25 @@ export default function SAPayments() {
                   </td>
 
                   <td className="p-3 whitespace-nowrap">
+  {(() => {
+    try {
+      if (!p.notes) return 'Full Payment'
+
+      const parsed =
+        typeof p.notes === 'string'
+          ? JSON.parse(p.notes)
+          : p.notes
+
+      return parsed?.mode === 'part'
+        ? 'Part Payment'
+        : 'Full Payment'
+    } catch {
+      return 'Full Payment'
+    }
+  })()}
+</td>
+
+                  <td className="p-3 whitespace-nowrap">
                     <span
                       className={
                         p.status === 'captured'
@@ -620,7 +684,7 @@ export default function SAPayments() {
                 <tr>
                   <td
                     className="p-6 text-center text-slate-500"
-                    colSpan={10}
+                    colSpan={11}
                   >
                     No payments
                   </td>

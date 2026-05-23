@@ -444,6 +444,10 @@ export default function ADPayments() {
                   Method
                 </th>
 
+                <th className="text-left font-medium p-3 whitespace-nowrap">
+  Payment Type
+</th>
+
                 <th className="text-left font-medium p-3">
                   Status
                 </th>
@@ -563,6 +567,25 @@ export default function ADPayments() {
                   </td>
 
                   <td className="p-3 whitespace-nowrap">
+  {(() => {
+    try {
+      if (!p.notes) return 'Full Payment'
+
+      const parsed =
+        typeof p.notes === 'string'
+          ? JSON.parse(p.notes)
+          : p.notes
+
+      return parsed?.mode === 'part'
+        ? 'Part Payment'
+        : 'Full Payment'
+    } catch {
+      return 'Full Payment'
+    }
+  })()}
+</td>
+
+                  <td className="p-3 whitespace-nowrap">
                     <span
                       className={
                         p.status === 'captured'
@@ -661,7 +684,7 @@ export default function ADPayments() {
                 <tr>
                   <td
                     className="p-6 text-center text-slate-500"
-                    colSpan={10}
+                    colSpan={11}
                   >
                     No payments
                   </td>
