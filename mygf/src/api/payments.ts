@@ -2,7 +2,7 @@
 import { api } from './client';
 import type { Payment } from '../types/payment';
 
-export async function listPayments(params?: { orgId?: string; q?: string; status?: string; type?: string }): Promise<Payment[]> {
+export async function listPayments(params?: { orgId?: string; q?: string; status?: string; type?: string; method?: string; }): Promise<Payment[]> {
   const r = await api.get('/payments', { params });
   return r.data || [];
 }

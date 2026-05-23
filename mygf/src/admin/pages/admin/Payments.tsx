@@ -28,11 +28,21 @@ type PaymentStatus =
   | 'refunded'
   | 'rejected'
   | 'reconciled'
-type Filters = { q?: string; status: 'all' | PaymentStatus }
+type PaymentMethodFilter = 'all' | 'offline' | 'online'
+
+type Filters = {
+  q?: string
+  status: 'all' | PaymentStatus
+  method: PaymentMethodFilter
+}
 
 export default function ADPayments() {
   const qc = useQueryClient()
-  const [filters, setFilters] = useState<Filters>({ q: '', status: 'all' })
+  const [filters, setFilters] = useState<Filters>({
+    q: '',
+    status: 'all',
+    method: 'all',
+  })
   const [target, setTarget] = useState<any | null>(null)
   const [teacherModal, setTeacherModal] = useState<any | null>(null)
   const [openOffline, setOpenOffline] = useState(false)
@@ -50,7 +60,15 @@ export default function ADPayments() {
 
   const query = useQuery({
     queryKey: ['admin-payments', filters],
-    queryFn: () => listPayments({ q: filters.q || undefined, status: filters.status })
+    queryFn: () =>
+      listPayments({
+        q: filters.q || undefined,
+        status: filters.status,
+        type:
+          filters.method === 'all'
+            ? undefined
+            : filters.method,
+      })
   })
 
   const refundMut = useMutation({
@@ -278,7 +296,7 @@ export default function ADPayments() {
 
   return (
     <div className="space-y-4 w-full min-w-0">
-      <header className="grid gap-3 md:grid-cols-5">
+      <header className="grid gap-3 md:grid-cols-6">
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
           <div className="relative">
@@ -325,6 +343,30 @@ export default function ADPayments() {
 
             <option value="reconciled">
               Reconciled
+            </option>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Method</Label>
+
+          <Select
+            value={filters.method}
+            onChange={e =>
+              setFilters(f => ({
+                ...f,
+                method: e.target.value as PaymentMethodFilter,
+              }))
+            }
+          >
+            <option value="all">All</option>
+
+            <option value="offline">
+              Cash
+            </option>
+
+            <option value="online">
+              Razorpay
             </option>
           </Select>
         </div>
