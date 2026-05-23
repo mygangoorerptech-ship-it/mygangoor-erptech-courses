@@ -26,7 +26,7 @@ async function scopeMatch(actor) {
       $or: [
         { orgId },
         { studentId: { $in: studentIds } },
-        { courseId:  { $in: courseIds  } },
+        { courseId: { $in: courseIds } },
       ]
     };
   }
@@ -52,8 +52,8 @@ export async function list(req, res) {
     if (["today", "yesterday", "older"].includes(preset)) {
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const todayEnd   = new Date(todayStart.getTime() + 86400000);
-      const yestStart  = new Date(todayStart.getTime() - 86400000);
+      const todayEnd = new Date(todayStart.getTime() + 86400000);
+      const yestStart = new Date(todayStart.getTime() - 86400000);
       if (preset === "today") {
         match.createdAt = { $gte: todayStart, $lt: todayEnd };
       } else if (preset === "yesterday") {
@@ -165,7 +165,31 @@ export async function getOne(req, res) {
     const pays = await Payment.find({ $and: and }).sort({ createdAt: 1 }).lean();
     if (!pays.length) return res.status(404).json({ ok: false });
 
+    // Parse first payment notes for pricing metadata (backward-safe — old records return null)
+    let pricingMeta = null;
+    try {
+      const rawNotes = pays[0]?.notes;
+      if (rawNotes) {
+        const n = JSON.parse(rawNotes);
+        if (n && typeof n === "object") {
+          pricingMeta = {
+            discountKind: n.discountKind || "none",
+            mode: n.mode || "full",
+            mrpPaise: n.mrpPaise ? Number(n.mrpPaise) : null,
+            salePaise: n.salePaise ? Number(n.salePaise) : null,
+            promoPaise: n.promoPaise ? Number(n.promoPaise) : null,
+            // online: totalPaise; cash: totalAmount (rupees) → normalize to paise
+            totalPaise: n.totalPaise
+              ? Number(n.totalPaise)
+              : (n.totalAmount ? Math.round(Number(n.totalAmount) * 100) : null),
+            partAmountPaise: n.partAmountPaise ? Number(n.partAmountPaise) : null,
+          };
+        }
+      }
+    } catch { /* ignore malformed notes */ }
+
     const first = pays[0];
+
     const last = pays[pays.length - 1];
     const anyCaptured = pays.some(p => p.status === "captured");
     const anyRefund = pays.some(p => p.status === "refunded");
@@ -234,9 +258,11 @@ export async function getOne(req, res) {
         status: enr.status,       // expect "premium"
         source: enr.source,
         createdAt: enr.createdAt
-      } : null
+      } : null,
+      pricingMeta,
     };
     return res.json(out);
+
   } catch (e) {
     console.error("[orders.getOne]", e);
     res.status(500).json({ ok: false });

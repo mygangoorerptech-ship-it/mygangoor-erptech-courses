@@ -5,11 +5,11 @@ import { getOrder } from '../../api/orders'
 import { formatINR } from '../../utils/format'
 import type { Order } from '../../types/order'
 
-export default function OrderInvoice(){
+export default function OrderInvoice() {
   const { id } = useParams()
   const q = useQuery<Order>({               // <- type the query
-    queryKey:['order', id],
-    queryFn: ()=> getOrder(id as string),
+    queryKey: ['order', id],
+    queryFn: () => getOrder(id as string),
     enabled: !!id
   })
   const o = q.data
@@ -72,9 +72,35 @@ export default function OrderInvoice(){
             ))}
           </tbody>
           <tfoot>
+            {/* MRP line — only for discounted online payments (pricingMeta populated by Patch 2) */}
+            {(o as any).pricingMeta?.mrpPaise &&
+              (o as any).pricingMeta.mrpPaise !== (o as any).pricingMeta?.totalPaise ? (
+              <tr>
+                <td colSpan={3} className="p-2 text-right text-slate-500">Course MRP</td>
+                <td className="p-2 text-right text-slate-500 line-through">{formatINR((o as any).pricingMeta.mrpPaise)}</td>
+              </tr>
+            ) : null}
+            {/* Discount line */}
+            {(o as any).pricingMeta?.promoPaise > 0 ? (
+              <tr>
+                <td colSpan={3} className="p-2 text-right text-emerald-700">
+                  Discount ({(o as any).pricingMeta.discountKind})
+                </td>
+                <td className="p-2 text-right text-emerald-700">- {formatINR((o as any).pricingMeta.promoPaise)}</td>
+              </tr>
+            ) : null}
             <tr><td colSpan={3} className="p-2 text-right">Subtotal</td><td className="p-2 text-right">{formatINR(o.subtotal)}</td></tr>
             <tr><td colSpan={3} className="p-2 text-right">Tax</td><td className="p-2 text-right">{formatINR(o.tax)}</td></tr>
-            <tr><td colSpan={3} className="p-2 text-right font-semibold">Total</td><td className="p-2 text-right font-semibold">{formatINR(o.total)}</td></tr>
+            <tr><td colSpan={3} className="p-2 text-right font-semibold">Amount Paid</td><td className="p-2 text-right font-semibold">{formatINR(o.total)}</td></tr>
+            {/* Remaining balance for part payments */}
+            {(o as any).pricingMeta?.mode === 'part' && (o as any).pricingMeta?.totalPaise ? (
+              <tr>
+                <td colSpan={3} className="p-2 text-right text-amber-700">Remaining Balance</td>
+                <td className="p-2 text-right text-amber-700">
+                  {formatINR(Math.max(0, (o as any).pricingMeta.totalPaise - o.total))}
+                </td>
+              </tr>
+            ) : null}
             {refunded > 0 && (
               <tr>
                 <td colSpan={3} className="p-2 text-right text-red-700">Refunded</td>
@@ -82,6 +108,7 @@ export default function OrderInvoice(){
               </tr>
             )}
           </tfoot>
+
         </table>
       </section>
 

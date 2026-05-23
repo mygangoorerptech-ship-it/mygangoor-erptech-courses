@@ -299,9 +299,10 @@ export default function JoinNowModal({
         orgId: selectedOrgId ?? user.orgId ?? undefined,
         discountKind,
         couponCode,
-        mode,
-        partAmount: mode === "part" ? Number(partAmount) || 0 : undefined,
+        mode: "full",      // online is always full — part payment is cash-only
+        partAmount: undefined,
       });
+
       if (!order?.ok) throw new Error("order create failed");
       setOrderId(order.orderId);
 
@@ -424,10 +425,10 @@ export default function JoinNowModal({
         referenceId?.trim() || undefined;
 
       // Require at least one identifier
-      if (!cleanReceiptNo && !cleanReferenceId) {
-        alert("Receipt number or reference ID is required.");
-        return;
-      }
+      // if (!cleanReceiptNo && !cleanReferenceId) {
+      //   alert("Receipt number or reference ID is required.");
+      //   return;
+      // }
 
       const notePayload = {
         method: "cash",
@@ -438,6 +439,7 @@ export default function JoinNowModal({
           mode === "part"
             ? Number(partAmount) || 0
             : null,
+        totalAmount: total,
 
         joinForm: {
           fullName: fullName.trim(),
@@ -573,7 +575,7 @@ export default function JoinNowModal({
     if (!savedProfile && !photo) errors.photo = "Please upload a profile photo.";
   }
   if (step === 3) {
-    if (mode === "part") {
+    if (mode === "part" && method === "cash") {
       const amt = Number(partAmount);
       if (!amt || amt < Math.ceil(total * 0.2) || amt > total) {
         errors.partAmount = `Part payment must be between 20% and 100% of ₹${total}.`;

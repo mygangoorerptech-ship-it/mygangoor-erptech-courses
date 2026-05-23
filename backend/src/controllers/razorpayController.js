@@ -191,7 +191,18 @@ export async function createOrder(req, res) {
       studentId: new ObjectId(String(actor._id || actor.sub || actor.id)),
       provider: "razorpay",
       managerId: managerId || null,
-      notes: JSON.stringify({ discountKind: discountKind || "none", couponCode: couponCode || null }),
+      notes: JSON.stringify({
+        discountKind: discountKind || "none",
+        couponCode: couponCode || null,
+        mrpPaise,
+        salePaise,
+        promoPaise,
+        totalPaise,
+        payablePaise,
+        mode: mode || "full",
+        partAmountPaise: mode === "part" ? payablePaise : null,
+      }),
+
     });
 
     // Create Razorpay order via basic auth fetch (no extra deps)

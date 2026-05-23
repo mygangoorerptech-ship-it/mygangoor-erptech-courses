@@ -714,6 +714,38 @@ export default function SAPayments() {
                 )
               }
 
+              // Payment breakdown from notes metadata (backward-safe: old records render nothing here)
+              const paidPaise = target.amount || 0;
+              const isOnline = target.type === 'online';
+              const totalPaise = isOnline
+                ? (Number(form.totalPaise) || 0)
+                : (Number(form.totalAmount) > 0 ? Math.round(Number(form.totalAmount) * 100) : 0);
+              const remainingPaise = form.mode === 'part' && totalPaise > 0
+                ? Math.max(0, totalPaise - paidPaise)
+                : 0;
+              const promoPaise = Number(form.promoPaise) || 0;
+
+              const payRows: [string, string][] = [];
+              if (isOnline && Number(form.mrpPaise) > 0) {
+                payRows.push(['Course MRP', `₹${(Number(form.mrpPaise) / 100).toFixed(2)}`]);
+              }
+              if (isOnline && Number(form.salePaise) > 0 && Number(form.salePaise) !== Number(form.mrpPaise)) {
+                payRows.push(['After Course Discount', `₹${(Number(form.salePaise) / 100).toFixed(2)}`]);
+              }
+              if (promoPaise > 0) {
+                payRows.push([`Promo Discount (${form.discountKind || 'promo'})`, `-₹${(promoPaise / 100).toFixed(2)}`]);
+              }
+              if (totalPaise > 0) {
+                payRows.push(['Total Payable', `₹${(totalPaise / 100).toFixed(2)}`]);
+              }
+              if (form.mode === 'part') {
+                payRows.push(['Payment Mode', 'Part Payment']);
+                payRows.push(['Paid Now', `₹${(paidPaise / 100).toFixed(2)}`]);
+                if (remainingPaise > 0) {
+                  payRows.push(['Remaining Balance', `₹${(remainingPaise / 100).toFixed(2)}`]);
+                }
+              }
+
               const f =
                 form?.joinForm &&
                   typeof form.joinForm === "object"
@@ -731,23 +763,41 @@ export default function SAPayments() {
               ];
 
               return (
-                <div className="mt-4 border-t pt-3">
-                  <div className="text-xs text-slate-500 mb-2 font-medium">
-                    Join Form Details
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {fields.map(([label, val]) =>
-                      val != null ? (
-                        <div key={label}>
-                          <div className="text-xs text-slate-500">{label}</div>
-                          <div className="text-sm">{String(val)}</div>
-                        </div>
-                      ) : null
-                    )}
-                  </div>
-                </div>
+                <>
+                  {payRows.length > 0 && (
+                    <div className="mt-4 border-t pt-3">
+                      <div className="text-xs text-slate-500 mb-2 font-medium">Payment Breakdown</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {payRows.map(([label, val]) => (
+                          <div key={label}>
+                            <div className="text-xs text-slate-500">{label}</div>
+                            <div className="text-sm font-medium">{val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {fields.some(([, val]) => val != null) && (
+                    <div className="mt-4 border-t pt-3">
+                      <div className="text-xs text-slate-500 mb-2 font-medium">
+                        Join Form Details
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {fields.map(([label, val]) =>
+                          val != null ? (
+                            <div key={label}>
+                              <div className="text-xs text-slate-500">{label}</div>
+                              <div className="text-sm">{String(val)}</div>
+                            </div>
+                          ) : null
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )
             })()}
+
             <div className="flex justify-end gap-2 pt-2">
               {target.status === 'captured' && (
                 <Button
@@ -851,10 +901,10 @@ export default function SAPayments() {
                           <td className="p-3 font-medium">
                             {Array.isArray(x.teacherNames) && x.teacherNames.length > 0
                               ? <ol className="list-decimal list-inside space-y-0.5">
-                                  {x.teacherNames.map((name: string, i: number) => (
-                                    <li key={i} className="text-sm">{name}</li>
-                                  ))}
-                                </ol>
+                                {x.teacherNames.map((name: string, i: number) => (
+                                  <li key={i} className="text-sm">{name}</li>
+                                ))}
+                              </ol>
                               : (x.teacherName || '—')
                             }
                           </td>

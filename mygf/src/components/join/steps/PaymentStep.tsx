@@ -87,6 +87,8 @@ export default function PaymentStep(props: {
         </div>
 
         {/* Discount chooser */}
+        {/* Discount chooser — coupon/refer hidden per business decision; logic/state preserved */}
+        {/*
         <div className="grid sm:grid-cols-3 gap-3 mt-4">
           <label className="CardRadio">
             <input
@@ -133,6 +135,8 @@ export default function PaymentStep(props: {
             </button>
           </div>
         )}
+        */}
+
 
         {discount > 0 && (
           <div className="mt-3 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg">
@@ -190,34 +194,40 @@ export default function PaymentStep(props: {
               />
               <span>Pay full ({formatINRFromPaise((total || 0) * 100)})</span>
             </label>
-            <label className="inline-flex items-center gap-2">
-              <input
-                type="radio"
-                name="mode"
-                className="Radio"
-                checked={mode === "part"}
-                onChange={() => setMode("part")}
-              />
-              <span>Part payment (min 20%)</span>
-            </label>
-            {mode === "part" && (
+            {/* Part payment — offline cash only; hidden for online per business decision */}
+            {method === "cash" && (
               <>
-                <input
-                  type="number"
-                  min={Math.ceil(total * 0.2)}
-                  max={total}
-                  value={partAmount}
-                  onChange={(e) => {
-                    const val = e.target.value ? Number(e.target.value) : "";
-                    if (val === "") setPartAmount("");
-                    else setPartAmount(Math.max(0, Math.min(val, total)));
-                  }}
-                  className="Input"
-                  placeholder={`Enter between ${formatINRFromPaise(Math.ceil(total * 0.2) * 100)} and ${formatINRFromPaise((total || 0) * 100)}`}
-                />
-                {errors.partAmount && <InlineError msg={errors.partAmount} />}
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="mode"
+                    className="Radio"
+                    checked={mode === "part"}
+                    onChange={() => setMode("part")}
+                  />
+                  <span>Part payment (min 20%)</span>
+                </label>
+                {mode === "part" && (
+                  <>
+                    <input
+                      type="number"
+                      min={Math.ceil(total * 0.2)}
+                      max={total}
+                      value={partAmount}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : "";
+                        if (val === "") setPartAmount("");
+                        else setPartAmount(Math.max(0, Math.min(val, total)));
+                      }}
+                      className="Input"
+                      placeholder={`Enter between ${formatINRFromPaise(Math.ceil(total * 0.2) * 100)} and ${formatINRFromPaise((total || 0) * 100)}`}
+                    />
+                    {errors.partAmount && <InlineError msg={errors.partAmount} />}
+                  </>
+                )}
               </>
             )}
+
             {props.method === "cash" && (
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="block">
