@@ -5,7 +5,24 @@ import type { UserStatus } from '../../types/user'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
-import { Crown, UserCog, UserPlus, Upload, Pencil, Trash2, CheckCircle2, XCircle, Loader2, Download, Eye, Mail, Phone, MapPin, Calendar } from 'lucide-react'
+import {
+  Crown,
+  UserCog,
+  UserPlus,
+  Upload,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Download,
+  Eye,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Camera,
+} from 'lucide-react'
 import type { AdminUser, AdminUserRole } from '../../api/adUsers'
 import { useAdUsers } from '../../store/adUsers'   // ← NEW
 import toast from 'react-hot-toast';
@@ -692,6 +709,9 @@ function UserDetailsModal({
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
 
+  const [previewImage, setPreviewImage] =
+  useState<string | null>(null)
+
   useEffect(() => {
     let mounted = true
 
@@ -747,14 +767,52 @@ function UserDetailsModal({
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
-                    {profile?.photoUrl ? (
-                      <img
-                        src={profile.photoUrl}
-                        alt={user?.name || 'User'}
-                        className="w-16 h-16 rounded-full object-cover border border-slate-200"
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                      />
-                    ) : (
+{profile?.photoUrl ? (
+  <button
+    type="button"
+    onClick={() => setPreviewImage(profile.photoUrl)}
+    className="relative group block"
+    title="View Profile Image"
+  >
+    <img
+      src={profile.photoUrl}
+      alt={user?.name || 'User'}
+      className="
+        w-16
+        h-16
+        rounded-full
+        object-cover
+        border
+        border-slate-200
+        transition
+        group-hover:opacity-90
+      "
+      onError={(e) => {
+        (e.target as HTMLImageElement).style.display = 'none';
+      }}
+    />
+
+    <div
+      className="
+        absolute
+        inset-0
+        rounded-full
+        bg-black/30
+        opacity-0
+        group-hover:opacity-100
+        transition
+        flex
+        items-center
+        justify-center
+      "
+    >
+      <Camera
+        size={16}
+        className="text-white"
+      />
+    </div>
+  </button>
+) : (
                       <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 text-xl font-semibold">
                         {(user?.name || user?.email || '?')[0].toUpperCase()}
                       </div>
@@ -882,6 +940,39 @@ function UserDetailsModal({
             )}
           </div>
         )}
+      </div>
+            {previewImage && (
+        <ImagePreviewModal
+          imageUrl={previewImage}
+          title={user?.name || 'Profile Image'}
+          onClose={() => setPreviewImage(null)}
+        />
+      )}
+    </Modal>
+  )
+}
+
+function ImagePreviewModal({
+  imageUrl,
+  title,
+  onClose,
+}: {
+  imageUrl: string
+  title?: string
+  onClose: () => void
+}) {
+  return (
+    <Modal
+      open
+      title={title || 'Profile Image'}
+      onClose={onClose}
+    >
+      <div className="flex justify-center items-center">
+        <img
+          src={imageUrl}
+          alt={title || 'Profile'}
+          className="max-w-full max-h-[75vh] object-contain rounded-lg"
+        />
       </div>
     </Modal>
   )
