@@ -11,9 +11,12 @@ import SuccessAnimation from "./SuccessAnimation";
 import CertificateModal from "./CertificateModal";
 import type { CourseData, Review as ReviewType } from "./types";
 import FlipBookViewer from "../notes/FlipBookViewer";
+import NotesListModal from "../notes/NotesListModal";
 import { listStudentNotes } from "../../api/notes";
+import type { StudentNote } from "../../api/notes";
 import Footer from "../common/Footer";
 import { api } from "../../config/api";
+import { API_BASE } from "../../config/env";
 
 type LocationState = { course?: any } | undefined;
 
@@ -22,11 +25,43 @@ export default function CourseDetail() {
   const location = useLocation() as unknown as { state?: LocationState };
 
   const [notesOpen, setNotesOpen] = useState(false);
-  const { data: studentNotes } = useQuery({ 
-    queryKey: ["student:notes", courseId], 
-    enabled: !!courseId, 
-    queryFn: async () => (courseId ? await listStudentNotes(courseId) : []), 
+  const [listOpen, setListOpen] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<StudentNote | null>(null);
+  const { data: studentNotes } = useQuery({
+    queryKey: ["student:notes", courseId],
+    enabled: !!courseId,
+    queryFn: async () => (courseId ? await listStudentNotes(courseId) : []),
   });
+
+  // Download a single PDF note through the existing backend stream endpoint
+  // (server-side Cloudinary proxy). Mirrors the certificate download below:
+  // fetch with cookies → blob → anchor. Rich-text notes have no file.
+  const downloadNote = async (note: StudentNote) => {
+    if (note.kind !== "pdf") return;
+    const safeTitle = (note.title || "note")
+      .replace(/[^\w\s-]/g, "")
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    const fileName = `${safeTitle}.pdf`;
+    try {
+      const resp = await fetch(`${API_BASE}/student/notes/pdf/${note.id}`, {
+        credentials: "include",
+      });
+      if (!resp.ok) throw new Error(`Download failed (${resp.status})`);
+      const blob = await resp.blob();
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+    } catch (err) {
+      console.error("note download error:", err);
+      alert("Unable to download this note right now. Please try again.");
+    }
+  };
 
   // fetch one course (with chapters)
   const { data: detail } = useQuery({
@@ -503,7 +538,7 @@ export default function CourseDetail() {
               )}
                         {Array.isArray(studentNotes) && studentNotes.length > 0 && (
   <button
-    onClick={() => setNotesOpen(true)}
+    onClick={() => setListOpen(true)}
     className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow hover:bg-indigo-700"
     title="Open course notes"
   >
@@ -525,17 +560,39 @@ export default function CourseDetail() {
           />
         </div>
 
+        {/* Notes picker: lists all course notes; opening one launches the flipbook */}
+        <NotesListModal
+          open={listOpen}
+          onClose={() => setListOpen(false)}
+          notes={studentNotes || []}
+          onSelect={(note) => {
+            setSelectedNote(note);
+            setListOpen(false);
+            setNotesOpen(true);
+          }}
+          onDownload={downloadNote}
+        />
+
         <FlipBookViewer
-  open={notesOpen}
-  onClose={() => setNotesOpen(false)}
-  notes={(studentNotes || []).map(n => ({
-    id: n.id,
-    title: n.title,
-    kind: n.kind,
-    html: n.html,
-    pdfUrl: n.pdfUrl,
-  }))}
-/>
+          open={notesOpen}
+          onClose={() => {
+            setNotesOpen(false);
+            setSelectedNote(null);
+            setListOpen(true);
+          }}
+          notes={
+            selectedNote
+              ? [
+                  {
+                    id: selectedNote.id,
+                    title: selectedNote.title,
+                    kind: selectedNote.kind,
+                    html: selectedNote.html,
+                  },
+                ]
+              : []
+          }
+        />
 
       </div>
 

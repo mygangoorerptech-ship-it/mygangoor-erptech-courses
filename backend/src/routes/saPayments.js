@@ -7,4 +7,6 @@ const r = Router();
 r.use(requireAuth, requireRole("superadmin"));
 // reuse list but without org filter → tiny wrapper in controller:
 r.get("/", async (req,res)=> ctrl.listAll(req,res));
+// Settle an offline part payment (record-only; never enrolls). Superadmin scope.
+r.post("/:id/settle", async (req,res)=> ctrl.settlePartPayment(req,res));
 export default r;

@@ -1290,6 +1290,119 @@ export async function refund(req, res) {
   }
 }
 
+// POST /payments/:id/settle  AND  POST /sa/payments/:id/settle
+//
+// Settle an OFFLINE part payment: raise `amount` to the full total recorded in
+// `notes` and flip `notes.mode` → "full". This is a pure financial-record
+// update — the student is already enrolled (enrollment happens at capture), so
+// settlement MUST NOT call ensureEnrollment() or touch the Enrollment doc, and
+// it leaves status as "captured". Online payments are excluded on purpose:
+// their captured `amount` feeds reconciliation/payout sums.
+export async function settlePartPayment(req, res) {
+  try {
+    const actor = req.user;
+
+    const isSuperadmin =
+      String(actor?.role).toLowerCase() === "superadmin";
+
+    const orgId =
+      actor?.orgId && toId(actor.orgId);
+
+    if (
+      !isSuperadmin &&
+      (!orgId || !isOid(orgId))
+    ) {
+      return res.status(403).json({ ok: false });
+    }
+
+    const { id } = req.params;
+    if (!isOid(id)) return res.status(400).json({ ok: false, message: "invalid id" });
+
+    // Only an offline, captured, non-reconciled payment is eligible. All other
+    // states (refunded/rejected/failed/pending/reconciled, or another org's
+    // record) fail this filter → 404 not-eligible.
+    const baseFilter = {
+      _id: id,
+      type: "offline",
+      status: "captured",
+      reconciliationStatus: "none",
+    };
+    if (!isSuperadmin) baseFilter.orgId = orgId;
+
+    const doc = await Payment.findOne(baseFilter).lean();
+    if (!doc) {
+      return res.status(404).json({ ok: false, message: "payment not eligible for settlement" });
+    }
+
+    let notes = {};
+    try {
+      notes = doc.notes ? JSON.parse(doc.notes) : {};
+      if (!notes || typeof notes !== "object") notes = {};
+    } catch {
+      notes = {};
+    }
+
+    if (notes.mode !== "part") {
+      return res.status(409).json({ ok: false, message: "payment is not a part payment" });
+    }
+
+    const oldAmount = Number(doc.amount) || 0;
+    // Offline records store the total in notes.totalAmount (rupees); keep the
+    // online totalPaise branch for forward-safety. Mirrors the UI/ordersController.
+    const total =
+      Number(notes.totalPaise) > 0
+        ? Number(notes.totalPaise)
+        : (Number(notes.totalAmount) > 0 ? Math.round(Number(notes.totalAmount) * 100) : 0);
+
+    if (!(total > 0)) {
+      return res.status(409).json({ ok: false, message: "settlement total unavailable" });
+    }
+
+    const remaining = Math.max(0, total - oldAmount);
+    if (!(remaining > 0)) {
+      return res.status(409).json({ ok: false, message: "nothing to settle" });
+    }
+
+    const newNotes = JSON.stringify({
+      ...notes,
+      mode: "full",
+      settledFromPart: true,
+      prevPaidPaise: oldAmount,
+      remainingClearedPaise: remaining,
+      settledAt: new Date().toISOString(),
+      settledByUserId: pickActorId(actor) ? String(pickActorId(actor)) : null,
+    });
+
+    // Optimistic compare-and-swap: pin `amount: oldAmount` so two concurrent
+    // settlements serialize — the loser's filter misses → null → 409.
+    const updated = await Payment.findOneAndUpdate(
+      { ...baseFilter, amount: oldAmount },
+      { $set: { amount: total, notes: newNotes } },
+      { new: true }
+    )
+      .populate("studentId", "email name")
+      .populate({
+        path: "courseId",
+        select: "title orgId centerTeacherAssignments",
+        populate: {
+          path: "orgId",
+          select: "name"
+        }
+      })
+      .populate("orgId", "name")
+      .lean();
+
+    if (!updated) {
+      return res.status(409).json({ ok: false, message: "payment already settled" });
+    }
+
+    return res.json(await sanitize(updated));
+  } catch (e) {
+    console.error("[payments.settlePartPayment] error", e);
+    return res.status(500).json({ ok: false, message: "settle payment failed" });
+  }
+}
+
 // GET /sa/payments  (superadmin — cross-org listing)
 export async function listAll(req, res) {
   try {

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { formatINRFromPaise } from '../../utils/currency'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listPayments, refundPayment, createOfflinePayment, verifyPayment } from '../../../api/payments'
+import { listPayments, refundPayment, createOfflinePayment, verifyPayment, settlePayment } from '../../../api/payments'
 import { Input, Label, Select } from '../../components/Input'
 import Button from '../../components/Button'
 import Modal from '../../components/Modal'
@@ -13,7 +13,8 @@ import {
   Search,
   CheckCircle2,
   Plus,
-  Loader2
+  Loader2,
+  Wallet
 } from 'lucide-react'
 
 import toast from 'react-hot-toast'
@@ -34,6 +35,34 @@ type Filters = {
   q?: string
   status: 'all' | PaymentStatus
   method: PaymentMethodFilter
+}
+
+// Derive part-payment mode + remaining balance from the notes JSON.
+// Mirrors the breakdown logic in the payment-details modal so the row action
+// and modal action agree. Offline totals live in notes.totalAmount (rupees);
+// online totals in notes.totalPaise.
+function getPartInfo(p: any): { mode: 'part' | 'full'; totalPaise: number; remainingPaise: number } {
+  let form: any = null
+  try {
+    form = p?.notes ? (typeof p.notes === 'string' ? JSON.parse(p.notes) : p.notes) : null
+  } catch {
+    form = null
+  }
+  if (!form || typeof form !== 'object') return { mode: 'full', totalPaise: 0, remainingPaise: 0 }
+  const paidPaise = p?.amount || 0
+  const isOnline = p?.type === 'online'
+  const totalPaise = isOnline
+    ? (Number(form.totalPaise) || 0)
+    : (Number(form.totalAmount) > 0 ? Math.round(Number(form.totalAmount) * 100) : 0)
+  const remainingPaise = form.mode === 'part' && totalPaise > 0 ? Math.max(0, totalPaise - paidPaise) : 0
+  return { mode: form.mode === 'part' ? 'part' : 'full', totalPaise, remainingPaise }
+}
+
+// Settlement is offline-only (online captured amounts feed reconciliation/payout).
+function canSettlePart(p: any): boolean {
+  if (!p || p.status !== 'captured' || p.type !== 'offline') return false
+  const info = getPartInfo(p)
+  return info.mode === 'part' && info.remainingPaise > 0
 }
 
 export default function ADPayments() {
@@ -93,6 +122,33 @@ export default function ADPayments() {
         err?.response?.data?.message ||
         err?.message ||
         'Failed to refund payment'
+      );
+    },
+  })
+
+  // settle an offline part payment → mark fully paid (record-only, no enrollment change)
+  const settleMut = useMutation({
+    mutationFn: (id: string) =>
+      settlePayment(id),
+
+    onSuccess: async () => {
+      await qc.refetchQueries({
+        queryKey: ['admin-payments'],
+        type: 'active',
+      });
+
+      toast.success(
+        'Part payment settled successfully'
+      );
+    },
+
+    onError: (err: any) => {
+      console.error(err);
+
+      toast.error(
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to settle payment'
       );
     },
   })
@@ -669,6 +725,24 @@ export default function ADPayments() {
                         </Button>
                       )}
 
+                      {canSettlePart(p) && (
+                        <Button
+                          variant="secondary"
+                          disabled={settleMut.isPending}
+                          title="Settle remaining part-payment balance"
+                          onClick={() => {
+                            const { remainingPaise } = getPartInfo(p)
+                            const ok = window.confirm(
+                              `Settle the remaining balance of ${formatINRFromPaise(remainingPaise)} and mark this payment as fully paid?\n\nThis updates the payment record only — it will NOT change the student's enrollment.`
+                            )
+                            if (!ok) return
+                            settleMut.mutate(p.id)
+                          }}
+                        >
+                          <Wallet size={16} /> Settle
+                        </Button>
+                      )}
+
                       <Button
                         variant="ghost"
                         onClick={() => setTarget(p)}
@@ -895,9 +969,38 @@ export default function ADPayments() {
                   }
                 </Button>
               )}
+              {canSettlePart(target) && (
+                <Button
+                  variant="secondary"
+                  disabled={settleMut.isPending}
+                  onClick={() => {
+                    const { totalPaise, remainingPaise } = getPartInfo(target)
+                    const ok = window.confirm(
+                      `Settle the remaining balance of ${formatINRFromPaise(remainingPaise)} and mark this payment as fully paid?\n\nThis updates the payment record only — it will NOT change the student's enrollment.`
+                    )
+                    if (!ok) return
+                    settleMut.mutate(target.id, {
+                      onSuccess: () => {
+                        setTarget((p: any) => {
+                          if (!p) return p
+                          let parsed: any = {}
+                          try { parsed = p.notes ? JSON.parse(p.notes) : {} } catch { parsed = {} }
+                          return { ...p, amount: totalPaise, notes: JSON.stringify({ ...parsed, mode: 'full' }) }
+                        })
+                      }
+                    })
+                  }}
+                >
+                  {
+                    settleMut.isPending
+                      ? (<><Loader2 className="animate-spin" size={16} /> Settling...</>)
+                      : (<><Wallet size={16} /> Settle</>)
+                  }
+                </Button>
+              )}
               <Button
                 onClick={() => setTarget(null)}
-                disabled={refundMut.isPending}
+                disabled={refundMut.isPending || settleMut.isPending}
               >
                 Close
               </Button>

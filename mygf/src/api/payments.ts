@@ -35,6 +35,17 @@ export async function refundPayment(id: string): Promise<Payment> {
   return r.data;
 }
 
+// Settle an offline part payment → marks it fully paid (record-only, no enrollment change).
+export async function settlePayment(id: string): Promise<Payment> {
+  const r = await api.post(`/payments/${id}/settle`, {});
+  return r.data;
+}
+
+export async function settleSaPayment(id: string): Promise<Payment> {
+  const r = await api.post(`/sa/payments/${id}/settle`, {});
+  return r.data;
+}
+
 // student self-claim
 export async function claimReceipt(payload: {
   orgId?: string;

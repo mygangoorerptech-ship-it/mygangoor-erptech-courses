@@ -18,5 +18,7 @@ r.post("/claim", requireAuth, ctrl.claimReceipt);
 r.post("/:id/verify", requireAuth, requireRole(["admin"]), ctrl.verify);
 r.post("/:id/reject", requireAuth, requireRole(["admin"]), ctrl.reject);
 r.post("/:id/refund", requireAuth, requireRole(["admin"]), ctrl.refund);
+// Settle an offline part payment (record-only; never enrolls). Admin scope.
+r.post("/:id/settle", requireAuth, requireRole(["admin"]), ctrl.settlePartPayment);
 
 export default r;
