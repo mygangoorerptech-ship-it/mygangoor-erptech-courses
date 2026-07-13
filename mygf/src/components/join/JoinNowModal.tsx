@@ -18,6 +18,7 @@ import { api } from "../../api/client"; // <-- added back
 import { useJoinCatalog, type CatalogState } from "./store/useJoinCatalog";
 import { useShallow } from "zustand/react/shallow";
 import { claimReceipt } from "../../api/payments";
+import CourseCentersModal from "../pages/tracks/CourseCentersModal";
 import { useEnrollmentStore } from "../../store/enrollmentStore";
 import { fetchFormProfile, isProfileComplete, type SavedFormProfile } from "../../api/formProfile";
 
@@ -27,8 +28,8 @@ const loadJsPDF = () => import("jspdf");
 export default function JoinNowModal({
   onClose,
   selectedCourseId,
-  selectedOrgId,
-  selectedOrgName,
+  selectedOrgId: initialOrgId,
+  selectedOrgName: initialOrgName,
 }: {
   onClose: () => void;
   selectedCourseId?: string;
@@ -37,6 +38,14 @@ export default function JoinNowModal({
 }) {
   const [step, setStep] = React.useState<Step>(selectedCourseId ? 2 : 1);
   const [selectedCourse, setSelectedCourse] = React.useState<CourseOption | null>(null);
+
+  // Org/center selection.
+  // Seed ONCE from props — every entry point mounts JoinNowModal conditionally, so it
+  // remounts on each open and this initializer captures fresh props (no sync effect needed).
+  // Owning it as state lets Flow A (in-modal course pick) set it via the reused center picker.
+  const [selectedOrgId, setSelectedOrgId] = React.useState<string | null>(initialOrgId ?? null);
+  const [selectedOrgName, setSelectedOrgName] = React.useState<string | null>(initialOrgName ?? null);
+  const [showCenterPicker, setShowCenterPicker] = React.useState(false);
 
   // 🚀 use cached catalog (no local fetching state anymore)
   const selectCatalog = useShallow((s: CatalogState) => ({
@@ -597,8 +606,16 @@ export default function JoinNowModal({
         Array.isArray((selectedCourse as any)?.centerIds) &&
         (selectedCourse as any).centerIds.length > 0;
 
-      if (requiresCenter && !selectedOrgId) {
-        alert("Please select a center before continuing.");
+      // Invariant: the chosen org must belong to the currently selected course.
+      // (Covers Flow A never setting it, and a stale org from a previous course.)
+      const orgBelongsToCourse =
+        !!selectedOrgId &&
+        Array.isArray((selectedCourse as any)?.centerIds) &&
+        (selectedCourse as any).centerIds.includes(selectedOrgId);
+
+      if (requiresCenter && !orgBelongsToCourse) {
+        // Reuse the same center picker the Tracks flow uses, instead of dead-ending.
+        setShowCenterPicker(true);
         return;
       }
     }
@@ -874,7 +891,15 @@ export default function JoinNowModal({
               ) : (
                 <CourseStep
                   selected={selectedCourse?.id ?? ""}
-                  onSelect={(id) => setSelectedCourse(visibleCourses.find((c) => c.id === id) ?? null)}
+                  onSelect={(id) => {
+                    const c = visibleCourses.find((x) => x.id === id) ?? null;
+                    // Changing the course invalidates any previously chosen center.
+                    if (c?.id !== selectedCourse?.id) {
+                      setSelectedOrgId(null);
+                      setSelectedOrgName(null);
+                    }
+                    setSelectedCourse(c);
+                  }}
                   error={errors.course}
                   courses={visibleCourses}
                   pendingMap={pendingMap} // <-- NEW
@@ -1051,6 +1076,21 @@ export default function JoinNowModal({
           </div>
         )}
       </div>
+
+      {/* Flow A: center picker — the same reusable component the Tracks flow uses.
+          Mounted inside the modal root so its z-50 layers above the z-[100] context. */}
+      {selectedCourse && showCenterPicker && (
+        <CourseCentersModal
+          visible={showCenterPicker}
+          course={selectedCourse}
+          onClose={() => setShowCenterPicker(false)}
+          onSelectCenter={(orgId, orgName) => {
+            setSelectedOrgId(orgId);
+            setSelectedOrgName(orgName);
+            setShowCenterPicker(false);
+          }}
+        />
+      )}
     </div>
   );
 }
