@@ -150,7 +150,7 @@ export default function Mfa() {
     <div className="min-h-screen grid place-items-center bg-gray-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow p-6 space-y-4">
         <h1 className="text-xl font-semibold">Multi-Factor Authentication</h1>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-gray-800">
           {method === "otp"
             ? "Enter the one-time code we sent to your email."
             : "Scan the QR in your authenticator app and then enter the 6-digit code."}

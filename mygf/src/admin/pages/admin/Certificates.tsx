@@ -68,7 +68,7 @@ export default function ADCertificates(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3">Title</th>
               <th className="text-left font-medium p-3">Template</th>
@@ -254,7 +254,7 @@ function CertModal({
           </div>
 
           <div className="sm:col-span-2">
-            <div className="text-xs text-slate-600 mb-1">
+            <div className="text-xs text-slate-800 mb-1">
               Use placeholders: <code>{'{student_name}'}</code>, <code>{'{course_title}'}</code>, <code>{'{date}'}</code>
             </div>
           </div>
@@ -351,7 +351,7 @@ const replaceVars = (s?: string) => {
     <Modal open={open} onClose={onClose} title="Certificate preview">
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-3">
-          <div className="text-sm text-slate-600">Template: <span className="font-medium">{tpl?.name || '—'}</span></div>
+          <div className="text-sm text-slate-800">Template: <span className="font-medium">{tpl?.name || '—'}</span></div>
           <img
             src={cert.demoImageDataUrl || tpl?.previewDataUrl}
             alt="preview"
@@ -367,7 +367,7 @@ const replaceVars = (s?: string) => {
             {cert.content.issuerName && <div><span className="text-slate-500">Issuer:</span> {replaceVars(cert.content.issuerName)}</div>}
             {cert.content.signatureName && <div><span className="text-slate-500">Signature:</span> {replaceVars(cert.content.signatureName)}</div>}
           </div>
-          <div className="text-xs text-slate-600">
+          <div className="text-xs text-slate-800">
             Note: On the student side, <code>{'{student_name}'}</code> and <code>{'{date}'}</code> are filled automatically upon successful course completion.
           </div>
         </div>

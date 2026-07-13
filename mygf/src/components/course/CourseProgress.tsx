@@ -18,7 +18,7 @@ export default function CourseProgress({
     <div className="bg-white rounded-xl p-6 shadow-lg mb-8">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800">Course Progress</h3>
-        <span className="text-sm text-gray-600">
+        <span className="text-sm text-gray-800">
           {completedLevels}/{totalLevels} Levels
         </span>
       </div>
@@ -47,7 +47,7 @@ export default function CourseProgress({
                 index + 1
               )}
             </div>
-            <span className="text-xs text-gray-600 mt-1">
+            <span className="text-xs text-gray-800 mt-1">
               Level {index + 1}
             </span>
           </div>

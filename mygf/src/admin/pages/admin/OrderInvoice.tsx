@@ -27,7 +27,7 @@ export default function OrderInvoice() {
       <div className="flex items-start justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-semibold">Invoice</h1>
-          <div className="text-sm text-slate-600">{o.number}</div>
+          <div className="text-sm text-slate-800">{o.number}</div>
         </div>
         <button onClick={onPrint} className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50 print:hidden">
           Print / Save PDF
@@ -38,7 +38,7 @@ export default function OrderInvoice() {
         <div>
           <div className="text-xs text-slate-500">Billed To</div>
           <div className="font-medium">{o.userName}</div>
-          <div className="text-sm text-slate-600">{o.userEmail}</div>
+          <div className="text-sm text-slate-800">{o.userEmail}</div>
         </div>
         <div className="sm:text-right">
           <div className="text-xs text-slate-500">Issued</div>

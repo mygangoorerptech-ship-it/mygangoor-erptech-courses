@@ -221,7 +221,7 @@ export default function CoursesUnified() {
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3">Title</th>
               <th className="text-left font-medium p-3">Program Type</th>
@@ -308,7 +308,7 @@ export default function CoursesUnified() {
 
       {/* Pagination controls */}
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs text-slate-600">
+        <div className="text-xs text-slate-800">
           Showing{" "}
           {total === 0
             ? "0"

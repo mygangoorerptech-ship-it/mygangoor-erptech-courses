@@ -35,7 +35,7 @@ export default function CentersHeader({
                             Our Learning Centers
                         </h1>
 
-                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-800">
                             Verified
                         </span>
                     </div>

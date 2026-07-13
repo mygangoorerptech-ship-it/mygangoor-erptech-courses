@@ -24,7 +24,7 @@ export default function ReceiptClaim() {
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-xl font-semibold">Claim Offline Payment</h1>
-      <p className="text-sm text-slate-600">If you paid at the office via UPI/GPay, submit your receipt/UTR here. Your organization will verify it and unlock your course.</p>
+      <p className="text-sm text-slate-800">If you paid at the office via UPI/GPay, submit your receipt/UTR here. Your organization will verify it and unlock your course.</p>
 
       <div className="grid gap-3">
         <div>

@@ -76,7 +76,7 @@ export default function SASubscriptions(){
       {/* Flat table (org grouping removed) */}
       <div className="rounded-xl border bg-white overflow-hidden">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3">Student</th>
               <th className="text-left font-medium p-3">Course</th>

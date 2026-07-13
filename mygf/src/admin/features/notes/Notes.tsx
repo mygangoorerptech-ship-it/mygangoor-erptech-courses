@@ -322,7 +322,7 @@ export default function NotesFeature() {
                 className="hidden"
               />
               {pdfFile && (
-                <div className="text-xs text-slate-600 mt-1">
+                <div className="text-xs text-slate-800 mt-1">
                   Selected: <b>{pdfFile.name}</b> {Math.round(pdfFile.size / 1024)} KB
                 </div>
               )}
@@ -399,9 +399,9 @@ export default function NotesFeature() {
                       <td className="py-2 px-3">
                         <span className="inline-flex items-center gap-1">
                           {n.kind === "rich" ? (
-                            <FileText className="w-4 h-4 text-slate-600" />
+                            <FileText className="w-4 h-4 text-slate-800" />
                           ) : (
-                            <File className="w-4 h-4 text-slate-600" />
+                            <File className="w-4 h-4 text-slate-800" />
                           )}
                           <span className="uppercase text-slate-700">{n.kind}</span>
                         </span>

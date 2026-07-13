@@ -228,7 +228,7 @@ export default function Reviews() {
               <i className="fa-solid fa-star text-xl" />
             </div>
             <div>
-              <div className="text-sm text-gray-600">Overall Rating</div>
+              <div className="text-sm text-gray-800">Overall Rating</div>
               <div className="flex items-center gap-2">
                 <div className="text-2xl font-bold text-gray-900">
                   {summary ? (Math.round((summary.overall.avgRating || 0) * 10) / 10).toFixed(1) : "–"}
@@ -490,7 +490,7 @@ export default function Reviews() {
 
         {/* Paging */}
         <div className="p-4 sm:p-5 flex items-center justify-between border-t border-gray-100">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-800">
             {Math.min((page - 1) * pageSize + 1, Math.max(0, pageData.total))}–
             {Math.min(page * pageSize, pageData.total)} of {pageData.total}
           </div>

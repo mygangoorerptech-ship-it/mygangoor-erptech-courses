@@ -257,7 +257,7 @@ const SignUp: React.FC = () => {
 
         <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
           <h1 className="text-2xl font-semibold text-slate-900">Create your account</h1>
-          <p className="text-sm text-slate-600 mt-1">Join and start learning today.</p>
+          <p className="text-sm text-slate-800 mt-1">Join and start learning today.</p>
 
           {/* NEW: precheck banner (keeps visual style minimal) */}
           {precheck?.mode === 'signin' && (
@@ -289,7 +289,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Username</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <circle cx="12" cy="8" r="4" />
                       <path d="M6 20a6 6 0 0 1 12 0" />
@@ -313,7 +313,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Email</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <path d="M4 6h16v12H4z" />
                       <path d="m22 6-10 7L2 6" />
@@ -347,7 +347,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Password</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <rect x="4" y="11" width="16" height="9" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -380,7 +380,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-gray-700">Confirm Password</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <rect x="4" y="11" width="16" height="9" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -471,7 +471,7 @@ const SignUp: React.FC = () => {
               />
             </div> */}
 
-            <p className="text-center text-sm text-slate-600">
+            <p className="text-center text-sm text-slate-800">
               Already have an account?{' '}
               <button onClick={() => navigate('/login')} className="text-indigo-600 hover:text-indigo-700 underline-offset-2 hover:underline">
                 Sign in

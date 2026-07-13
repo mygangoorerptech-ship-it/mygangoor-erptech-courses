@@ -21,7 +21,7 @@ export default function PdfViewer(props: PdfViewerProps) {
   return (
     <div className={className} style={style}>
       {showSwipeHint && (
-        <div className="pointer-events-none select-none text-xs text-slate-600 mb-2">
+        <div className="pointer-events-none select-none text-xs text-slate-800 mb-2">
           Swipe/scroll to read →
         </div>
       )}

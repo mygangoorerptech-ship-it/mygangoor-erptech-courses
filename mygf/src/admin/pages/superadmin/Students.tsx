@@ -84,7 +84,7 @@ export default function SAStudents(){
               {list[0]?.orgName || (list[0]?.orgId ? list[0].orgId : 'Unassigned')} — {list.length} students
             </div>
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-600">
+              <thead className="bg-slate-50 text-slate-800">
                 <tr>
                   <th className="text-left font-medium p-3">Name</th>
                   <th className="text-left font-medium p-3">Username</th>
@@ -296,7 +296,7 @@ function CSVModal({ open, onClose, onImport }:{
   return (
     <Modal open={open} onClose={onClose} title="Bulk import via CSV (Superadmin)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-slate-800">
           Headers: <code>username,email,name,status,orgId,orgName</code>. Matches by <b>email or username</b>.
         </div>
         <div className="flex items-center gap-2">

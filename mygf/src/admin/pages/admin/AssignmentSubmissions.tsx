@@ -105,7 +105,7 @@ export default function ADAssignmentSubmissions(){
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-sm text-slate-600">
+        <div className="flex items-center gap-3 text-sm text-slate-800">
           <Link to="/admin/assignments" className="text-blue-600 hover:underline inline-flex items-center gap-1"><ChevronLeft size={16}/> Back to assignments</Link>
           <span>•</span>
           <span>Assignment ID: <span className="font-mono">{assignmentId}</span></span>
@@ -142,7 +142,7 @@ export default function ADAssignmentSubmissions(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="p-3 text-left"><input type="checkbox" checked={allSelected} onChange={toggleAll} /></th>
               <th className="text-left font-medium p-3">Student</th>

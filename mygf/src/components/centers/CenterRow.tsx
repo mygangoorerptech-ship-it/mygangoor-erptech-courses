@@ -44,7 +44,7 @@ export default function CenterRow({ center }: { center: Center }) {
       <div className="col-span-1 text-right">
         <button
           onClick={() => navigate("/tracks")}
-          className="text-sm text-gray-600 group-hover:text-indigo-600 transition"
+          className="text-sm text-gray-800 group-hover:text-indigo-600 transition"
         >
           View →
         </button>

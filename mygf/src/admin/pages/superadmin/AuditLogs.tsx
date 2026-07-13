@@ -114,7 +114,7 @@ export default function SAAuditLogs() {
       {/* ── Table ── */}
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3 whitespace-nowrap">Time</th>
               <th className="text-left font-medium p-3 whitespace-nowrap">Actor</th>
@@ -175,7 +175,7 @@ export default function SAAuditLogs() {
       </div>
 
       {/* ── Pagination ── */}
-      <div className="flex items-center justify-between text-sm text-slate-600">
+      <div className="flex items-center justify-between text-sm text-slate-800">
         <span>
           {total > 0
             ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`

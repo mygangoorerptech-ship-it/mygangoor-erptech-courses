@@ -113,7 +113,7 @@ export default function SuccessStep({
           </div>
 
           <div className="col-span-2 mt-1 rounded-lg bg-slate-50 border px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-slate-600">Amount paid</span>
+            <span className="text-sm text-slate-800">Amount paid</span>
             <span className="text-lg font-semibold">{amount}</span>
           </div>
 

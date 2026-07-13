@@ -179,7 +179,7 @@ export default function VideoPreviewModal({
           {/* No URL / failed note */}
           {!videoUrl && (
             <div className="absolute inset-0 grid place-items-center">
-              <p className="rounded bg-white/80 px-3 py-1 text-xs text-slate-600 shadow">No preview available</p>
+              <p className="rounded bg-white/80 px-3 py-1 text-xs text-slate-800 shadow">No preview available</p>
             </div>
           )}
 

@@ -82,7 +82,7 @@ export default function SAOrganizations() {
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3">Organization</th>
               <th className="text-left font-medium p-3">Code / Domain</th>
@@ -460,7 +460,7 @@ function CSVModal({ open, onClose, onImport }: {
   return (
     <Modal open={open} onClose={onClose} title="Bulk import organizations (CSV)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-600">
+        <div className="text-sm text-slate-800">
           Headers: <code>code,name,domain,contactName,contactEmail,status</code>. Upserts by <b>code</b> (preferred), else by <b>domain</b>, else by <b>name</b>.
           Renaming will auto-sync the <i>students</i> list’s org names.
         </div>

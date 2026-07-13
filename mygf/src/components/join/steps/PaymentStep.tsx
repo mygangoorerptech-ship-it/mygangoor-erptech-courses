@@ -60,7 +60,7 @@ export default function PaymentStep(props: {
         <div className="flex items-center justify-between">
           <div>
             <div className="font-semibold">{course.title}</div>
-            <div className="text-sm text-slate-600 flex items-center gap-2 mt-0.5">
+            <div className="text-sm text-slate-800 flex items-center gap-2 mt-0.5">
               <Timer className="w-4 h-4" /> {course.duration || "—"}
             </div>
           </div>

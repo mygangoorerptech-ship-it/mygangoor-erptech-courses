@@ -157,7 +157,7 @@ return (
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 shadow-sm">
         Page {page} / {totalPages}
       </div>
     </div>

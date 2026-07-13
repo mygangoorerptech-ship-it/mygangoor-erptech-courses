@@ -199,7 +199,7 @@ export default function VEStudents() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-slate-600">
+            <div className="flex items-center justify-between text-sm text-slate-800">
               <span>{total} student{total !== 1 ? "s" : ""}</span>
               <div className="flex items-center gap-2">
                 <button
@@ -306,7 +306,7 @@ function StudentDetailsModal({
                   <h2 className="text-xl font-semibold text-slate-900">
                     {user?.name || "—"}
                   </h2>
-                  <div className="mt-2 space-y-2 text-sm text-slate-600">
+                  <div className="mt-2 space-y-2 text-sm text-slate-800">
                     <div className="flex items-center gap-2">
                       <Mail size={16} />
                       {user?.email || "—"}

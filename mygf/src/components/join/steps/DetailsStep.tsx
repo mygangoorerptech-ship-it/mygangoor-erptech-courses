@@ -35,7 +35,7 @@ export default function DetailsStep({
       {savedProfile && (
         <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
           <p className="text-sm font-medium text-slate-700">Saved enrollment details found</p>
-          <div className="grid sm:grid-cols-2 gap-1 text-sm text-slate-600">
+          <div className="grid sm:grid-cols-2 gap-1 text-sm text-slate-800">
             <span><strong>Name:</strong> {savedProfile.fullName}</span>
             <span><strong>Mobile:</strong> {savedProfile.mobile}</span>
             <span><strong>Email:</strong> {savedProfile.email}</span>

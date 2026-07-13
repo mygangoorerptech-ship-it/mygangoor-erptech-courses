@@ -291,7 +291,7 @@ export default function OverviewUnified() {
             label: isSA ? "Organizations" : "Organization",
             value: num(orgCount),
             loading: orgCountLoading,
-            icon: <Building2 size={24} className="text-slate-600" />,
+            icon: <Building2 size={24} className="text-slate-800" />,
           });
 
           // Admins (SA only)
@@ -301,7 +301,7 @@ export default function OverviewUnified() {
               label: "Admins",
               value: num(saAdminsQ.data),
               loading: saAdminsQ.isLoading,
-              icon: <Shield size={24} className="text-slate-600" />,
+              icon: <Shield size={24} className="text-slate-800" />,
             });
           }
 
@@ -312,7 +312,7 @@ export default function OverviewUnified() {
               label: "Teachers",
               value: num(saTeachersQ.data),
               loading: saTeachersQ.isLoading,
-              icon: <Users2 size={24} className="text-slate-600" />,
+              icon: <Users2 size={24} className="text-slate-800" />,
             });
           } else if (isAdmin) {
             cards.push({
@@ -320,7 +320,7 @@ export default function OverviewUnified() {
               label: "Teachers",
               value: num(adTeachersQ.data),
               loading: adTeachersQ.isLoading,
-              icon: <Users2 size={24} className="text-slate-600" />,
+              icon: <Users2 size={24} className="text-slate-800" />,
             });
           }
 
@@ -331,7 +331,7 @@ export default function OverviewUnified() {
               label: "Students",
               value: num(saStudentsQ.data),
               loading: saStudentsQ.isLoading,
-              icon: <GraduationCap size={24} className="text-slate-600" />,
+              icon: <GraduationCap size={24} className="text-slate-800" />,
             });
           } else {
             cards.push({
@@ -339,7 +339,7 @@ export default function OverviewUnified() {
               label: "Students",
               value: num(adStudentsQ.data),
               loading: adStudentsQ.isLoading,
-              icon: <GraduationCap size={24} className="text-slate-600" />,
+              icon: <GraduationCap size={24} className="text-slate-800" />,
             });
           }
 
@@ -350,7 +350,7 @@ export default function OverviewUnified() {
               label: "Courses",
               value: num(saCoursesQ.data),
               loading: saCoursesQ.isLoading,
-              icon: <BookOpen size={24} className="text-slate-600" />,
+              icon: <BookOpen size={24} className="text-slate-800" />,
             });
           } else {
             cards.push({
@@ -358,7 +358,7 @@ export default function OverviewUnified() {
               label: "Courses",
               value: num(adCoursesQ.data),
               loading: adCoursesQ.isLoading,
-              icon: <BookOpen size={24} className="text-slate-600" />,
+              icon: <BookOpen size={24} className="text-slate-800" />,
             });
           }
 
@@ -369,7 +369,7 @@ export default function OverviewUnified() {
               label: "Payments",
               value: num(paymentsCount),
               loading: paymentsLoading,
-              icon: <Wallet size={24} className="text-slate-600" />,
+              icon: <Wallet size={24} className="text-slate-800" />,
             });
 
             // Payments (captured – online)
@@ -378,7 +378,7 @@ export default function OverviewUnified() {
               label: "Payments (captured – online)",
               value: num(capturedOnlineCount),
               loading: paymentsLoading,
-              icon: <Wallet size={24} className="text-slate-600" />,
+              icon: <Wallet size={24} className="text-slate-800" />,
             });
 
             // Payments (captured – offline)
@@ -387,7 +387,7 @@ export default function OverviewUnified() {
               label: "Payments (captured – offline)",
               value: num(capturedOfflineCount),
               loading: paymentsLoading,
-              icon: <Wallet size={24} className="text-slate-600" />,
+              icon: <Wallet size={24} className="text-slate-800" />,
             });
           }
 
@@ -398,7 +398,7 @@ export default function OverviewUnified() {
               label: "Payouts (pending)",
               value: num(unsettledOnlineCapturedCount),
               loading: paymentsLoading || saPayoutsQ.isLoading,
-              icon: <Activity size={24} className="text-slate-600" />,
+              icon: <Activity size={24} className="text-slate-800" />,
             });
           }
 
@@ -409,7 +409,7 @@ export default function OverviewUnified() {
               label: "Revenue (30 days)",
               value: revenue30d, // already a string like ₹
               loading: paymentsLoading,
-              icon: <IndianRupee size={24} className="text-slate-600" />,
+              icon: <IndianRupee size={24} className="text-slate-800" />,
             });
           }
 

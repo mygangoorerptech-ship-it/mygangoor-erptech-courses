@@ -247,7 +247,7 @@ export default function VEPayments() {
       <div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
         <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
-            <thead className="bg-slate-50 text-slate-600 whitespace-nowrap">
+            <thead className="bg-slate-50 text-slate-800 whitespace-nowrap">
               <tr>
                 <th className="text-left font-medium p-3">When</th>
                 <th className="text-left font-medium p-3">Order / Sub</th>
@@ -719,7 +719,7 @@ export default function VEPayments() {
                               {x.teacherName || '—'}
                             </td>
 
-                            <td className="p-3 text-slate-600">
+                            <td className="p-3 text-slate-800">
                               {x.teacherEmail || '—'}
                             </td>
                           </tr>

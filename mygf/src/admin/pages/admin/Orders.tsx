@@ -121,7 +121,7 @@ export default function Orders(){
       </header>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-600">Selected: {selectedIds.length}</div>
+        <div className="text-sm text-slate-800">Selected: {selectedIds.length}</div>
         <div className="flex items-center gap-2">
           <button className="rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50" onClick={exportSelected} disabled={selectedIds.length===0}>Export CSV</button>
         </div>
@@ -129,7 +129,7 @@ export default function Orders(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm table-fixed">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3 w-8"><input type="checkbox" checked={allSelected} onChange={toggleAll} /></th>
               <th className="text-left font-medium p-3">Order</th>
@@ -166,7 +166,7 @@ export default function Orders(){
                     <div className="text-xs text-slate-500">{o.userEmail}</div>
                   </td>
                   <td className="p-3">
-                    <div className="text-xs text-slate-600 line-clamp-2">{o.items.map(i=>i.name).join(', ')}</div>
+                    <div className="text-xs text-slate-800 line-clamp-2">{o.items.map(i=>i.name).join(', ')}</div>
                   </td>
                   <td className="p-3">
                     <div>{formatINR(o.total)}</div>
@@ -242,7 +242,7 @@ function RefundModal({ open, order, onClose, onSubmit }:{
   return (
     <Modal open={open} onClose={onClose} title={`Refund ${order?.number}`}>
       <div className="space-y-3">
-        <div className="text-sm text-slate-600">Remaining refundable: <b>{formatINR(remaining)}</b></div>
+        <div className="text-sm text-slate-800">Remaining refundable: <b>{formatINR(remaining)}</b></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Refund amount (INR)</Label><Input type="number" step="0.01" min="0" value={amount} onChange={(e)=> setAmount(e.target.value)} /></div>
           <div><Label>Reason (optional)</Label><Input value={reason} onChange={(e)=> setReason(e.target.value)} placeholder="e.g., duplicate order" /></div>
@@ -321,7 +321,7 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
             <div className="flex items-start justify-between border-b pb-4">
               <div>
                 <div className="text-2xl font-semibold tracking-tight">INVOICE</div>
-                <div className="text-sm text-slate-600">{o.number}</div>
+                <div className="text-sm text-slate-800">{o.number}</div>
               </div>
               <div className="text-right">
                 <div className={
@@ -338,7 +338,7 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
               <div className="card">
                 <div className="text-xs text-slate-500">Billed To</div>
                 <div className="font-medium">{o.userName}</div>
-                <div className="text-sm text-slate-600">{o.userEmail}</div>
+                <div className="text-sm text-slate-800">{o.userEmail}</div>
                 {o.student?.id && <div className="text-xs mt-2 muted">Student ID: {o.student.id}</div>}
                 {o.enrollment?.status && (
                   <div className="text-xs mt-2">
@@ -352,9 +352,9 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
               <div className="card">
                 <div className="text-xs text-slate-500">From</div>
                 <div className="font-medium">{o.org?.name || 'Organization'}</div>
-                <div className="text-sm text-slate-600">{o.org?.address}</div>
-                <div className="text-sm text-slate-600">{[o.org?.city,o.org?.state,o.org?.postal].filter(Boolean).join(', ')}</div>
-                <div className="text-sm text-slate-600">{o.org?.country}</div>
+                <div className="text-sm text-slate-800">{o.org?.address}</div>
+                <div className="text-sm text-slate-800">{[o.org?.city,o.org?.state,o.org?.postal].filter(Boolean).join(', ')}</div>
+                <div className="text-sm text-slate-800">{o.org?.country}</div>
                 <div className="text-xs mt-2 muted">Org Code: {o.org?.code} • Org ID: {o.org?.id}</div>
                 {o.admin && <div className="text-xs mt-2">Admin: <b>{o.admin.name}</b> ({o.admin.email})</div>}
               </div>

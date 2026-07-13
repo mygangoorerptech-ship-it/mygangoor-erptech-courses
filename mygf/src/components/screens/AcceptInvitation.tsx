@@ -175,7 +175,7 @@ const AcceptInvitation: React.FC = () => {
           <div className="relative w-full max-w-md rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
             <div className="text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-4"></div>
-              <p className="text-slate-600">Verifying invitation...</p>
+              <p className="text-slate-800">Verifying invitation...</p>
             </div>
           </div>
         </div>
@@ -196,7 +196,7 @@ const AcceptInvitation: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <h1 className="text-2xl font-semibold text-slate-900 mb-2">Invalid Invitation</h1>
-              <p className="text-slate-600 mb-6">{error}</p>
+              <p className="text-slate-800 mb-6">{error}</p>
               <button
                 onClick={() => navigate('/login')}
                 className="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
@@ -219,7 +219,7 @@ const AcceptInvitation: React.FC = () => {
 
         <div className="relative w-full max-w-md rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
           <h1 className="text-2xl font-semibold text-slate-900">Accept Invitation</h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-slate-800 mt-1">
             You've been invited to join. Set up your account by creating a password.
           </p>
 
@@ -286,7 +286,7 @@ const AcceptInvitation: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setPasswordVisible(!passwordVisible)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-800"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-800 hover:text-slate-800"
                   disabled={verifying}
                 >
                   {passwordVisible ? (
@@ -328,7 +328,7 @@ const AcceptInvitation: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setConfirmPasswordVisible(!confirmPasswordVisible)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-slate-800"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-800 hover:text-slate-800"
                   disabled={verifying}
                 >
                   {confirmPasswordVisible ? (
@@ -354,7 +354,7 @@ const AcceptInvitation: React.FC = () => {
               {verifying ? 'Creating Account...' : 'Create Account'}
             </button>
 
-            <p className="text-center text-sm text-slate-600">
+            <p className="text-center text-sm text-slate-800">
               Already have an account?{' '}
               <button
                 type="button"

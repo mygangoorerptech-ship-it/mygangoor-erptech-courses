@@ -402,7 +402,7 @@ export default function BulkUploadModal({
             <Upload size={16}/> {fileName ? "Choose another file" : "Choose CSV/XLSX file"}
           </label>
           {fileName && <div className="text-xs text-slate-500 mt-2">Selected: {fileName}</div>}
-          {parsing && <div className="text-sm text-slate-600 mt-2">Parsing…</div>}
+          {parsing && <div className="text-sm text-slate-800 mt-2">Parsing…</div>}
           {error && <div className="text-sm text-rose-600 mt-2">{error}</div>}
         </div>
 

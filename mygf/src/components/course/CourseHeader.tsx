@@ -62,7 +62,7 @@ export default function CourseHeader({ course }: { course: CourseData }) {
             )}
 
             {/* Description follows active item; falls back to course description or default text */}
-            <p className="text-gray-600 mb-6 leading-relaxed">
+            <p className="text-gray-800 mb-6 leading-relaxed">
               {activeLevel?.description ??
                 course.description ??
                 "watch this course and get certificate soon"}
@@ -117,13 +117,13 @@ export default function CourseHeader({ course }: { course: CourseData }) {
                     />
                   ))}
                 </div>
-                <span className="text-gray-600">({Number(course.reviews) || 0} reviews)</span>
+                <span className="text-gray-800">({Number(course.reviews) || 0} reviews)</span>
               </div>
-              <div className="flex items-center text-gray-600">
+              <div className="flex items-center text-gray-800">
                 <i className="fas fa-clock mr-2" />
                 <span>{course.duration}</span>
               </div>
-              <div className="flex items-center text-gray-600">
+              <div className="flex items-center text-gray-800">
                 <i className="fas fa-layer-group mr-2" />
                 <span>{course.levels?.length ?? 0} Levels</span>
               </div>

@@ -20,7 +20,7 @@ export const SectionCard: React.FC<{
         <div>
           {title ? <div className="text-sm font-semibold">{title}</div> : null}
           {subtitle ? (
-            <div className="text-xs text-slate-600">{subtitle}</div>
+            <div className="text-xs text-slate-800">{subtitle}</div>
           ) : null}
         </div>
         {right ? <div className="shrink-0">{right}</div> : null}

@@ -46,7 +46,7 @@ export default function NotificationBell() {
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-gray-900">{it.title}</div>
-                      <div className="text-sm text-gray-600 mt-0.5">{it.body}</div>
+                      <div className="text-sm text-gray-800 mt-0.5">{it.body}</div>
                       <div className="mt-2 flex gap-2">
                         <button
                           onClick={() => onClickItem(it._id, it)}

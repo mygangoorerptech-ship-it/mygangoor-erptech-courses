@@ -155,7 +155,7 @@ function CertificatePreviewModal({
             <div className="h-[70vh] flex items-center justify-center">
               <div className="text-center">
                 <div className="text-rose-600 font-medium mb-1">Unable to load</div>
-                <div className="text-sm text-slate-600">{error}</div>
+                <div className="text-sm text-slate-800">{error}</div>
               </div>
             </div>
           )}
@@ -217,7 +217,7 @@ function CertificatePreviewModal({
 
             <button
               type="button"
-              className="mt-3 text-slate-600 hover:text-slate-800 text-sm"
+              className="mt-3 text-slate-800 hover:text-slate-800 text-sm"
               onClick={onClose}
             >
               Close
@@ -995,7 +995,7 @@ export default function Reports() {
                   {/* TABLE */}
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-600">
+                      <thead className="bg-slate-50 text-slate-800">
                         <tr>
                           <th className="text-left font-medium p-3">
                             Student
@@ -1189,7 +1189,7 @@ export default function Reports() {
                           Prev
                         </Button>
 
-                        <span className="text-sm text-slate-600">
+                        <span className="text-sm text-slate-800">
                           {state.page} / {totalPages}
                         </span>
 

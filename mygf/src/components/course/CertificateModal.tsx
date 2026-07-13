@@ -167,7 +167,7 @@ export default function CertificateModal({
                 <div className="decorative-corner corner-br" />
 
                 <div className="text-center mb-4">
-                  <div className="text-[clamp(.8rem,1.4vw,1rem)] font-semibold text-gray-600 mb-1 tracking-widest">CERTIFICATE OF</div>
+                  <div className="text-[clamp(.8rem,1.4vw,1rem)] font-semibold text-gray-800 mb-1 tracking-widest">CERTIFICATE OF</div>
                   <h1 className="certificate-title">COMPLETION</h1>
                   <div className="text-[clamp(.7rem,1.3vw,.9rem)] text-gray-500 uppercase tracking-wider">This is to certify that</div>
                 </div>

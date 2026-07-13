@@ -231,7 +231,7 @@ const handleSubmit = async () => {
                   </div>
                 </div>
               </div>
-              <p className="text-gray-600 leading-relaxed">{review.comment}</p>
+              <p className="text-gray-800 leading-relaxed">{review.comment}</p>
             </div>
           ))}
         </div>

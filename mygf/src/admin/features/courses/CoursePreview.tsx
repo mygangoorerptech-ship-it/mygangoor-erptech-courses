@@ -108,7 +108,7 @@ export function ChaptersPreviewModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 pb-3">
-          <div className="min-w-0 truncate text-sm text-slate-600">
+          <div className="min-w-0 truncate text-sm text-slate-800">
             <span className="font-medium text-slate-800">
               Chapter {idx + 1} / {chapters.length}
             </span>{" "}
@@ -182,7 +182,7 @@ export function ChaptersPreviewModal({
                 {c?.title || "Untitled"}
               </h3>
               {c?.subtitle && (
-                <div className="text-sm text-slate-600">{c.subtitle}</div>
+                <div className="text-sm text-slate-800">{c.subtitle}</div>
               )}
 
               {/* Description: justified + Read more/less */}

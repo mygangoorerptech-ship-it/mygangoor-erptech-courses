@@ -504,7 +504,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                         style={{ maxHeight: isLongDescription ? `${descMax}px` : "none" }}
                         aria-expanded={descExpanded}
                       >
-                        <div ref={descContentRef} className="text-gray-600 leading-relaxed whitespace-pre-line">
+                        <div ref={descContentRef} className="text-gray-800 leading-relaxed whitespace-pre-line">
                           {overviewText}
                         </div>
                         {!descExpanded && isLongDescription && (
@@ -568,7 +568,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               </div>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-gray-800">
                                 {category || "Course"}
                               </p>
                             </div>
@@ -586,19 +586,19 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                   <h3 className="font-bold text-gray-900 mb-4">Course Details</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Duration</span>
+                      <span className="text-gray-800">Duration</span>
                       <span className="font-semibold">{courseDuration}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Lessons</span>
+                      <span className="text-gray-800">Lessons</span>
                       <span className="font-semibold">{lessonsCount != null ? `${lessonsCount}` : "—"}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Level</span>
+                      <span className="text-gray-800">Level</span>
                       <span className="font-semibold">{level}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Certificate</span>
+                      <span className="text-gray-800">Certificate</span>
                       <span className="font-semibold">Available</span>
                     </div>
                   </div>
@@ -632,7 +632,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                     </div>
                     <div>
                       <h4 className="font-semibold text-gray-900">{instructorDisplay}</h4>
-                      <p className="text-sm text-gray-600">Instructor</p>
+                      <p className="text-sm text-gray-800">Instructor</p>
                     </div>
                   </div>
                 </div>

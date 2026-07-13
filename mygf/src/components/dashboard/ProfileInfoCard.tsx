@@ -209,7 +209,7 @@ export default function ProfileInfoCard({
 
         {/* No courses → simple note */}
         {!hasCourses && !coursesLoading && (
-          <div className="mt-3 text-xs text-slate-600">
+          <div className="mt-3 text-xs text-slate-800">
             You don't have any active courses yet.
           </div>
         )}
@@ -238,7 +238,7 @@ function Detail({
           <i className={iconClass} />
         </div>
         <div>
-          <p className="text-sm text-gray-600">{label}</p>
+          <p className="text-sm text-gray-800">{label}</p>
           <p className={`font-semibold ${valueClass}`}>{value}</p>
         </div>
       </div>

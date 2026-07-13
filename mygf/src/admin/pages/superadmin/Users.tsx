@@ -142,7 +142,7 @@ export default function SAUsers() {
         </div>
       </header>
 
-      <div className="text-sm text-slate-600">
+      <div className="text-sm text-slate-800">
         <span className="font-medium">{stats.total}</span> users •{' '}
         <span className="font-medium">{stats.supers}</span> superadmins •{' '}
         <span className="font-medium">{stats.admins}</span> admins •{' '}
@@ -153,7 +153,7 @@ export default function SAUsers() {
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-600">
+          <thead className="bg-slate-50 text-slate-800">
             <tr>
               <th className="text-left font-medium p-3">User</th>
               <th className="text-left font-medium p-3">Role</th>
@@ -677,7 +677,7 @@ function UserDetailsModal({
                       {user?.name || '—'}
                     </h2>
 
-                    <div className="mt-2 space-y-2 text-sm text-slate-600">
+                    <div className="mt-2 space-y-2 text-sm text-slate-800">
                       <div className="flex items-center gap-2">
                         <Mail size={16} />
                         {user?.email || '—'}
@@ -1231,7 +1231,7 @@ function CSVModal({ open, onClose, onImport }: {
   return (
     <Modal open={open} onClose={onClose} title="Bulk import users (CSV)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-600 space-y-1">
+        <div className="text-sm text-slate-800 space-y-1">
           <p className="font-medium">Accepted headers (use any subset):</p>
           <div className="text-xs grid gap-1">
             <div><code>email</code> (required), <code>name</code>, <code>role</code> (<code>superadmin|admin|teacher|student</code>), <code>status</code> (<code>active|disabled</code>), <code>password</code> (admin/teacher only)</div>

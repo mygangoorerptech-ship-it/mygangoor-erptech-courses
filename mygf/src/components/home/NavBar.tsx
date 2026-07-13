@@ -232,7 +232,7 @@ export default function NavBar() {
               }}
               className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
             >
-              <i className="fa-solid fa-book-open text-gray-600" />
+              <i className="fa-solid fa-book-open text-gray-800" />
               <span>Courses</span>
             </button>
           )}
@@ -246,7 +246,7 @@ export default function NavBar() {
               }}
               className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
             >
-              <i className="fa-solid fa-building-columns text-gray-600" />
+              <i className="fa-solid fa-building-columns text-gray-800" />
               <span>Centers</span>
             </button>
           )} */}
@@ -255,7 +255,7 @@ export default function NavBar() {
             onClick={goDashOrLogin}
             className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
           >
-            <i className="fa-solid fa-right-to-bracket text-gray-600" />
+            <i className="fa-solid fa-right-to-bracket text-gray-800" />
             <span>{isAuthed ? "Dashboard" : "Login"}</span>
           </button>
 

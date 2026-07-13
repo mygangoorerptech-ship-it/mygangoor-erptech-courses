@@ -26,7 +26,7 @@ export default function EnrolledToolbar() {
           <Grid2X2 className="h-5 w-5" />
         </button>
 
-        <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600">
+        <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-800">
           <List className="h-5 w-5" />
         </button>
       </div>

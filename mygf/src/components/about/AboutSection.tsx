@@ -33,7 +33,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; center?: boole
 }) => (
   <header className={center ? "text-center" : ""}>
     <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-900">{title}</h2>
-    {subtitle && <p className="mt-2 text-slate-600">{subtitle}</p>}
+    {subtitle && <p className="mt-2 text-slate-800">{subtitle}</p>}
     <div
       className={`mt-4 h-px w-24 bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 ${center ? "mx-auto" : ""}`}
     />
@@ -44,7 +44,7 @@ const SectionHeader: React.FC<{ title: string; subtitle?: string; center?: boole
 const StatCard: React.FC<{ value: string; label: string }> = ({ value, label }) => (
   <div className="rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur p-5 shadow-sm">
     <div className="text-2xl md:text-3xl font-semibold text-slate-900">{value}</div>
-    <div className="text-sm text-slate-600 mt-1">{label}</div>
+    <div className="text-sm text-slate-800 mt-1">{label}</div>
   </div>
 );
 
@@ -61,7 +61,7 @@ const FeatureCard: React.FC<{ title: string; desc: string; icon: React.ReactNode
       </span>
       <h3 className="text-base font-semibold text-slate-900">{title}</h3>
     </div>
-    <p className="mt-3 text-sm text-slate-600">{desc}</p>
+    <p className="mt-3 text-sm text-slate-800">{desc}</p>
   </div>
 );
 
@@ -78,7 +78,7 @@ const ValueCard: React.FC<{ title: string; desc: string; icon: React.ReactNode }
       </span>
       <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
     </div>
-    <p className="mt-2 text-sm text-slate-600">{desc}</p>
+    <p className="mt-2 text-sm text-slate-800">{desc}</p>
   </div>
 );
 
@@ -88,7 +88,7 @@ const TimelineItem: React.FC<{ year: string; title: string; desc: string }> = ({
     <span className="absolute left-0 top-1.5 h-3 w-3 rounded-full bg-gradient-to-br from-sky-500 to-indigo-500" />
     <div className="text-xs text-slate-500">{year}</div>
     <div className="text-sm font-semibold text-slate-900">{title}</div>
-    <p className="text-sm text-slate-600 mt-1">{desc}</p>
+    <p className="text-sm text-slate-800 mt-1">{desc}</p>
   </div>
 );
 
@@ -117,7 +117,7 @@ const AboutSection: React.FC = () => {
                 ECA — Engineers Computer Academy
               </span>
             </h1>
-            <p className="mt-3 text-slate-600">
+            <p className="mt-3 text-slate-800">
               A unit under <strong>M.Y. Gangoor International Foundation® (Multi-Sciences Education &amp; Research Centre)</strong>,
               established in <strong>1995</strong> (Reg. No. <strong>BEL-S249-2013-14</strong>). We deliver career-focused computer and
               engineering education while honoring India’s timeless knowledge traditions through a clear, modern and practical approach.
@@ -140,7 +140,7 @@ const AboutSection: React.FC = () => {
                 title="Our Mission"
                 subtitle="Sharing ancient Indian sciences through a modern, scientific approach that inspires a meaningful life."
               />
-              <p className="mt-4 text-sm md:text-base text-slate-600">
+              <p className="mt-4 text-sm md:text-base text-slate-800">
                 We exist to make the priceless heritage of Indian sciences accessible to all—uniting individuals with the
                 cosmic life force and nurturing <em>peace, compassion, and holistic well-being</em>. By blending tradition with
                 clarity and rigor, we help learners cultivate inner strength, wisdom, and practical skills for today’s world.
@@ -148,7 +148,7 @@ const AboutSection: React.FC = () => {
 
               <div className="mt-5">
                 <SectionHeader title="Our Vision" />
-                <p className="mt-3 text-sm md:text-base text-slate-600">
+                <p className="mt-3 text-sm md:text-base text-slate-800">
                   A world enriched by timeless knowledge—where people live healthier, wiser, and more balanced lives;
                   awakening spiritually while building compassionate communities across the globe.
                 </p>
@@ -324,7 +324,7 @@ const AboutSection: React.FC = () => {
                 </div>
               </div>
               <div className="rounded-2xl border border-slate-200/70 bg-white/70 backdrop-blur p-6 shadow-sm">
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-800">
                   We continue to refine practical, outcome-driven learning—uniting technology with timeless wisdom, and
                   making high-quality education accessible and meaningful for everyone.
                 </p>
@@ -376,7 +376,7 @@ const AboutSection: React.FC = () => {
                     {item.q}
                     <span className="ml-4 text-slate-400 group-open:rotate-180 transition-transform">⌄</span>
                   </summary>
-                  <p className="mt-3 text-sm text-slate-600">{item.a}</p>
+                  <p className="mt-3 text-sm text-slate-800">{item.a}</p>
                 </details>
               ))}
             </div>
@@ -385,7 +385,7 @@ const AboutSection: React.FC = () => {
           {/* CTA */}
           <section className="mt-16 text-center">
             <h3 className="text-xl md:text-2xl font-semibold text-slate-900">Start your journey with ECA</h3>
-            <p className="mt-2 text-slate-600">
+            <p className="mt-2 text-slate-800">
               Engineers Computer Academy — a unit of M.Y. Gangoor International Foundation® (Angol Rd., Belagavi, Karnataka, Bharat).
             </p>
             <p className="mt-1 text-sm text-slate-500">

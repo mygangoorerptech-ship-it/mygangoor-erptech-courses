@@ -33,7 +33,7 @@ export default function DashboardHeader({ onSignOut }: Props) {
           {/* LEFT */}
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-gray-100">
-              <i className="fas fa-graduation-cap text-gray-600 text-sm" />
+              <i className="fas fa-graduation-cap text-gray-800 text-sm" />
             </div>
             <h1 className="text-lg font-semibold text-gray-900">
               Student Dashboard

@@ -46,7 +46,7 @@ const ResetPassword = () => {
 
         <div className="relative w-full max-w-md rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
           <h2 className="text-2xl font-semibold text-slate-900">Reset Password</h2>
-          <p className="text-sm text-slate-600 mt-1">
+          <p className="text-sm text-slate-800 mt-1">
             Choose a new password for <span className="font-medium">{email}</span>.
           </p>
 
@@ -55,7 +55,7 @@ const ResetPassword = () => {
             <div>
               <label className="text-sm font-medium text-gray-700">New Password</label>
               <div className="mt-1 relative group">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                   {/* Lock icon */}
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                     <rect x="4" y="11" width="16" height="9" rx="2" />

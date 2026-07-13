@@ -206,7 +206,7 @@ function EmailTab() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-      <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-slate-600">
+      <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-slate-800">
         Current email: <span className="font-medium text-slate-900">{user?.email ?? "—"}</span>
       </div>
       <Field label="New email address">
@@ -369,7 +369,7 @@ function SecurityTab() {
         <div className="space-y-4">
           {!qrUrl ? (
             <div className="space-y-3">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-slate-800">
                 Protect your account with a time-based one-time password (TOTP) from an authenticator app like Google Authenticator or Authy.
               </p>
               <button
@@ -406,7 +406,7 @@ function SecurityTab() {
                 <button
                   type="button"
                   onClick={() => { setQrUrl(null); setCode(""); setResult(null); }}
-                  className="rounded-lg border px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="rounded-lg border px-4 py-2 text-sm text-slate-800 hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
@@ -419,7 +419,7 @@ function SecurityTab() {
       {/* ── DISABLE FLOW ── */}
       {has2fa && !isSuperadmin && (
         <form onSubmit={handleDisable} className="space-y-4">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-800">
             Disabling 2FA will reduce the security of your account. Enter your current password to confirm.
           </p>
           <Field label="Current password">
@@ -442,7 +442,7 @@ function SecurityTab() {
 
       {/* Superadmin lock notice */}
       {has2fa && isSuperadmin && (
-        <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-slate-600">
+        <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-slate-800">
           2FA is permanently required for superadmin accounts and cannot be disabled.
         </div>
       )}
@@ -537,7 +537,7 @@ function SessionsTab() {
   return (
     <div className="space-y-4 max-w-lg">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-800">
           {loading ? "Loading sessions…" : `${sessions.length} active session${sessions.length !== 1 ? "s" : ""}`}
         </p>
         <button

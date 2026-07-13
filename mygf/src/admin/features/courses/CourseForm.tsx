@@ -1051,7 +1051,7 @@ export default function CourseFormModal({
                 }
               >
                 {chapters.length === 0 ? (
-                  <div className="rounded-md border p-3 text-sm text-slate-600 bg-slate-50">
+                  <div className="rounded-md border p-3 text-sm text-slate-800 bg-slate-50">
                     No chapters yet.
                   </div>
                 ) : (

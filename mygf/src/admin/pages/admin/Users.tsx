@@ -823,7 +823,7 @@ function UserDetailsModal({
                       {user?.name || '—'}
                     </h2>
 
-                    <div className="mt-2 space-y-2 text-sm text-slate-600">
+                    <div className="mt-2 space-y-2 text-sm text-slate-800">
                       <div className="flex items-center gap-2">
                         <Mail size={16} />
                         {user?.email || '—'}
@@ -1096,7 +1096,7 @@ teacher2@acme.com,teacher,Teacher Two,active,admin2@acme.com,,true,otp`
   return (
     <Modal open title="Import CSV" onClose={onClose}>
       <div className="space-y-3">
-        <div className="text-sm text-gray-600 space-y-1">
+        <div className="text-sm text-gray-800 space-y-1">
           <p className="font-medium">Accepted headers (org is auto-assigned to your org):</p>
           <div className="text-xs grid gap-1">
             <div><code>email</code> (required), <code>role</code> (<code>student|teacher</code>), <code>name</code>, <code>status</code> (<code>active|disabled</code>), <code>password</code> (teacher only)</div>

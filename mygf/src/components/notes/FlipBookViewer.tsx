@@ -221,7 +221,7 @@ export default function FlipBookViewer({
             {pages}
           </Book>
 
-          <div className="mt-2 text-center text-xs text-slate-600 select-none">
+          <div className="mt-2 text-center text-xs text-slate-800 select-none">
             Swipe / drag or click to turn pages →
           </div>
 

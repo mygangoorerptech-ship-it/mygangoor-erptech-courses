@@ -39,7 +39,7 @@ export default function LevelCard({
         </div>
       </div>
 
-      <p className="text-gray-600 mb-4">{level.description}</p>
+      <p className="text-gray-800 mb-4">{level.description}</p>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center text-gray-500">
