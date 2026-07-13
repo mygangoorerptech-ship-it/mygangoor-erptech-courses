@@ -1,6 +1,6 @@
 // mygf/src/components/join/steps/SuccessStep.tsx
 import React from "react";
-import { CheckCircle2, Download, Share2, BadgeCheck, Clock } from "lucide-react";
+import { CheckCircle2, Download, Printer, Share2, BadgeCheck, Clock } from "lucide-react";
 
 type Receipt = {
   orderId: string;
@@ -20,11 +20,13 @@ type Receipt = {
 export default function SuccessStep({
   receipt,
   onDownload,
+  onPrint,
   onShare,
   innerRef,
 }: {
   receipt: Receipt | null;
   onDownload: (fmt?: "pdf" | "png") => void;
+  onPrint: () => void;
   onShare: () => void;
   innerRef: React.MutableRefObject<HTMLDivElement | null>;
 }) {
@@ -131,6 +133,13 @@ export default function SuccessStep({
         >
           <Download className="w-4 h-4" />
           Download PDF
+        </button>
+        <button
+          onClick={onPrint}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-white"
+        >
+          <Printer className="w-4 h-4" />
+          Print
         </button>
         <button
           onClick={onShare}

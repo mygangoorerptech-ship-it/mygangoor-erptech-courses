@@ -147,3 +147,22 @@ html, body {
 }
 .star-rating { color: #fbbf24; }
 .carousel-container { scroll-behavior: smooth; }
+
+/* Receipt print isolation.
+   Toggled by JoinNowModal (body.printing-receipt) only while printing the receipt,
+   so window.print() outputs just the receipt card (no modal backdrop, overlay, nav,
+   or underlying page) while keeping its real Tailwind styling. Scoped to the class,
+   so Ctrl+P elsewhere is unaffected. */
+@media print {
+  body.printing-receipt * { visibility: hidden; }
+  body.printing-receipt [data-receipt-root],
+  body.printing-receipt [data-receipt-root] * { visibility: visible; }
+  body.printing-receipt [data-receipt-root] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

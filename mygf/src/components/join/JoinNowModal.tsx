@@ -800,6 +800,19 @@ export default function JoinNowModal({
   }
 
   // ---- Download as PDF (vector page with our PNG) ----
+  // Print ONLY the receipt via the browser's print dialog. A body-class toggles a
+  // scoped @media print rule (in index.css) so overlays/nav/page are excluded, while
+  // the receipt keeps its real Tailwind styling. Class is removed after printing.
+  function printReceipt() {
+    document.body.classList.add("printing-receipt");
+    const cleanup = () => {
+      document.body.classList.remove("printing-receipt");
+      window.removeEventListener("afterprint", cleanup);
+    };
+    window.addEventListener("afterprint", cleanup);
+    window.print();
+  }
+
   async function downloadReceipt(format: "pdf" | "png" = "pdf") {
     const canvas = await buildReceiptCanvas();
     const dataUrl = canvas.toDataURL("image/png");
@@ -1032,6 +1045,7 @@ export default function JoinNowModal({
                     organization: selectedOrgName || selectedCourse?.orgName || "Platform",
                   } : null}
                   onDownload={downloadReceipt}
+                  onPrint={printReceipt}
                   onShare={shareReceipt}
                   innerRef={receiptRef}
                 />
