@@ -25,6 +25,26 @@ import { fetchFormProfile, isProfileComplete, type SavedFormProfile } from "../.
 // lazy imports to keep bundle small
 const loadJsPDF = () => import("jspdf");
 
+// Local YYYY-MM-DD (NOT toISOString, which is UTC and can be off by a day).
+function todayLocalISO(): string {
+  const t = new Date();
+  const m = String(t.getMonth() + 1).padStart(2, "0");
+  const d = String(t.getDate()).padStart(2, "0");
+  return `${t.getFullYear()}-${m}-${d}`;
+}
+
+// Derive age from a YYYY-MM-DD DOB using local date parts (timezone-safe;
+// handles leap years and birthdays not yet reached this year).
+function ageFromDOB(dob: string): number | "" {
+  if (!dob) return "";
+  const [y, m, d] = dob.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const t = new Date();
+  let a = t.getFullYear() - y;
+  if (t.getMonth() + 1 < m || (t.getMonth() + 1 === m && t.getDate() < d)) a--;
+  return a;
+}
+
 export default function JoinNowModal({
   onClose,
   selectedCourseId,
@@ -569,6 +589,7 @@ export default function JoinNowModal({
   }
 
   // validators
+  const todayStr = todayLocalISO();
   const errors: Record<string, string> = {};
   if (step === 1) {
     if (!selectedCourse || selectedCourse.id === "more") errors.course = "Please select an available course.";
@@ -578,6 +599,7 @@ export default function JoinNowModal({
     if (age === "" || Number(age) < 10 || Number(age) > 100) errors.age = "Age must be between 10 and 100.";
     if (!gender) errors.gender = "Select a gender.";
     if (!birth) errors.birth = "Birth date is required.";
+    else if (birth > todayStr) errors.birth = "Date of birth cannot be in the future.";
     if (!address.trim()) errors.address = "Address is required.";
     if (!/^\d{10}$/.test(mobile)) errors.mobile = "Enter a valid 10-digit mobile number.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
@@ -922,9 +944,13 @@ export default function JoinNowModal({
                   fullName: setFullName,
                   age: (v) => setAge(v as number | ""),
                   gender: (v) => setGender(v as any),
-                  birth: setBirth, address: setAddress, mobile: setMobile, email: setEmail,
+                  // Deriving age here keeps Age consistent with DOB on manual entry.
+                  // (Saved-profile reuse hides this form, so its submitted values are untouched.)
+                  birth: (v) => { setBirth(v); setAge(ageFromDOB(v)); },
+                  address: setAddress, mobile: setMobile, email: setEmail,
                   photo: onPhotoChange
                 }}
+                maxBirth={todayStr}
                 errors={errors}
                 savedProfile={savedProfile}
                 usingExisting={usingExisting}

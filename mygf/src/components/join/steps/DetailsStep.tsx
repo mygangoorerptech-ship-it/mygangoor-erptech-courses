@@ -7,7 +7,7 @@ import type { Gender } from "../types";
 import type { SavedFormProfile } from "../../../api/formProfile";
 
 export default function DetailsStep({
-  values, onValues, errors,
+  values, onValues, errors, maxBirth,
   savedProfile, usingExisting, onProfileModeChange,
 }: {
   values: {
@@ -20,6 +20,7 @@ export default function DetailsStep({
     email: (v: string) => void; photo: (f: File | null) => void;
   };
   errors: Record<string, string>;
+  maxBirth?: string;
   savedProfile?: SavedFormProfile | null;
   usingExisting?: boolean;
   onProfileModeChange?: (useExisting: boolean) => void;
@@ -78,11 +79,13 @@ export default function DetailsStep({
 
             <Field label="Age *" icon={<Calendar className="w-4 h-4" />} error={errors.age}>
               <input
-                type="number" min={10} max={100}
+                type="number"
                 value={values.age}
-                onChange={(e) => onValues.age(e.target.value ? Number(e.target.value) : "")}
-                placeholder="e.g., 24"
-                className="Input"
+                readOnly
+                tabIndex={-1}
+                placeholder="Auto-calculated from date of birth"
+                title="Age is calculated from your date of birth"
+                className="Input bg-slate-50 cursor-not-allowed"
               />
             </Field>
 
@@ -105,6 +108,7 @@ export default function DetailsStep({
             <Field label="Birth date *" icon={<Calendar className="w-4 h-4" />} error={errors.birth}>
               <input
                 type="date" value={values.birth}
+                max={maxBirth}
                 onChange={(e) => onValues.birth(e.target.value)}
                 className="Input"
               />
