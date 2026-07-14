@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from "../common/Footer";
 import { useAuth } from '../../auth/store';
 import { api } from '../../api/client';
-import { ensureCsrfToken, getCsrfToken } from '../../config/csrf';
+// import { ensureCsrfToken, getCsrfToken } from '../../config/csrf';
 // import { GoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -85,21 +85,15 @@ const SignIn: React.FC = () => {
     if (!validateForm()) return;
     setSubmitting(true);
     try {
-      // Ensure CSRF cookie & header
-      await ensureCsrfToken();
-      const csrf = getCsrfToken();
-
-      // Cookie-only login request (no Authorization header)
+      // The backend currently exempts /auth/login from CSRF validation.
+      // Fetching a token here therefore changes no server-side security decision
+      // and only adds a serial GET /csrf round trip before credential verification.
       const normalizedEmail = email.trim().toLowerCase();
 
-      const { data: res } = await api.post(
-        '/auth/login',
-        {
-          email: normalizedEmail,
-          password,
-        }, // don't force role; backend will infer
-        { headers: { 'X-CSRF-Token': csrf }, withCredentials: true }
-      );
+      const { data: res } = await api.post('/auth/login', {
+        email: normalizedEmail,
+        password,
+      });
 
       if (res?.mfa?.required && res?.mfaTempToken) {
         const base = routeForRole(res.user?.role);

@@ -74,7 +74,23 @@ api.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toLowerCase();
   const urlStr = String(config.url || '');
   const isUnsafe = ['post', 'put', 'patch', 'delete'].includes(method);
-  const skip = urlStr.includes('/auth/refresh') || urlStr === '/csrf';
+  const normalizedPath = `/${urlStr
+    .split('?')[0]
+    .replace(/^https?:\/\/[^/]+/i, '')
+    .replace(/^\/+/, '')}`.replace(/^\/api(?=\/)/, '');
+
+  // Keep auth-flow exemptions aligned with backend/server.js CSRF_EXEMPT.
+  // Fetching a token for an endpoint the server does not validate adds latency
+  // without changing the server-side authorization/security decision.
+  const skip =
+    normalizedPath === '/csrf' ||
+    normalizedPath === '/auth/login' ||
+    normalizedPath === '/auth/refresh' ||
+    normalizedPath === '/auth/logout' ||
+    normalizedPath === '/auth/resend-otp' ||
+    normalizedPath.startsWith('/auth/mfa') ||
+    normalizedPath.startsWith('/auth/totp');
+
 
   if (isUnsafe && !skip) {
     await ensureCsrfToken();
