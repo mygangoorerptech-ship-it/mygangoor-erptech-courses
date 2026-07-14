@@ -200,8 +200,16 @@ const signupLimiter = rateLimit({
   keyGenerator: safeKeyGenerator,
   message: { ok: false, message: "Too many requests, please try again later." },
 });
+const precheckLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: safeKeyGenerator,
+  message: { ok: false, message: "Too many requests, please try again later." },
+});
 app.use("/api/auth/forgot-password", forgotLimiter);
-app.use("/api/auth/precheck", forgotLimiter);
+app.use("/api/auth/precheck", precheckLimiter);
 app.use("/api/auth/signup", signupLimiter);
 app.use("/api/auth/signup-student", signupLimiter);
 // NOTE: settingsLimiter and sessionLimiter are now applied at ROUTE level

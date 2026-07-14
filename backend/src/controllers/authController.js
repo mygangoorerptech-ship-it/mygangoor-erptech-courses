@@ -57,6 +57,32 @@ const _totpUsedKeys = new Map();
 
 const PASSWORD_MIN_LENGTH = 8;
 
+// Preserve the existing security cost. Authentication performance must not be
+// "optimized" by weakening password hashing without production benchmarks and
+// a security review.
+const BCRYPT_ROUNDS = 12;
+
+function toPublicUser(user) {
+  const id = String(user?._id ?? user?.id ?? "");
+  const method = user?.mfa?.method;
+
+  return {
+    id,
+    _id: id, // backward-compatible alias for existing API consumers
+    name: user?.name ?? "",
+    email: user?.email ?? "",
+    role: user?.role,
+    status: user?.status,
+    orgId: user?.orgId ? String(user.orgId) : null,
+    isVerified: Boolean(user?.isVerified),
+    mfa: {
+      required: Boolean(user?.mfa?.required),
+      ...(method ? { method } : {}),
+    },
+  };
+}
+
+
 function isStrongPassword(password) {
   const value = String(password || "");
 
@@ -209,6 +235,8 @@ export function normalizeRoleWhenVerified(user) {
 
 // ===== Controllers =====
 export async function login(req, res) {
+   const startedAt = Date.now();
+ const stages = {};
   try {
     const {
       email: rawEmail,
@@ -221,11 +249,46 @@ export async function login(req, res) {
     const ua = req.get("User-Agent") || "unknown";
     const ip = String(req.headers["x-forwarded-for"] || req.ip || "").split(",")[0].trim();
 
-    const user = await User.findOne({ email }).select("+passwordHash");
-    if (!user) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+        if (!email || !password) {
+      return res.status(400).json({ ok: false, message: "Email and password are required" });
+    }
+
+    // Read-only auth lookup: select only fields needed by this flow and skip
+    // Mongoose document hydration. MFA updates below use atomic updateOne().
+    const lookupStartedAt = Date.now();
+    const user = await User.findOne({ email })
+      .select("+passwordHash name email role status orgId mfa isVerified")
+      .lean();
+    stages.userLookupMs = Date.now() - lookupStartedAt;
+ 
+    if (!user) {
+      if (process.env.AUTH_PERF_LOG === "1") {
+        console.info("[auth-perf]", JSON.stringify({
+          operation: "login",
+          outcome: "invalid_credentials",
+          durationMs: Date.now() - startedAt,
+          stages,
+        }));
+      }
+      return res.status(401).json({ ok: false, message: "Invalid credentials" });
+    }
+
+    const passwordVerifyStartedAt = Date.now();
 
     const ok = await bcrypt.compare(password, user.passwordHash || "");
-    if (!ok) return res.status(401).json({ ok: false, message: "Invalid credentials" });
+    stages.passwordVerifyMs = Date.now() - passwordVerifyStartedAt;
+
+    if (!ok) {
+      if (process.env.AUTH_PERF_LOG === "1") {
+        console.info("[auth-perf]", JSON.stringify({
+          operation: "login",
+          outcome: "invalid_credentials",
+          durationMs: Date.now() - startedAt,
+          stages,
+        }));
+      }
+      return res.status(401).json({ ok: false, message: "Invalid credentials" });
+    }
 
     if (as && user.role !== as) {
       return res.status(403).json({ ok: false, message: "Role mismatch" });
@@ -235,42 +298,107 @@ export async function login(req, res) {
       return res.status(403).json({ ok: false, message: "Account disabled" });
     }
 
-    // Suspicious login detection: run after credential verification for all paths
-    await detectSuspiciousLogin(user, ua, ip, req);
-
     if (user.mfa?.required) {
       const method = user.mfa.method || "otp";
-      const mfaTempToken = signMfaTempToken({ uid: user.id, method, email: user.email });
+      const mfaTempToken = signMfaTempToken({ uid: String(user._id), method, email: user.email });
+      const suspiciousCheckStartedAt = Date.now();
+      const suspiciousLoginCheck = detectSuspiciousLogin(user, ua, ip, req).finally(() => {
+        stages.suspiciousCheckMs = Date.now() - suspiciousCheckStartedAt;
+      });
+
       if (method === "otp") {
         const code = String(Math.floor(100000 + Math.random() * 900000));
-        user.mfa.emailOtp = {
+        const emailOtp = {
           codeHash: hash(code),
           expiresAt: new Date(Date.now() + 10 * 60 * 1000),
           lastSentAt: new Date(),
           attempts: 0,
         };
         await user.save();
+              const otpWriteStartedAt = Date.now();
+       await User.updateOne(
+         { _id: user._id, status: "active" },
+         { $set: { "mfa.emailOtp": emailOtp } }
+       );
+       stages.otpStateWriteMs = Date.now() - otpWriteStartedAt;
+       // Preserve the existing bounded email retry policy. Moving OTP delivery
+       // off the request path safely requires a durable queue/outbox, not an
+       // in-process fire-and-forget promise.
+       const otpEmailStartedAt = Date.now();
         await sendOtpEmail(user.email, code);
+                stages.otpEmailMs = Date.now() - otpEmailStartedAt;
+      }
+
+      // Preserve the original security-monitoring guarantee while overlapping
+      // its database read with OTP persistence/provider delivery.
+      await suspiciousLoginCheck;
+
+      if (process.env.AUTH_PERF_LOG === "1") {
+        console.info("[auth-perf]", JSON.stringify({
+          operation: "login",
+          outcome: "mfa_required",
+          method,
+          durationMs: Date.now() - startedAt,
+          stages,
+        }));
       }
       return res.json({ ok: true, mfa: { required: true, method }, mfaTempToken });
     }
 
-    // ✅ No-MFA path: first successful password login marks the account verified.
-    // Authentication must never mutate authorization roles — role assignment
-    // happens at account provisioning time (invite/signup), not at login.
-    if (!user.isVerified) {
+    // Authentication must never mutate authorization roles. Verification is
+    // the only state transition retained here, and it is an idempotent atomic
+    // update rather than a full document save.
+     if (!user.isVerified) {
+      const verificationWriteStartedAt = Date.now();
+      await User.updateOne(
+        { _id: user._id, isVerified: false },
+        { $set: { isVerified: true } }
+      );
+      stages.verificationWriteMs = Date.now() - verificationWriteStartedAt;
       user.isVerified = true;
-      await user.save();
     }
 
     const { access, refresh, jti, refreshExp } = mintTokens(user, ua);
-    await saveRefresh(user.id, jti, refreshExp, ua, ip);
+    // Session persistence and the security-monitoring read are independent.
+    // Run them concurrently, but do not return cookies until the refresh-token
+    // record is durable and the suspicious-login check has completed.
+    const sessionWriteStartedAt = Date.now();
+    const sessionWrite = saveRefresh(user._id, jti, refreshExp, ua, ip).finally(() => {
+      stages.sessionWriteMs = Date.now() - sessionWriteStartedAt;
+    });
+
+    const suspiciousCheckStartedAt = Date.now();
+    const suspiciousLoginCheck = detectSuspiciousLogin(user, ua, ip, req, jti).finally(() => {
+      stages.suspiciousCheckMs = Date.now() - suspiciousCheckStartedAt;
+    });
+
+    await Promise.all([sessionWrite, suspiciousLoginCheck]);
     setAuthCookies(req, res, { accessToken: access, refreshToken: refresh });
+        const responseUser = toPublicUser(user);
+
+    // Preserve the existing best-effort audit write semantics.
     writeAudit(user._id, "login", req);
-    // Tokens are in HttpOnly cookies only — never expose in JSON body (XSS risk)
-    return res.json({ ok: true, user });
+    if (process.env.AUTH_PERF_LOG === "1") {
+      console.info("[auth-perf]", JSON.stringify({
+        operation: "login",
+        outcome: "success",
+        role: user.role,
+        durationMs: Date.now() - startedAt,
+        stages,
+      }));
+    }
+
+    return res.json({ ok: true, user: responseUser });
   } catch (err) {
     console.error("[auth] login error:", err?.message);
+        if (process.env.AUTH_PERF_LOG === "1") {
+      console.info("[auth-perf]", JSON.stringify({
+        operation: "login",
+        outcome: "error",
+        durationMs: Date.now() - startedAt,
+        stages,
+      }));
+    }
     return res.status(503).json({ ok: false, message: "Service temporarily unavailable" });
   }
 }
@@ -799,72 +927,165 @@ export async function logout(req, res) {
 }
 
 export async function precheckEmail(req, res) {
-  const email = String(req.query.email || '').toLowerCase().trim();
-  if (!email) return res.status(400).json({ message: 'email required' });
+  try {
+    const email = String(req.query.email || "").toLowerCase().trim();
+    if (!email) return res.status(400).json({ message: "email required" });
 
-  const user = await User.findOne({ email });
-  if (user) {
-    // Account exists — do NOT reveal MFA configuration to unauthenticated callers
-    return res.json({ mode: 'signin', reason: 'Account already exists' });
+    // exists() avoids hydrating and serializing complete documents for a
+    // boolean availability check.
+    const userExists = await User.exists({ email });
+    if (userExists) {
+      return res.json({ mode: "signin", reason: "Account already exists" });
+    }
+
+    const invitationExists = await Invitation.exists({
+      email,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (invitationExists) {
+      return res.json({ mode: "signin", reason: "You have a pending invitation" });
+    }
+
+    return res.json({ mode: "signup" });
+  } catch (error) {
+    console.error("[auth] precheck error:", error?.message);
+    return res.status(503).json({ ok: false, message: "Service temporarily unavailable" });
   }
-
-  const inv = await Invitation.findOne({ email, expiresAt: { $gt: new Date() } });
-  if (inv) {
-    return res.json({ mode: 'signin', reason: 'You have a pending invitation' });
-  }
-
-  return res.json({ mode: 'signup' });
 }
 
 export async function signupStudent(req, res) {
-  const { name, email, password } = req.body || {};
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const normalizedName = String(name || "").trim();
-  const normalizedPassword = String(password || "");
+  const startedAt = Date.now();
+  const stages = {};
 
-  if (!normalizedName || normalizedName.length < 2) {
-    return res.status(400).json({
-      ok: false,
-      message: "Please enter a valid full name",
+  try {
+    const { name, email, password } = req.body || {};
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedName = String(name || "").trim();
+    const normalizedPassword = String(password || "");
+
+    if (!normalizedName || normalizedName.length < 2) {
+      return res.status(400).json({
+        ok: false,
+        message: "Please enter a valid full name",
+      });
+    }
+
+    if (!normalizedEmail) {
+      return res.status(400).json({
+        ok: false,
+        message: "Email address is required",
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Invalid email address",
+      });
+    }
+
+    if (!isStrongPassword(normalizedPassword)) {
+      return res.status(400).json({
+        ok: false,
+        message:
+          "Password must contain at least 8 characters, including uppercase, lowercase, and a number",
+      });
+    }
+
+    // The availability lookup and bcrypt work are independent. Running them
+    // concurrently removes one full database round trip from the new-account
+    // critical path while retaining an early duplicate response for normal UX.
+    // The unique email index remains the authoritative race-condition guard.
+    const passwordHashStartedAt = Date.now();
+    const passwordHashPromise = bcrypt
+      .hash(normalizedPassword, BCRYPT_ROUNDS)
+      .then((value) => {
+        stages.passwordHashMs = Date.now() - passwordHashStartedAt;
+        return value;
+      });
+
+    const availabilityStartedAt = Date.now();
+    const availabilityPromise = User.exists({ email: normalizedEmail }).then((value) => {
+      stages.availabilityLookupMs = Date.now() - availabilityStartedAt;
+      return value;
     });
+
+    const [passwordHash, existing] = await Promise.all([
+      passwordHashPromise,
+      availabilityPromise,
+    ]);
+
+    if (existing) {
+      if (process.env.AUTH_PERF_LOG === "1") {
+        console.info("[auth-perf]", JSON.stringify({
+          operation: "signup_student",
+          outcome: "duplicate",
+          durationMs: Date.now() - startedAt,
+          bcryptRounds: BCRYPT_ROUNDS,
+          stages,
+        }));
+      }
+      return res.status(409).json({ ok: false, message: "Email already in use" });
+    }
+
+    try {
+      const accountWriteStartedAt = Date.now();
+      await User.create({
+        name: normalizedName,
+        email: normalizedEmail,
+        role: "student",
+        status: "active",
+        isVerified: true,
+        mfa: { required: false, method: null },
+        passwordHash,
+      });
+      stages.accountWriteMs = Date.now() - accountWriteStartedAt;
+    } catch (error) {
+      // Handles concurrent signups that pass the optimistic exists() check at
+      // the same time. Never rely on a pre-read alone for uniqueness.
+      if (error?.code === 11000 && error?.keyPattern?.email) {
+        if (process.env.AUTH_PERF_LOG === "1") {
+          console.info("[auth-perf]", JSON.stringify({
+            operation: "signup_student",
+            outcome: "duplicate_race",
+            durationMs: Date.now() - startedAt,
+            bcryptRounds: BCRYPT_ROUNDS,
+            stages,
+          }));
+        }
+        return res.status(409).json({ ok: false, message: "Email already in use" });
+      }
+      throw error;
+    }
+
+    if (process.env.AUTH_PERF_LOG === "1") {
+      console.info("[auth-perf]", JSON.stringify({
+        operation: "signup_student",
+        outcome: "success",
+        durationMs: Date.now() - startedAt,
+        bcryptRounds: BCRYPT_ROUNDS,
+        stages,
+      }));
+    }
+
+    // Preserve the existing response contract/status for current clients.
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error("[auth] signup error:", error?.message);
+
+    if (process.env.AUTH_PERF_LOG === "1") {
+      console.info("[auth-perf]", JSON.stringify({
+        operation: "signup_student",
+        outcome: "error",
+        durationMs: Date.now() - startedAt,
+        bcryptRounds: BCRYPT_ROUNDS,
+        stages,
+      }));
+    }
+
+    return res.status(503).json({ ok: false, message: "Service temporarily unavailable" });
   }
-
-  if (!normalizedEmail) {
-    return res.status(400).json({
-      ok: false,
-      message: "Email address is required",
-    });
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-    return res.status(400).json({
-      ok: false,
-      message: "Invalid email address",
-    });
-  }
-
-  if (!isStrongPassword(normalizedPassword)) {
-    return res.status(400).json({
-      ok: false,
-      message:
-        "Password must contain at least 8 characters, including uppercase, lowercase, and a number",
-    });
-  }
-
-  const existing = await User.findOne({ email: normalizedEmail });
-  if (existing) return res.status(409).json({ message: 'Email already in use' });
-
-  const passwordHash = await bcrypt.hash(normalizedPassword, 12);
-  await User.create({
-    name: normalizedName || null,
-    email: normalizedEmail,
-    role: 'student',
-    status: 'active',
-    isVerified: true,
-    mfa: { required: false, method: null }, // manual signup → no MFA by default
-    passwordHash,
-  });
-  return res.json({ ok: true });
 }
 
 export async function resetPassword(req, res) {
@@ -1301,15 +1522,16 @@ export async function selfTotpDisable(req, res) {
 // ============================================================
 
 // ------------------------------------------------------------------
-// detectSuspiciousLogin — runs after successful credential check.
-// Flags logins from a User-Agent or IP not seen in any active session.
-// Fire-and-forget: never blocks the login response.
+// detectSuspiciousLogin — checks active sessions after credential validation.
+// The caller overlaps this read with independent session/OTP work and awaits the
+// check before responding. Alert email delivery remains best-effort internally.
 // ------------------------------------------------------------------
-async function detectSuspiciousLogin(user, ua, ip, req) {
+async function detectSuspiciousLogin(user, ua, ip, req, currentJti) {
   try {
-    const existing = await RefreshToken.findOne({
+    const existing = await RefreshToken.exists({
       userId: user._id,
       revokedAt: null,
+      ...(currentJti ? { jti: { $ne: currentJti } } : {}),
       $or: [{ device: ua }, { ip }],
     });
 

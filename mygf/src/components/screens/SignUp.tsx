@@ -1,10 +1,11 @@
 // mygf/src/components/screens/SignUp.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import NavBar from "../home/NavBar";
 // import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../auth/store';
 import { api } from '../../api/client';
+import { ensureCsrfToken } from '../../config/csrf';
 import Footer from "../common/Footer";
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -27,11 +28,12 @@ function routeForRole(role?: string) {
   return "/home";
 }
 
-type PrecheckResp = {
+type PrecheckResult = {
   mode: 'signin' | 'signup';
   reason?: string;
   mfa?: { required: boolean; method: 'otp' | 'totp' | null };
-} | null;
+};
+type PrecheckResp = PrecheckResult | null;
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -53,6 +55,26 @@ const SignUp: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [precheck, setPrecheck] = useState<PrecheckResp>(null);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Precheck is advisory UX only. The signup POST + unique email index remain
+  // the authoritative race-safe decision. Cache and join same-email requests so
+  // blur, React StrictMode, and rapid focus changes cannot duplicate network work.
+  const latestEmailRef = useRef('');
+  const mountedRef = useRef(true);
+  const precheckCacheRef = useRef(new Map<string, PrecheckResult>());
+  const precheckInflightRef = useRef(new Map<string, Promise<PrecheckResp>>());
+
+  useEffect(() => {
+    mountedRef.current = true;
+    // Signup is CSRF-protected. Warm the token while the user fills the form so
+    // submission does not pay an avoidable serial GET /csrf round trip. The
+    // axios interceptor uses the same single-flight promise as a fallback.
+    void ensureCsrfToken();
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const validateForm = () => {
     const next = {
@@ -118,29 +140,70 @@ const SignUp: React.FC = () => {
     return ok;
   };
 
-  async function runPrecheck(currentEmail: string) {
-    const e = currentEmail.trim().toLowerCase();
-    if (!e) { setPrecheck(null); return; }
-    setChecking(true);
-    setFormError(null);
-    try {
-      // Backend should return: { mode:'signin'|'signup', reason?, mfa? }
-      const { data } = await api.get('/auth/precheck', { params: { email: e } });
-      setPrecheck(data as PrecheckResp);
-      return data as PrecheckResp;         // <-- return the value so caller can decide immediately
-    } catch (err: any) {
-      // If precheck is unavailable, allow signup flow to proceed
-      const msg =
-        'Unable to verify account availability right now. Please try again shortly.';
+  async function runPrecheck(currentEmail: string): Promise<PrecheckResp> {
+    const normalizedEmail = currentEmail.trim().toLowerCase();
 
-      setFormError(msg);
-
-      toast.error(msg);
-
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      if (mountedRef.current) setPrecheck(null);
       return null;
-    } finally {
-      setChecking(false);
     }
+
+    const cached = precheckCacheRef.current.get(normalizedEmail);
+    if (cached) {
+      if (mountedRef.current && latestEmailRef.current === normalizedEmail) {
+        setPrecheck(cached);
+      }
+      return cached;
+    }
+
+    const inflight = precheckInflightRef.current.get(normalizedEmail);
+    if (inflight) return inflight;
+
+    if (mountedRef.current && latestEmailRef.current === normalizedEmail) {
+      setChecking(true);
+      setFormError(null);
+    }
+    let request: Promise<PrecheckResp>;
+    request = (async () => {
+      try {
+        const { data } = await api.get<PrecheckResult>('/auth/precheck', {
+          params: { email: normalizedEmail },
+        });
+
+        const cache = precheckCacheRef.current;
+        cache.set(normalizedEmail, data);
+
+        // Bound this component-local cache. It exists only to eliminate duplicate
+        // form requests, not to become a long-lived account-enumeration cache.
+        if (cache.size > 5) {
+          const oldestKey = cache.keys().next().value as string | undefined;
+          if (oldestKey) cache.delete(oldestKey);
+        }
+
+        if (mountedRef.current && latestEmailRef.current === normalizedEmail) {
+          setPrecheck(data);
+        }
+
+        return data;
+      } catch {
+        // Availability precheck must never become a second hard dependency for
+        // account creation. The authoritative signup endpoint handles duplicate
+        // emails with a database unique index and a 409 response.
+        return null;
+      } finally {
+        if (precheckInflightRef.current.get(normalizedEmail) === request) {
+          precheckInflightRef.current.delete(normalizedEmail);
+        }
+
+        if (mountedRef.current && latestEmailRef.current === normalizedEmail) {
+          setChecking(false);
+        }
+      }
+    })();
+
+    precheckInflightRef.current.set(normalizedEmail, request);
+    return request;
+
   }
 
   const handleSubmit = async () => {
@@ -152,13 +215,13 @@ const SignUp: React.FC = () => {
 
     setSubmitting(true);
 
-    // Always verify the email status before signup (use the return to avoid state-race)
-    const pc = await runPrecheck(email);
-    if (!pc) {
-      setSubmitting(false);
-      return;
-    }
-    if (pc?.mode === 'signin') {
+    // Use only a completed same-email precheck. Never add another blocking
+    // request before signup; the backend unique index is authoritative and
+    // already returns 409 for duplicate/racing submissions.
+    const normalizedEmail = email.trim().toLowerCase();
+    const cachedPrecheck = precheckCacheRef.current.get(normalizedEmail) ?? null;
+
+    if (cachedPrecheck?.mode === 'signin') {
       toast(
         'Account already exists. Please sign in.',
         {
@@ -166,7 +229,6 @@ const SignUp: React.FC = () => {
         }
       );
       setSubmitting(false);
-      // Go to Sign In instead of attempting signup
       navigate('/login', { state: { email } });
       return;
     }
@@ -203,10 +265,12 @@ const SignUp: React.FC = () => {
       console.error(error);
 
       if (error?.response?.status === 409) {
-        setPrecheck({
+        const duplicateResult: PrecheckResult = {
           mode: 'signin',
           reason: 'Account already exists'
-        });
+        };
+        precheckCacheRef.current.set(email.trim().toLowerCase(), duplicateResult);
+        setPrecheck(duplicateResult);
 
         toast(
           'Account already exists. Please sign in.',
@@ -325,11 +389,14 @@ const SignUp: React.FC = () => {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => {
-                      setEmail(e.target.value);
+                      const nextEmail = e.target.value;
+                      const normalizedNextEmail = nextEmail.trim().toLowerCase();
 
-                      if (precheck) {
-                        setPrecheck(null);
-                      }
+                      setEmail(nextEmail);
+                      latestEmailRef.current = normalizedNextEmail;
+
+                      setFormError(null);
+                      setPrecheck(precheckCacheRef.current.get(normalizedNextEmail) ?? null);
                     }}
                     onBlur={() => runPrecheck(email)}
                     autoComplete="email"
@@ -338,6 +405,9 @@ const SignUp: React.FC = () => {
                   <div className="pointer-events-none absolute -bottom-px left-0 right-0 h-px bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 opacity-80 group-focus-within:opacity-100" />
                 </div>
                 {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+                {checking && !errors.email && (
+                  <p className="mt-1 text-xs text-slate-500">Checking account availability…</p>
+                )}
               </div>
             </div>
 
@@ -413,27 +483,15 @@ const SignUp: React.FC = () => {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={checking || submitting}
+              disabled={submitting}
               className="w-full relative font-semibold py-2.5 rounded-xl text-white transition shadow-lg bg-gradient-to-r from-indigo-600 to-sky-600 hover:from-indigo-700 hover:to-sky-700 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {
-                checking || submitting
-                  ? (
-                    <span className="inline-flex items-center gap-2 justify-center">
-                      <Loader2
-                        className="animate-spin"
-                        size={18}
-                      />
-
-                      {
-                        submitting
-                          ? 'Creating Account...'
-                          : 'Checking...'
-                      }
-                    </span>
-                  )
-                  : 'Sign Up'
-              }
+              {submitting ? (
+                <span className="inline-flex items-center gap-2 justify-center">
+                  <Loader2 className="animate-spin" size={18} />
+                  Creating Account...
+                </span>
+              ) : 'Sign Up'}
             </button>
 
             {/* Divider */}
