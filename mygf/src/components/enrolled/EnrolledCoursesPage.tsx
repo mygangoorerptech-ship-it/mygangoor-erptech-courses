@@ -276,11 +276,11 @@ export default function EnrolledCoursesPage() {
             <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
               {/* LEFT */}
               <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+                <h1 className="text-3xl font-black tracking-tight text-black sm:text-4xl">
                   Enrolled Courses
                 </h1>
 
-                <p className="mt-3 text-sm text-slate-500 sm:text-base xl:text-lg">
+                <p className="mt-3 text-sm text-black sm:text-base xl:text-lg">
                   Continue your learning
                   journey. Pick up where
                   you left off.
@@ -368,7 +368,7 @@ export default function EnrolledCoursesPage() {
                   <div className="rounded-2xl bg-slate-100 p-5">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-10 w-10 text-slate-400"
+                      className="h-10 w-10 text-black"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -384,11 +384,11 @@ export default function EnrolledCoursesPage() {
                     </svg>
                   </div>
 
-                  <h3 className="mt-5 text-xl font-bold text-slate-900">
+                  <h3 className="mt-5 text-xl font-bold text-black">
                     No Courses Found
                   </h3>
 
-                  <p className="mt-2 max-w-md text-sm text-slate-500">
+                  <p className="mt-2 max-w-md text-sm text-black">
                     No enrolled courses
                     are available in this
                     category right now.

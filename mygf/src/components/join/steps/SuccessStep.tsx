@@ -46,10 +46,10 @@ export default function SuccessStep({
           <CheckCircle2 className="w-10 h-10 text-emerald-600" />
         </div>
         <h4 className="text-xl font-semibold">{title}</h4>
-        <p className="text-slate-700">
+        <p className="text-black">
           Hello <span className="font-medium">{receipt?.student?.name || "Student"}</span>. {subtitle}
         </p>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-black">
           {receipt?.verified ? (
             <span className="inline-flex items-center gap-1 text-emerald-700">
               <BadgeCheck className="w-4 h-4" /> Verified by payment provider
@@ -70,56 +70,56 @@ export default function SuccessStep({
  >
         <div className="flex items-center justify-between border-b pb-3 mb-3">
           <div>
-            <div className="text-xs text-slate-500">Payment Receipt</div>
+            <div className="text-xs text-black">Payment Receipt</div>
             <div className="text-base font-semibold">MYGF</div>
           </div>
           <div className="text-right">
-            <div className="text-xs text-slate-500">Date</div>
+            <div className="text-xs text-black">Date</div>
             <div className="text-sm font-medium">{dt}</div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
-            <div className="text-xs text-slate-500">Student</div>
+            <div className="text-xs text-black">Student</div>
             <div className="font-medium">{receipt?.student?.name || "-"}</div>
           </div>
           <div>
-            <div className="text-xs text-slate-500">Course</div>
+            <div className="text-xs text-black">Course</div>
             <div className="font-medium">{receipt?.course?.title || "-"}</div>
           </div>
 
           {receipt?.organization && (
             <div className="col-span-2 border-t border-slate-100 pt-2">
-              <div className="text-xs text-slate-500">Organization</div>
+              <div className="text-xs text-black">Organization</div>
               <div className="font-medium">{receipt.organization}</div>
             </div>
           )}
 
           <div>
-            <div className="text-xs text-slate-500">Order ID</div>
+            <div className="text-xs text-black">Order ID</div>
             <div className="font-mono text-[13px]">{receipt?.orderId || "-"}</div>
           </div>
           <div>
-            <div className="text-xs text-slate-500">Payment ID</div>
+            <div className="text-xs text-black">Payment ID</div>
             <div className="font-mono text-[13px]">{receipt?.paymentId || "-"}</div>
           </div>
 
           <div>
-            <div className="text-xs text-slate-500">Method</div>
+            <div className="text-xs text-black">Method</div>
             <div className="font-medium capitalize">{receipt?.method || "-"}</div>
           </div>
           <div>
-            <div className="text-xs text-slate-500">Status</div>
+            <div className="text-xs text-black">Status</div>
             <div className="font-medium">{receipt?.status || "-"}</div>
           </div>
 
           <div className="col-span-2 mt-1 rounded-lg bg-slate-50 border px-4 py-3 flex items-center justify-between">
-            <span className="text-sm text-slate-800">Amount paid</span>
+            <span className="text-sm text-black">Amount paid</span>
             <span className="text-lg font-semibold">{amount}</span>
           </div>
 
-          <div className="col-span-2 text-xs text-slate-500 mt-1">
+          <div className="col-span-2 text-xs text-black mt-1">
             {enrolled ? "Enrollment: active" : `Enrollment: ${receipt?.enrollment?.status || "pending"}`}
           </div>
         </div>

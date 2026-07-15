@@ -36,8 +36,8 @@ const ForgotPassword = () => {
         <AuthBackdrop />
 
         <div className="relative w-full max-w-md rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
-          <h2 className="text-2xl font-semibold text-slate-900">Forgot Password</h2>
-          <p className="text-sm text-slate-800 mt-1">
+          <h2 className="text-2xl font-semibold text-black">Forgot Password</h2>
+          <p className="text-sm text-black mt-1">
             Enter your email and we’ll send you a reset link.
           </p>
 
@@ -46,7 +46,7 @@ const ForgotPassword = () => {
             <div>
               <label className="text-sm font-medium text-black">Email</label>
               <div className="mt-1 relative group">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black">
                   {/* Mail icon */}
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                     <path d="M4 6h16v12H4z" />

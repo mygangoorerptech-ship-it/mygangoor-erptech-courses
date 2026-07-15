@@ -819,11 +819,11 @@ function UserDetailsModal({
                     )}
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">
+                    <h2 className="text-xl font-semibold text-black">
                       {user?.name || '—'}
                     </h2>
 
-                    <div className="mt-2 space-y-2 text-sm text-slate-800">
+                    <div className="mt-2 space-y-2 text-sm text-black">
                       <div className="flex items-center gap-2">
                         <Mail size={16} />
                         {user?.email || '—'}
@@ -871,13 +871,13 @@ function UserDetailsModal({
 
             {(user?.role === 'student' || user?.role === 'orguser') && profile && (
               <div className="rounded-xl border p-4">
-                <h3 className="font-semibold text-slate-900 mb-4">
+                <h3 className="font-semibold text-black mb-4">
                   Student Form Details
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Full Name
                     </div>
 
@@ -887,7 +887,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Mobile
                     </div>
 
@@ -897,7 +897,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Gender
                     </div>
 
@@ -907,7 +907,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Age
                     </div>
 
@@ -917,7 +917,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Birth
                     </div>
 
@@ -927,7 +927,7 @@ function UserDetailsModal({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Address
                     </div>
 

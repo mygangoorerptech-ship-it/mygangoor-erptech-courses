@@ -105,7 +105,7 @@ export default function ADAssignmentSubmissions(){
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-sm text-slate-800">
+        <div className="flex items-center gap-3 text-sm text-black">
           <Link to="/admin/assignments" className="text-blue-600 hover:underline inline-flex items-center gap-1"><ChevronLeft size={16}/> Back to assignments</Link>
           <span>•</span>
           <span>Assignment ID: <span className="font-mono">{assignmentId}</span></span>
@@ -142,7 +142,7 @@ export default function ADAssignmentSubmissions(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="p-3 text-left"><input type="checkbox" checked={allSelected} onChange={toggleAll} /></th>
               <th className="text-left font-medium p-3">Student</th>
@@ -159,7 +159,7 @@ export default function ADAssignmentSubmissions(){
                 <td className="p-3"><input type="checkbox" checked={!!selected[s.id]} onChange={(e)=> setSelected(prev=> ({...prev, [s.id]: e.target.checked}))} /></td>
                 <td className="p-3">
                   <div className="font-medium">{s.studentName}</div>
-                  {s.studentEmail && <div className="text-xs text-slate-500">{s.studentEmail}</div>}
+                  {s.studentEmail && <div className="text-xs text-black">{s.studentEmail}</div>}
                 </td>
                 <td className="p-3">#{s.attempt}</td>
                 <td className="p-3">{new Date(s.submittedAt).toLocaleString()}</td>
@@ -181,7 +181,7 @@ export default function ADAssignmentSubmissions(){
                 </td>
               </tr>
             ))}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={7}>No submissions</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={7}>No submissions</td></tr>}
           </tbody>
         </table>
       </div>
@@ -217,20 +217,20 @@ function ViewModal({ open, sub, onClose, onAttach, onRemove }:{ open:boolean, su
     <Modal open={open} onClose={onClose} title={`Submission by ${sub.studentName}`}>
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <div><span className="text-xs text-slate-500">Email</span><div>{sub.studentEmail||'—'}</div></div>
-          <div><span className="text-xs text-slate-500">Attempt</span><div>#{sub.attempt}</div></div>
-          <div><span className="text-xs text-slate-500">Submitted</span><div>{new Date(sub.submittedAt).toLocaleString()}</div></div>
-          <div><span className="text-xs text-slate-500">Status</span><div>{sub.status}</div></div>
-          <div><span className="text-xs text-slate-500">Score</span><div>{typeof sub.score==='number' ? `${sub.score}/${sub.maxPoints ?? ''}` : '—'}</div></div>
-          <div><span className="text-xs text-slate-500">Graded by</span><div>{sub.gradedBy||'—'}</div></div>
+          <div><span className="text-xs text-black">Email</span><div>{sub.studentEmail||'—'}</div></div>
+          <div><span className="text-xs text-black">Attempt</span><div>#{sub.attempt}</div></div>
+          <div><span className="text-xs text-black">Submitted</span><div>{new Date(sub.submittedAt).toLocaleString()}</div></div>
+          <div><span className="text-xs text-black">Status</span><div>{sub.status}</div></div>
+          <div><span className="text-xs text-black">Score</span><div>{typeof sub.score==='number' ? `${sub.score}/${sub.maxPoints ?? ''}` : '—'}</div></div>
+          <div><span className="text-xs text-black">Graded by</span><div>{sub.gradedBy||'—'}</div></div>
         </div>
 
-        {sub.url && <div><span className="text-xs text-slate-500">URL</span><div><a href={sub.url} target="_blank" className="text-blue-600 underline">{sub.url}</a></div></div>}
-        {sub.textEntry && <div><span className="text-xs text-slate-500">Text Entry</span><div className="whitespace-pre-wrap border rounded p-2 bg-slate-50">{sub.textEntry}</div></div>}
+        {sub.url && <div><span className="text-xs text-black">URL</span><div><a href={sub.url} target="_blank" className="text-blue-600 underline">{sub.url}</a></div></div>}
+        {sub.textEntry && <div><span className="text-xs text-black">Text Entry</span><div className="whitespace-pre-wrap border rounded p-2 bg-slate-50">{sub.textEntry}</div></div>}
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-slate-500">Files</span>
+            <span className="text-xs text-black">Files</span>
             <label className="px-2 py-1 rounded border hover:bg-slate-50 inline-flex items-center gap-1 cursor-pointer">
               <Upload size={16}/> Attach
               <input type="file" className="hidden" onChange={(e)=> { const f=e.target.files?.[0]; if(f) onAttach(f) }} />
@@ -248,7 +248,7 @@ function ViewModal({ open, sub, onClose, onAttach, onRemove }:{ open:boolean, su
                 <button className="text-red-600" onClick={()=> onRemove(att.id)}>✕</button>
               </div>
             ))}
-            {(sub.files||[]).length===0 && <div className="text-xs text-slate-500">No files</div>}
+            {(sub.files||[]).length===0 && <div className="text-xs text-black">No files</div>}
           </div>
         </div>
 

@@ -303,7 +303,7 @@ export default function App() {
 
 function TracksGateLoader() {
   return (
-    <div className="min-h-[40vh] grid place-items-center text-slate-500">
+    <div className="min-h-[40vh] grid place-items-center text-black">
       Loading…
     </div>
   );

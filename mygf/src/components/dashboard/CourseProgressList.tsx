@@ -147,7 +147,7 @@ export default function CourseProgressList() {
 
       {/* Error state — neutral, non-alarming */}
       {!loading && error && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-black">
           Couldn't load courses. Please refresh the page.
         </div>
       )}

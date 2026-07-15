@@ -84,7 +84,7 @@ export default function SAStudents(){
               {list[0]?.orgName || (list[0]?.orgId ? list[0].orgId : 'Unassigned')} — {list.length} students
             </div>
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-slate-800">
+              <thead className="bg-slate-50 text-black">
                 <tr>
                   <th className="text-left font-medium p-3">Name</th>
                   <th className="text-left font-medium p-3">Username</th>
@@ -98,7 +98,7 @@ export default function SAStudents(){
                   <tr key={s.id} className="border-t">
                     <td className="p-3">
                       <div className="font-medium">{s.name || '—'}</div>
-                      {s.orgName && <div className="text-xs text-slate-500">{s.orgName}</div>}
+                      {s.orgName && <div className="text-xs text-black">{s.orgName}</div>}
                     </td>
                     <td className="p-3">{s.username}</td>
                     <td className="p-3">{s.email}</td>
@@ -133,12 +133,12 @@ export default function SAStudents(){
                     </td>
                   </tr>
                 ))}
-                {list.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={5}>No students</td></tr>}
+                {list.length===0 && <tr><td className="p-6 text-center text-black" colSpan={5}>No students</td></tr>}
               </tbody>
             </table>
           </div>
         ))}
-        {rows.length===0 && <div className="text-center text-slate-500">No students</div>}
+        {rows.length===0 && <div className="text-center text-black">No students</div>}
       </div>
 
       <StudentModal
@@ -296,7 +296,7 @@ function CSVModal({ open, onClose, onImport }:{
   return (
     <Modal open={open} onClose={onClose} title="Bulk import via CSV (Superadmin)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-800">
+        <div className="text-sm text-black">
           Headers: <code>username,email,name,status,orgId,orgName</code>. Matches by <b>email or username</b>.
         </div>
         <div className="flex items-center gap-2">

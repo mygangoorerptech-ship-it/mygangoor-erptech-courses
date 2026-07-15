@@ -65,15 +65,15 @@ export default function EnrolledStats({
 
               {/* CONTENT */}
               <div className="min-w-0">
-                <p className="text-sm font-medium text-slate-500">
+                <p className="text-sm font-medium text-black">
                   {item.title}
                 </p>
 
-                <h3 className="mt-1 text-3xl font-black tracking-tight text-slate-900">
+                <h3 className="mt-1 text-3xl font-black tracking-tight text-black">
                   {item.value}
                 </h3>
 
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-black">
                   {item.subtitle}
                 </p>
               </div>

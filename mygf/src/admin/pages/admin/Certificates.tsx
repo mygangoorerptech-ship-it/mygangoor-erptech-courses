@@ -68,7 +68,7 @@ export default function ADCertificates(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Title</th>
               <th className="text-left font-medium p-3">Template</th>
@@ -82,11 +82,11 @@ export default function ADCertificates(){
               <tr key={c.id} className="border-t">
                 <td className="p-3">
                   <div className="font-medium">{c.title}</div>
-                  {c.description && <div className="text-xs text-slate-500">{c.description}</div>}
+                  {c.description && <div className="text-xs text-black">{c.description}</div>}
                 </td>
                 <td className="p-3">
                   <div className="flex items-center gap-2">
-                    <LayoutTemplate size={16} className="text-slate-500"/>
+                    <LayoutTemplate size={16} className="text-black"/>
                     <span>{templateById[c.templateId]?.name || '—'}</span>
                   </div>
                 </td>
@@ -107,7 +107,7 @@ export default function ADCertificates(){
                   <span className={
                     c.status==='published' ? 'text-green-700 bg-green-50 rounded px-2 py-0.5' :
                     c.status==='draft' ? 'text-amber-700 bg-amber-50 rounded px-2 py-0.5' :
-                    'text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+                    'text-black bg-slate-100 rounded px-2 py-0.5'
                   }>{c.status}</span>
                 </td>
                 <td className="p-3">
@@ -136,7 +136,7 @@ export default function ADCertificates(){
                 </td>
               </tr>
             ))}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={5}>No certificates</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={5}>No certificates</td></tr>}
           </tbody>
         </table>
       </div>
@@ -238,7 +238,7 @@ function CertModal({
                 <div className="mt-2 text-sm font-medium">{t.name}</div>
               </button>
             ))}
-            {templates.length===0 && <div className="text-sm text-slate-500">No templates found</div>}
+            {templates.length===0 && <div className="text-sm text-black">No templates found</div>}
           </div>
         </div>
 
@@ -254,7 +254,7 @@ function CertModal({
           </div>
 
           <div className="sm:col-span-2">
-            <div className="text-xs text-slate-800 mb-1">
+            <div className="text-xs text-black mb-1">
               Use placeholders: <code>{'{student_name}'}</code>, <code>{'{course_title}'}</code>, <code>{'{date}'}</code>
             </div>
           </div>
@@ -351,7 +351,7 @@ const replaceVars = (s?: string) => {
     <Modal open={open} onClose={onClose} title="Certificate preview">
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-3">
-          <div className="text-sm text-slate-800">Template: <span className="font-medium">{tpl?.name || '—'}</span></div>
+          <div className="text-sm text-black">Template: <span className="font-medium">{tpl?.name || '—'}</span></div>
           <img
             src={cert.demoImageDataUrl || tpl?.previewDataUrl}
             alt="preview"
@@ -359,15 +359,15 @@ const replaceVars = (s?: string) => {
           />
         </div>
         <div className="space-y-2">
-          <div className="text-xs text-slate-500">Rendered text (with placeholders):</div>
+          <div className="text-xs text-black">Rendered text (with placeholders):</div>
           <div className="rounded-md border p-3 bg-slate-50 text-sm space-y-1">
-            <div><span className="text-slate-500">Heading:</span> {replaceVars(cert.content.titleText)}</div>
-            {cert.content.subtitleText && <div><span className="text-slate-500">Subtitle:</span> {replaceVars(cert.content.subtitleText)}</div>}
-            {cert.content.bodyText && <div><span className="text-slate-500">Body:</span> {replaceVars(cert.content.bodyText)}</div>}
-            {cert.content.issuerName && <div><span className="text-slate-500">Issuer:</span> {replaceVars(cert.content.issuerName)}</div>}
-            {cert.content.signatureName && <div><span className="text-slate-500">Signature:</span> {replaceVars(cert.content.signatureName)}</div>}
+            <div><span className="text-black">Heading:</span> {replaceVars(cert.content.titleText)}</div>
+            {cert.content.subtitleText && <div><span className="text-black">Subtitle:</span> {replaceVars(cert.content.subtitleText)}</div>}
+            {cert.content.bodyText && <div><span className="text-black">Body:</span> {replaceVars(cert.content.bodyText)}</div>}
+            {cert.content.issuerName && <div><span className="text-black">Issuer:</span> {replaceVars(cert.content.issuerName)}</div>}
+            {cert.content.signatureName && <div><span className="text-black">Signature:</span> {replaceVars(cert.content.signatureName)}</div>}
           </div>
-          <div className="text-xs text-slate-800">
+          <div className="text-xs text-black">
             Note: On the student side, <code>{'{student_name}'}</code> and <code>{'{date}'}</code> are filled automatically upon successful course completion.
           </div>
         </div>

@@ -110,7 +110,7 @@ export default function Orders(){
                 className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
                   filters.preset === p
                     ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    : 'bg-white text-black border-slate-300 hover:bg-slate-50'
                 }`}
               >
                 {p === 'today' ? 'Today' : p === 'yesterday' ? 'Yesterday' : 'Older'}
@@ -121,7 +121,7 @@ export default function Orders(){
       </header>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm text-slate-800">Selected: {selectedIds.length}</div>
+        <div className="text-sm text-black">Selected: {selectedIds.length}</div>
         <div className="flex items-center gap-2">
           <button className="rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50" onClick={exportSelected} disabled={selectedIds.length===0}>Export CSV</button>
         </div>
@@ -129,7 +129,7 @@ export default function Orders(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm table-fixed">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3 w-8"><input type="checkbox" checked={allSelected} onChange={toggleAll} /></th>
               <th className="text-left font-medium p-3">Order</th>
@@ -159,14 +159,14 @@ export default function Orders(){
                   </td>
                   <td className="p-3">
                     <div className="font-medium">{o.number}</div>
-                    <div className="text-xs text-slate-500">{shortId(o.id)}</div>
+                    <div className="text-xs text-black">{shortId(o.id)}</div>
                   </td>
                   <td className="p-3">
                     <div className="font-medium">{o.userName}</div>
-                    <div className="text-xs text-slate-500">{o.userEmail}</div>
+                    <div className="text-xs text-black">{o.userEmail}</div>
                   </td>
                   <td className="p-3">
-                    <div className="text-xs text-slate-800 line-clamp-2">{o.items.map(i=>i.name).join(', ')}</div>
+                    <div className="text-xs text-black line-clamp-2">{o.items.map(i=>i.name).join(', ')}</div>
                   </td>
                   <td className="p-3">
                     <div>{formatINR(o.total)}</div>
@@ -179,7 +179,7 @@ export default function Orders(){
                       o.status==='pending' ? 'text-amber-700 bg-amber-50 rounded px-2 py-0.5' :
                       o.status==='failed' ? 'text-red-700 bg-red-50 rounded px-2 py-0.5' :
                       o.status==='partial_refund' ? 'text-violet-700 bg-violet-50 rounded px-2 py-0.5' :
-                      'text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+                      'text-black bg-slate-100 rounded px-2 py-0.5'
                     }>{o.status}</span>
                   </td>
                    <td className="p-3 w-48 md:w-56"> 
@@ -207,7 +207,7 @@ export default function Orders(){
                 </tr>
               )
             })}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={8}>No orders</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={8}>No orders</td></tr>}
           </tbody>
         </table>
       </div>
@@ -242,7 +242,7 @@ function RefundModal({ open, order, onClose, onSubmit }:{
   return (
     <Modal open={open} onClose={onClose} title={`Refund ${order?.number}`}>
       <div className="space-y-3">
-        <div className="text-sm text-slate-800">Remaining refundable: <b>{formatINR(remaining)}</b></div>
+        <div className="text-sm text-black">Remaining refundable: <b>{formatINR(remaining)}</b></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><Label>Refund amount (INR)</Label><Input type="number" step="0.01" min="0" value={amount} onChange={(e)=> setAmount(e.target.value)} /></div>
           <div><Label>Reason (optional)</Label><Input value={reason} onChange={(e)=> setReason(e.target.value)} placeholder="e.g., duplicate order" /></div>
@@ -321,7 +321,7 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
             <div className="flex items-start justify-between border-b pb-4">
               <div>
                 <div className="text-2xl font-semibold tracking-tight">INVOICE</div>
-                <div className="text-sm text-slate-800">{o.number}</div>
+                <div className="text-sm text-black">{o.number}</div>
               </div>
               <div className="text-right">
                 <div className={
@@ -329,20 +329,20 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
                           o.status==='refunded' || o.status==='partial_refund' ? 'refunded' :
                           o.status==='failed' ? 'failed' : 'pending'}`
                 }>{o.status.replace('_',' ')}</div>
-                <div className="text-xs text-slate-500 mt-2">Issued</div>
+                <div className="text-xs text-black mt-2">Issued</div>
                 <div className="text-sm">{new Date(o.createdAt).toLocaleString()}</div>
               </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-6 mt-6">
               <div className="card">
-                <div className="text-xs text-slate-500">Billed To</div>
+                <div className="text-xs text-black">Billed To</div>
                 <div className="font-medium">{o.userName}</div>
-                <div className="text-sm text-slate-800">{o.userEmail}</div>
+                <div className="text-sm text-black">{o.userEmail}</div>
                 {o.student?.id && <div className="text-xs mt-2 muted">Student ID: {o.student.id}</div>}
                 {o.enrollment?.status && (
                   <div className="text-xs mt-2">
-                    Enrollment: <b className={o.enrollment.status==='premium' ? 'text-green-700' : 'text-slate-700'}>
+                    Enrollment: <b className={o.enrollment.status==='premium' ? 'text-green-700' : 'text-black'}>
                       {o.enrollment.status}
                     </b>
                     {o.enrollment?.createdAt && <> • since {new Date(o.enrollment.createdAt).toLocaleDateString()}</>}
@@ -350,11 +350,11 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
                 )}
               </div>
               <div className="card">
-                <div className="text-xs text-slate-500">From</div>
+                <div className="text-xs text-black">From</div>
                 <div className="font-medium">{o.org?.name || 'Organization'}</div>
-                <div className="text-sm text-slate-800">{o.org?.address}</div>
-                <div className="text-sm text-slate-800">{[o.org?.city,o.org?.state,o.org?.postal].filter(Boolean).join(', ')}</div>
-                <div className="text-sm text-slate-800">{o.org?.country}</div>
+                <div className="text-sm text-black">{o.org?.address}</div>
+                <div className="text-sm text-black">{[o.org?.city,o.org?.state,o.org?.postal].filter(Boolean).join(', ')}</div>
+                <div className="text-sm text-black">{o.org?.country}</div>
                 <div className="text-xs mt-2 muted">Org Code: {o.org?.code} • Org ID: {o.org?.id}</div>
                 {o.admin && <div className="text-xs mt-2">Admin: <b>{o.admin.name}</b> ({o.admin.email})</div>}
               </div>
@@ -362,12 +362,12 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
 
             <div className="grid sm:grid-cols-2 gap-6 mt-2">
               <div className="card">
-                <div className="text-xs text-slate-500">Course</div>
+                <div className="text-xs text-black">Course</div>
                 <div className="font-medium">{o.course?.title || o.items[0]?.name}</div>
                 <div className="text-xs muted mt-1">Course ID: {o.course?.id || o.items[0]?.id}</div>
               </div>
               <div className="card">
-                <div className="text-xs text-slate-500">Order & Payment</div>
+                <div className="text-xs text-black">Order & Payment</div>
                 <div className="text-sm">Order ID: <span className="font-mono">{o.id}</span></div>
                 <div className="text-sm">Method: <span className="capitalize">{o.paymentMethod}</span></div>
                 <div className="text-xs muted mt-1">Payments:</div>
@@ -394,7 +394,7 @@ function InvoiceModal({ orderId, onClose }:{ orderId:string, onClose:()=>void })
                     <tr key={it.id} className="border-b">
                       <td className="p-2">
                         <div className="font-medium">{it.name}</div>
-                        <div className="text-xs text-slate-500">SKU: {it.sku}</div>
+                        <div className="text-xs text-black">SKU: {it.sku}</div>
                       </td>
                       <td className="p-2 text-right">{it.quantity}</td>
                       <td className="p-2 text-right">{formatINR(it.amount)}</td>

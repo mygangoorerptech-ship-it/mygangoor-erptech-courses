@@ -884,7 +884,7 @@ export default function JoinNowModal({
                 </div>
 
                 <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] text-slate-500">Enrolling in</span>
+                  <span className="text-[11px] text-black">Enrolling in</span>
                   <span className="text-sm font-semibold text-indigo-700">
                     {selectedOrgName || "Selected Center"}
                   </span>
@@ -914,7 +914,7 @@ export default function JoinNowModal({
           {step === 1 && (
             <>
               {loadingCourses ? (
-                <div className="h-28 grid place-items-center text-sm text-slate-800">
+                <div className="h-28 grid place-items-center text-sm text-black">
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" /> Loading courses…
                   </span>
@@ -945,7 +945,7 @@ export default function JoinNowModal({
 
           {step === 2 && (
             selectedCourseId && !selectedCourse ? (
-              <div className="h-28 grid place-items-center text-sm text-slate-800">
+              <div className="h-28 grid place-items-center text-sm text-black">
                 <span className="inline-flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" /> Loading course…
                 </span>
@@ -1024,7 +1024,7 @@ export default function JoinNowModal({
           {step === 4 && paid && (
             <>
               {loadingReceipt ? (
-                <div className="h-28 grid place-items-center text-sm text-slate-800">
+                <div className="h-28 grid place-items-center text-sm text-black">
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="w-4 h-4 animate-spin" /> Finalizing…
                   </span>
@@ -1056,7 +1056,7 @@ export default function JoinNowModal({
 
         {step <= 3 && (
           <div className="flex items-center justify-between px-5 py-4 border-t bg-slate-50">
-            <div className="flex items-center gap-2 text-xs text-slate-800">
+            <div className="flex items-center gap-2 text-xs text-black">
               <ShieldCheck className="w-4 h-4" />
               <span>Payments are processed securely.</span>
             </div>

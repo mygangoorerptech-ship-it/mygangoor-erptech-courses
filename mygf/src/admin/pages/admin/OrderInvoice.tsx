@@ -27,7 +27,7 @@ export default function OrderInvoice() {
       <div className="flex items-start justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-semibold">Invoice</h1>
-          <div className="text-sm text-slate-800">{o.number}</div>
+          <div className="text-sm text-black">{o.number}</div>
         </div>
         <button onClick={onPrint} className="rounded-md border px-3 py-2 text-sm hover:bg-slate-50 print:hidden">
           Print / Save PDF
@@ -36,14 +36,14 @@ export default function OrderInvoice() {
 
       <section className="grid sm:grid-cols-2 gap-6 mt-6">
         <div>
-          <div className="text-xs text-slate-500">Billed To</div>
+          <div className="text-xs text-black">Billed To</div>
           <div className="font-medium">{o.userName}</div>
-          <div className="text-sm text-slate-800">{o.userEmail}</div>
+          <div className="text-sm text-black">{o.userEmail}</div>
         </div>
         <div className="sm:text-right">
-          <div className="text-xs text-slate-500">Issued</div>
+          <div className="text-xs text-black">Issued</div>
           <div>{new Date(o.createdAt).toLocaleString()}</div>
-          <div className="text-xs text-slate-500 mt-2">Payment Method</div>
+          <div className="text-xs text-black mt-2">Payment Method</div>
           <div className="capitalize">{o.paymentMethod}</div>
         </div>
       </section>
@@ -63,7 +63,7 @@ export default function OrderInvoice() {
               <tr key={it.id} className="border-b">
                 <td className="p-2">
                   <div className="font-medium">{it.name}</div>
-                  <div className="text-xs text-slate-500">{it.sku}</div>
+                  <div className="text-xs text-black">{it.sku}</div>
                 </td>
                 <td className="p-2 text-right">{it.quantity}</td>
                 <td className="p-2 text-right">{formatINR(it.amount)}</td>
@@ -76,8 +76,8 @@ export default function OrderInvoice() {
             {(o as any).pricingMeta?.mrpPaise &&
               (o as any).pricingMeta.mrpPaise !== (o as any).pricingMeta?.totalPaise ? (
               <tr>
-                <td colSpan={3} className="p-2 text-right text-slate-500">Course MRP</td>
-                <td className="p-2 text-right text-slate-500 line-through">{formatINR((o as any).pricingMeta.mrpPaise)}</td>
+                <td colSpan={3} className="p-2 text-right text-black">Course MRP</td>
+                <td className="p-2 text-right text-black line-through">{formatINR((o as any).pricingMeta.mrpPaise)}</td>
               </tr>
             ) : null}
             {/* Discount line */}
@@ -118,7 +118,7 @@ export default function OrderInvoice() {
           <div className="rounded-lg border">
             {o.refunds.map((r: Order['refunds'][number]) => (
               <div key={r.id} className="flex justify-between p-2 border-b last:border-b-0">
-                <div className="text-sm text-slate-700">{r.reason || 'Refund'}</div>
+                <div className="text-sm text-black">{r.reason || 'Refund'}</div>
                 <div className="text-sm">
                   {formatINR(r.amount)} • {new Date(r.createdAt).toLocaleString()}
                 </div>

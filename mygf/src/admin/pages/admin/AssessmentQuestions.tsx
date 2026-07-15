@@ -46,7 +46,7 @@ export default function ADAssessmentQuestions(){
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-slate-800">
+        <div className="flex items-center gap-2 text-sm text-black">
           <Link to="/admin/assessments" className="text-blue-600 hover:underline">← Back to assessments</Link>
         </div>
         <Button onClick={()=> setOpen({ mode:'create' })}><Plus size={16}/> Add question</Button>
@@ -67,11 +67,11 @@ export default function ADAssessmentQuestions(){
           <tbody>
             {rows.map((q: AssessmentQuestion) => (
               <tr key={q.id} className="border-b" draggable onDragStart={handleDragStart(q.id)} onDragOver={handleDragOver(q.id)} onDrop={handleDrop(q.id)}>
-                <td className="p-2 text-slate-400 cursor-grab align-top"><GripVertical size={16}/></td>
+                <td className="p-2 text-black cursor-grab align-top"><GripVertical size={16}/></td>
                 <td className="p-2 align-top">
                   <div className="font-medium">{q.prompt}</div>
                   {q.type==='mcq' && (
-                    <div className="text-xs text-slate-800 flex items-center gap-2 mt-1">
+                    <div className="text-xs text-black flex items-center gap-2 mt-1">
                       {(q as any).shuffleOptions ? <span className="inline-flex items-center gap-1"><Shuffle size={14}/> shuffled</span> : null}
                       <span>{(q as MCQQuestion).options.filter((o: MCQOption)=>o.correct).length} correct</span>
                       <span>• {(q as MCQQuestion).options.length} options</span>
@@ -108,7 +108,7 @@ export default function ADAssessmentQuestions(){
                 </td>
               </tr>
             ))}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={6}>No questions yet</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={6}>No questions yet</td></tr>}
           </tbody>
         </table>
       </div>
@@ -240,7 +240,7 @@ function QuestionModal({ open, mode, initial, assessmentId, onClose, onSubmit }:
           <div className="space-y-2">
             <Label>Instructions (shown to students)</Label>
             <Input value={instructions} onChange={(e)=> setInstructions(e.target.value)} placeholder="e.g., Read the PDF and implement the API endpoints." />
-            <div className="text-xs text-slate-800">You can attach the assignment PDF after saving the question.</div>
+            <div className="text-xs text-black">You can attach the assignment PDF after saving the question.</div>
           </div>
         )}
 

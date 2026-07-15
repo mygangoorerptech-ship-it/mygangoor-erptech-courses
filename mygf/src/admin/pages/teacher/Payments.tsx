@@ -156,7 +156,7 @@ export default function VEPayments() {
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
           <div className="relative">
-            <Search size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-black" />
             <Input className="pl-8" placeholder="Email, order id, method..." value={filters.q || ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))} />
           </div>
         </div>
@@ -247,7 +247,7 @@ export default function VEPayments() {
       <div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
         <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
-            <thead className="bg-slate-50 text-slate-800 whitespace-nowrap">
+            <thead className="bg-slate-50 text-black whitespace-nowrap">
               <tr>
                 <th className="text-left font-medium p-3">When</th>
                 <th className="text-left font-medium p-3">Order / Sub</th>
@@ -354,17 +354,17 @@ export default function VEPayments() {
             transition
           "
                           >
-                            <div className="font-medium text-slate-800">
+                            <div className="font-medium text-black">
                               {teacherSummary(p)}
                             </div>
 
-                            <div className="text-xs text-slate-500 mt-1">
+                            <div className="text-xs text-black mt-1">
                               View center-wise assignments
                             </div>
                           </button>
                         )
                         : (
-                          <span className="text-slate-400">
+                          <span className="text-black">
                             —
                           </span>
                         )
@@ -396,7 +396,7 @@ export default function VEPayments() {
                               ? 'text-indigo-700 bg-indigo-50 rounded px-2 py-0.5'
 
                               : p.status === 'refunded'
-                                ? 'text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+                                ? 'text-black bg-slate-100 rounded px-2 py-0.5'
 
                                 : p.status === 'rejected'
                                   ? 'text-rose-700 bg-rose-50 rounded px-2 py-0.5'
@@ -473,7 +473,7 @@ export default function VEPayments() {
               {rows.length === 0 && (
                 <tr>
                   <td
-                    className="p-6 text-center text-slate-500"
+                    className="p-6 text-center text-black"
                     colSpan={10}
                   >
                     No payments
@@ -489,11 +489,11 @@ export default function VEPayments() {
         {target && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><div className="text-xs text-slate-500">ID</div><div className="font-mono text-sm">{target.id}</div></div>
-              <div><div className="text-xs text-slate-500">Status</div><div className="text-sm">{target.status}</div></div>
-              <div><div className="text-xs text-slate-500">Amount</div><div className="text-sm">{formatINRFromPaise(target.amount || 0)}</div></div>
-              <div><div className="text-xs text-slate-500">Method</div><div className="text-sm">{target.method || '—'}</div></div>
-              <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{
+              <div><div className="text-xs text-black">ID</div><div className="font-mono text-sm">{target.id}</div></div>
+              <div><div className="text-xs text-black">Status</div><div className="text-sm">{target.status}</div></div>
+              <div><div className="text-xs text-black">Amount</div><div className="text-sm">{formatINRFromPaise(target.amount || 0)}</div></div>
+              <div><div className="text-xs text-black">Method</div><div className="text-sm">{target.method || '—'}</div></div>
+              <div><div className="text-xs text-black">Order/Sub</div><div className="text-sm">{
                 target.providerOrderId
                   ? `ONLINE_${target.providerOrderId}`
 
@@ -511,9 +511,9 @@ export default function VEPayments() {
 
                           : '—'
               }</div></div>
-              <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
+              <div><div className="text-xs text-black">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
               <div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-black">
                   Course
                 </div>
 
@@ -523,7 +523,7 @@ export default function VEPayments() {
               </div>
 
               <div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-black">
                   Organization / Center
                 </div>
 
@@ -581,14 +581,14 @@ export default function VEPayments() {
 
               return (
                 <div className="mt-4 border-t pt-3">
-                  <div className="text-xs text-slate-500 mb-2 font-medium">
+                  <div className="text-xs text-black mb-2 font-medium">
                     Join Form Details
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     {fields.map(([label, val]) =>
                       val != null ? (
                         <div key={label as string}>
-                          <div className="text-xs text-slate-500">{label as string}</div>
+                          <div className="text-xs text-black">{label as string}</div>
                           <div className="text-sm">{String(val)}</div>
                         </div>
                       ) : null
@@ -709,7 +709,7 @@ export default function VEPayments() {
                                   {x.centerName || 'Center'}
                                 </div>
 
-                                <div className="text-[11px] text-slate-400 font-mono break-all">
+                                <div className="text-[11px] text-black font-mono break-all">
                                   {x.centerId || '—'}
                                 </div>
                               </div>
@@ -719,7 +719,7 @@ export default function VEPayments() {
                               {x.teacherName || '—'}
                             </td>
 
-                            <td className="p-3 text-slate-800">
+                            <td className="p-3 text-black">
                               {x.teacherEmail || '—'}
                             </td>
                           </tr>

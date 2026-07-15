@@ -37,7 +37,7 @@ export default function TemplateModal({ item, onClose }: { item: any; onClose: (
     <Modal open={true} title={`Issue Template Certificate - ${item.course.title}`} onClose={onClose} size="lg">
       <div className="space-y-6">
         <div>
-          <p className="text-sm text-slate-800 mb-2">
+          <p className="text-sm text-black mb-2">
             Select a design and click Generate to issue a new certificate.
           </p>
           <TemplatePicker value={selectedTemplate} onChange={setSelectedTemplate} />

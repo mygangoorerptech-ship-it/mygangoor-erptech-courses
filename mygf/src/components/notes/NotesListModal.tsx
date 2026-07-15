@@ -74,10 +74,10 @@ export default function NotesListModal({
                     className="flex-1 min-w-0 text-left"
                     title="Open note"
                   >
-                    <div className="font-medium text-slate-800 truncate">
+                    <div className="font-medium text-black truncate">
                       {note.title}
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-black">
                       {isPdf ? "PDF" : "Text"}
                     </div>
                   </button>
@@ -95,7 +95,7 @@ export default function NotesListModal({
                       type="button"
                       onClick={() => onDownload(note)}
                       title="Download PDF"
-                      className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-slate-800 border border-slate-200 rounded px-3 py-1.5 hover:bg-slate-50"
+                      className="shrink-0 inline-flex items-center gap-1 text-xs font-medium text-black border border-slate-200 rounded px-3 py-1.5 hover:bg-slate-50"
                     >
                       <Download className="w-4 h-4" /> Download
                     </button>

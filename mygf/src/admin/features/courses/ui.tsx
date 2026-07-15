@@ -20,7 +20,7 @@ export const SectionCard: React.FC<{
         <div>
           {title ? <div className="text-sm font-semibold">{title}</div> : null}
           {subtitle ? (
-            <div className="text-xs text-slate-800">{subtitle}</div>
+            <div className="text-xs text-black">{subtitle}</div>
           ) : null}
         </div>
         {right ? <div className="shrink-0">{right}</div> : null}
@@ -39,7 +39,7 @@ export const Field: React.FC<{
   required?: boolean;
 }> = ({ label, help, className = "", children, required }) => (
   <div className={className}>
-    <div className="text-xs font-medium text-slate-700 mb-1">
+    <div className="text-xs font-medium text-black mb-1">
       <span className="align-middle">{label}</span>
       {required ? (
         <span className="ml-1 text-rose-600" aria-hidden="true">
@@ -49,7 +49,7 @@ export const Field: React.FC<{
     </div>
     {children}
     {help ? (
-      <div className="text-[11px] text-slate-500 mt-1">{help}</div>
+      <div className="text-[11px] text-black mt-1">{help}</div>
     ) : null}
   </div>
 );

@@ -349,11 +349,11 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
               {discountPercent}% OFF
             </span>
           )}
-          <span className="text-lg font-extrabold text-slate-900 bg-white px-1.5 py-0.5 rounded">
+          <span className="text-lg font-extrabold text-black bg-white px-1.5 py-0.5 rounded">
             {typeof salePaise === "number" ? formatINRFromPaise(salePaise) : "—"}
           </span>
           {discountPercent > 0 && hasPrice && (
-            <span className="text-sm text-slate-400 line-through">
+            <span className="text-sm text-black line-through">
               {formatINRFromPaise(pricePaise!)}
             </span>
           )}
@@ -465,7 +465,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                     <>
                       <button
                         onClick={prev}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-700 rounded-full p-2 shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-black rounded-full p-2 shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         aria-label="Previous chapter"
                       >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,7 +475,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
 
                       <button
                         onClick={next}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-slate-700 rounded-full p-2 shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-black rounded-full p-2 shadow-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                         aria-label="Next chapter"
                       >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

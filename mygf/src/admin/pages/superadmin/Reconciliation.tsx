@@ -65,7 +65,7 @@ export default function Reconciliation() {
       </header>
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Organisation</th>
               <th className="text-right font-medium p-3">Total (₹)</th>
@@ -80,7 +80,7 @@ export default function Reconciliation() {
               <tr key={r.orgId} className="border-t">
                 <td className="p-3">
                   <div className="font-medium">{r.orgName}</div>
-                  {r.orgCode && <div className="text-xs text-slate-500">{r.orgCode}</div>}
+                  {r.orgCode && <div className="text-xs text-black">{r.orgCode}</div>}
                 </td>
                 <td className="p-3 text-right">{formatINR(r.totalCaptured)}</td>
                 <td className="p-3 text-right">{formatINR(r.settledAmount)}</td>
@@ -99,7 +99,7 @@ export default function Reconciliation() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-slate-500" colSpan={6}>
+                <td className="p-6 text-center text-black" colSpan={6}>
                   {isLoading ? 'Loading…' : 'No captured payments'}
                 </td>
               </tr>

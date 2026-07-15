@@ -42,7 +42,7 @@ export default function TemplatePicker({ value, onChange }: { value?: string; on
           />
         </div>
       )}
-      {isLoading && <p className="text-sm text-slate-500">Loading templates…</p>}
+      {isLoading && <p className="text-sm text-black">Loading templates…</p>}
       {error && <p className="text-sm text-rose-600">Failed to load templates.</p>}
     </div>
   );

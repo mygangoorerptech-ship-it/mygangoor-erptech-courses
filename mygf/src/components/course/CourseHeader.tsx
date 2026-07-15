@@ -56,7 +56,7 @@ export default function CourseHeader({ course }: { course: CourseData }) {
 
             {/* per-level subtitle (changes with carousel) */}
             {activeLevel?.title && (
-              <h2 className="text-lg font-semibold text-slate-800 mb-3">
+              <h2 className="text-lg font-semibold text-black mb-3">
                 {activeLevel.title}
               </h2>
             )}
@@ -76,7 +76,7 @@ export default function CourseHeader({ course }: { course: CourseData }) {
                 </span>
               )}
               {(c as any).slug && (
-                <span className="px-3 py-1 text-xs rounded-full bg-slate-50 text-slate-700 border border-slate-200">
+                <span className="px-3 py-1 text-xs rounded-full bg-slate-50 text-black border border-slate-200">
                   Slug: {(c as any).slug}
                 </span>
               )}

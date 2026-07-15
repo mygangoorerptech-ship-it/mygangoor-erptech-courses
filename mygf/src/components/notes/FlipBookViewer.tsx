@@ -221,12 +221,12 @@ export default function FlipBookViewer({
             {pages}
           </Book>
 
-          <div className="mt-2 text-center text-xs text-slate-800 select-none">
+          <div className="mt-2 text-center text-xs text-black select-none">
             Swipe / drag or click to turn pages →
           </div>
 
           {loading && (
-            <div className="mt-2 text-center text-xs text-slate-500">
+            <div className="mt-2 text-center text-xs text-black">
               Preparing content…
             </div>
           )}

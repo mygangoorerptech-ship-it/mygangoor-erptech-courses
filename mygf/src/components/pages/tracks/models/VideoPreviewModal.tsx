@@ -79,7 +79,7 @@ export default function VideoPreviewModal({
       >
         {/* header */}
         <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <h4 className="pr-3 truncate font-semibold text-slate-50">{title} — Preview</h4>
+          <h4 className="pr-3 truncate font-semibold text-black">{title} — Preview</h4>
 
           <div className="flex items-center gap-2">
             {/* Download (only if real URL present) */}
@@ -87,7 +87,7 @@ export default function VideoPreviewModal({
               <a
                 href={videoUrl}
                 download
-                className="inline-flex items-center gap-2 rounded-md border border-white/20 px-3 py-1.5 text-sm text-slate-100 hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-md border border-white/20 px-3 py-1.5 text-sm text-black hover:bg-white/10"
                 aria-label="Download preview"
                 title="Download"
               >
@@ -100,7 +100,7 @@ export default function VideoPreviewModal({
               </a>
             ) : (
               <span
-                className="inline-flex cursor-not-allowed items-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-sm text-slate-300/60"
+                className="inline-flex cursor-not-allowed items-center gap-2 rounded-md border border-white/10 px-3 py-1.5 text-sm text-black/60"
                 title="No preview available"
                 aria-disabled="true"
               >
@@ -116,7 +116,7 @@ export default function VideoPreviewModal({
             {/* Close */}
             <button
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-200 hover:bg-white/10"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-black hover:bg-white/10"
               aria-label="Close"
               title="Close"
             >
@@ -179,7 +179,7 @@ export default function VideoPreviewModal({
           {/* No URL / failed note */}
           {!videoUrl && (
             <div className="absolute inset-0 grid place-items-center">
-              <p className="rounded bg-white/80 px-3 py-1 text-xs text-slate-800 shadow">No preview available</p>
+              <p className="rounded bg-white/80 px-3 py-1 text-xs text-black shadow">No preview available</p>
             </div>
           )}
 

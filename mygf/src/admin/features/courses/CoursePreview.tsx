@@ -70,7 +70,7 @@ export function ChaptersPreviewModal({
           <div className="text-xs opacity-90">Preview video</div>
         </div>
       ) : (
-        <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
+        <div className="absolute inset-0 grid place-items-center text-black text-sm">
           No media
         </div>
       )}
@@ -108,8 +108,8 @@ export function ChaptersPreviewModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 pb-3">
-          <div className="min-w-0 truncate text-sm text-slate-800">
-            <span className="font-medium text-slate-800">
+          <div className="min-w-0 truncate text-sm text-black">
+            <span className="font-medium text-black">
               Chapter {idx + 1} / {chapters.length}
             </span>{" "}
             — <span className="truncate">{c?.title || "Untitled"}</span>
@@ -161,7 +161,7 @@ export function ChaptersPreviewModal({
                         loading="lazy"
                       />
                     ) : (
-                      <div className="grid h-full w-full place-items-center bg-slate-100 text-[11px] text-slate-500">
+                      <div className="grid h-full w-full place-items-center bg-slate-100 text-[11px] text-black">
                         {ch.title?.slice(0, 10) || `#${i + 1}`}
                       </div>
                     )}
@@ -182,13 +182,13 @@ export function ChaptersPreviewModal({
                 {c?.title || "Untitled"}
               </h3>
               {c?.subtitle && (
-                <div className="text-sm text-slate-800">{c.subtitle}</div>
+                <div className="text-sm text-black">{c.subtitle}</div>
               )}
 
               {/* Description: justified + Read more/less */}
               {description && (
                 <div className="relative">
-                  <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line break-words text-justify">
+                  <p className="text-sm leading-relaxed text-black whitespace-pre-line break-words text-justify">
                     {shown}
                   </p>
                   {!descExpanded && showToggle && (
@@ -207,7 +207,7 @@ export function ChaptersPreviewModal({
               )}
             </div>
 
-            <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
+            <div className="mt-4 flex items-center gap-2 text-xs text-black">
               <span>
                 Rating: {(c?.avgRating ?? 0).toFixed(1)} / 5 •{" "}
                 {c?.reviewsCount ?? 0} reviews
@@ -216,10 +216,10 @@ export function ChaptersPreviewModal({
 
             {!!c?.assignments?.length && (
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="mb-2 text-xs font-semibold text-slate-700">
+                <div className="mb-2 text-xs font-semibold text-black">
                   Assignments
                 </div>
-                <ul className="list-disc space-y-1 pl-5 text-xs text-slate-700">
+                <ul className="list-disc space-y-1 pl-5 text-xs text-black">
                   {c.assignments!.map((a, i) => (
                     <li key={a.id || i}>
                       {a.title}

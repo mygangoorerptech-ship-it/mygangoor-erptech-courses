@@ -73,7 +73,7 @@ export default function ADSubscriptions(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Student</th>
               <th className="text-left font-medium p-3">Course</th>
@@ -87,11 +87,11 @@ export default function ADSubscriptions(){
             {rows.map(s => (
               <tr key={s.id} className="border-t">
                 <td className="p-3">
-                  <div className="flex items-center gap-2"><User size={16} className="text-slate-500"/><span>{s.studentName || '—'}</span></div>
-                  <div className="text-xs text-slate-500">{s.studentEmail}</div>
+                  <div className="flex items-center gap-2"><User size={16} className="text-black"/><span>{s.studentName || '—'}</span></div>
+                  <div className="text-xs text-black">{s.studentEmail}</div>
                 </td>
                 <td className="p-3">
-                  <div className="flex items-center gap-2"><BookOpen size={16} className="text-slate-500"/><span>{s.courseTitle || s.courseId}</span></div>
+                  <div className="flex items-center gap-2"><BookOpen size={16} className="text-black"/><span>{s.courseTitle || s.courseId}</span></div>
                 </td>
                 <td className="p-3">
                   <div className="inline-flex items-center gap-1"><DollarSign size={14}/>{s.amount.toFixed(2)} {s.currency}</div>
@@ -120,7 +120,7 @@ export default function ADSubscriptions(){
                 </td>
               </tr>
             ))}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={6}>No subscriptions</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={6}>No subscriptions</td></tr>}
           </tbody>
         </table>
       </div>

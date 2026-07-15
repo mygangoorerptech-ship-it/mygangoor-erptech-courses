@@ -44,7 +44,7 @@ export default function SAOrganizations() {
 
   // Loading/error states
   if (loading) {
-    return <div className="p-6 text-sm text-slate-500">Loading organizations…</div>;
+    return <div className="p-6 text-sm text-black">Loading organizations…</div>;
   }
   if (error) {
     return <div className="p-6 text-sm text-red-600">Failed to load organizations: {String(error)}</div>;
@@ -52,7 +52,7 @@ export default function SAOrganizations() {
 
   // 🔒 GUARD (after hooks, before UI)
   if (status !== 'ready') {
-    return <div className="p-6 text-sm text-slate-500">Checking permissions…</div>;
+    return <div className="p-6 text-sm text-black">Checking permissions…</div>;
   }
   if (user?.role !== 'superadmin') {
     return <div className="p-6 text-sm text-red-600">Forbidden: superadmin only.</div>;
@@ -82,7 +82,7 @@ export default function SAOrganizations() {
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Organization</th>
               <th className="text-left font-medium p-3">Code / Domain</th>
@@ -99,11 +99,11 @@ export default function SAOrganizations() {
                 </td>
                 <td className="p-3">
                   <div className="text-sm">{o.code}</div>
-                  {o.domain && <div className="text-xs text-slate-500 flex items-center gap-1"><Globe size={14} /> {o.domain}</div>}
+                  {o.domain && <div className="text-xs text-black flex items-center gap-1"><Globe size={14} /> {o.domain}</div>}
                 </td>
                 <td className="p-3">
                   <div className="text-sm flex items-center gap-1"><User size={14} /> {o.contactName || '—'}</div>
-                  <div className="text-xs text-slate-500 flex items-center gap-1"><Mail size={14} /> {o.contactEmail || '—'}</div>
+                  <div className="text-xs text-black flex items-center gap-1"><Mail size={14} /> {o.contactEmail || '—'}</div>
                 </td>
                 <td className="p-3">
                   <span className={
@@ -256,7 +256,7 @@ export default function SAOrganizations() {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td className="p-6 text-center text-slate-500" colSpan={5}>No organizations</td></tr>}
+            {rows.length === 0 && <tr><td className="p-6 text-center text-black" colSpan={5}>No organizations</td></tr>}
           </tbody>
         </table>
       </div>
@@ -460,7 +460,7 @@ function CSVModal({ open, onClose, onImport }: {
   return (
     <Modal open={open} onClose={onClose} title="Bulk import organizations (CSV)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-800">
+        <div className="text-sm text-black">
           Headers: <code>code,name,domain,contactName,contactEmail,status</code>. Upserts by <b>code</b> (preferred), else by <b>domain</b>, else by <b>name</b>.
           Renaming will auto-sync the <i>students</i> list’s org names.
         </div>

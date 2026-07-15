@@ -320,8 +320,8 @@ const SignUp: React.FC = () => {
         <AuthBackdrop />
 
         <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200/60 shadow-xl bg-white/80 backdrop-blur p-6">
-          <h1 className="text-2xl font-semibold text-slate-900">Create your account</h1>
-          <p className="text-sm text-slate-800 mt-1">Join and start learning today.</p>
+          <h1 className="text-2xl font-semibold text-black">Create your account</h1>
+          <p className="text-sm text-black mt-1">Join and start learning today.</p>
 
           {/* NEW: precheck banner (keeps visual style minimal) */}
           {precheck?.mode === 'signin' && (
@@ -353,7 +353,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-black">Username</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <circle cx="12" cy="8" r="4" />
                       <path d="M6 20a6 6 0 0 1 12 0" />
@@ -377,7 +377,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-black">Email</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <path d="M4 6h16v12H4z" />
                       <path d="m22 6-10 7L2 6" />
@@ -406,7 +406,7 @@ const SignUp: React.FC = () => {
                 </div>
                 {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
                 {checking && !errors.email && (
-                  <p className="mt-1 text-xs text-slate-500">Checking account availability…</p>
+                  <p className="mt-1 text-xs text-black">Checking account availability…</p>
                 )}
               </div>
             </div>
@@ -417,7 +417,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-black">Password</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <rect x="4" y="11" width="16" height="9" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -450,7 +450,7 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="text-sm font-medium text-black">Confirm Password</label>
                 <div className="mt-1 relative group">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                       <rect x="4" y="11" width="16" height="9" rx="2" />
                       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
@@ -497,7 +497,7 @@ const SignUp: React.FC = () => {
             {/* Divider */}
             <div className="flex items-center gap-3 my-2">
               <div className="h-px flex-1 bg-slate-200" />
-              <span className="text-xs text-slate-500">....</span>
+              <span className="text-xs text-black">....</span>
               <div className="h-px flex-1 bg-slate-200" />
             </div>
 
@@ -529,7 +529,7 @@ const SignUp: React.FC = () => {
               />
             </div> */}
 
-            <p className="text-center text-sm text-slate-800">
+            <p className="text-center text-sm text-black">
               Already have an account?{' '}
               <button onClick={() => navigate('/login')} className="text-indigo-600 hover:text-indigo-700 underline-offset-2 hover:underline">
                 Sign in

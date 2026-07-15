@@ -392,7 +392,7 @@ function TracksBody({ user }: { user?: User }) {
                   ))}
 
                   {!loading && !error && filtered.length === 0 && (
-                    <div className="col-span-full rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-slate-500">
+                    <div className="col-span-full rounded-2xl border border-dashed border-slate-300/70 bg-white/70 p-10 text-center text-black">
                       No results. Try a different filter.
                     </div>
                   )}
@@ -419,7 +419,7 @@ function TracksBody({ user }: { user?: User }) {
                       ) : hasMore ? (
                         <div ref={sentinelRef} className="h-6 w-full" />
                       ) : (
-                        <div className="text-center text-xs text-slate-500">You’ve reached the end.</div>
+                        <div className="text-center text-xs text-black">You’ve reached the end.</div>
                       )}
                     </div>
                   )}
@@ -454,7 +454,7 @@ function TracksBody({ user }: { user?: User }) {
       {showTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white/90 text-slate-700 shadow hover:bg-white"
+          className="fixed bottom-6 right-6 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-300 bg-white/90 text-black shadow hover:bg-white"
           aria-label="Back to top"
           title="Back to top"
         >

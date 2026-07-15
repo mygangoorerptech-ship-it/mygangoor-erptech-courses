@@ -27,7 +27,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-slate-700">{label}</label>
+      <label className="text-sm font-medium text-black">{label}</label>
       {children}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
@@ -38,7 +38,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-400 ${props.className ?? ""}`}
+      className={`w-full rounded-lg border px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-black ${props.className ?? ""}`}
     />
   );
 }
@@ -72,7 +72,7 @@ function PasswordInput({
       <button
         type="button"
         onClick={() => setShow((s) => !s)}
-        className="absolute inset-y-0 right-2 flex items-center text-slate-400 hover:text-slate-600"
+        className="absolute inset-y-0 right-2 flex items-center text-black hover:text-black"
         tabIndex={-1}
         aria-label={show ? "Hide password" : "Show password"}
       >
@@ -206,8 +206,8 @@ function EmailTab() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
-      <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-slate-800">
-        Current email: <span className="font-medium text-slate-900">{user?.email ?? "—"}</span>
+      <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-black">
+        Current email: <span className="font-medium text-black">{user?.email ?? "—"}</span>
       </div>
       <Field label="New email address">
         <Input
@@ -327,12 +327,12 @@ function SecurityTab() {
     <div className="space-y-6 max-w-md">
       {/* Status badge */}
       <div className="flex items-center gap-2">
-        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${has2fa ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${has2fa ? "bg-green-100 text-green-700" : "bg-slate-100 text-black"}`}>
           <ShieldCheck size={12} />
           {has2fa ? "2FA enabled" : "2FA disabled"}
         </span>
         {user?.mfa?.method && (
-          <span className="text-xs text-slate-500 uppercase">{user.mfa.method}</span>
+          <span className="text-xs text-black uppercase">{user.mfa.method}</span>
         )}
       </div>
 
@@ -348,7 +348,7 @@ function SecurityTab() {
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             {backupCodes.map((c) => (
-              <code key={c} className="rounded bg-white border border-amber-200 px-2 py-1 text-xs font-mono text-slate-800 text-center">
+              <code key={c} className="rounded bg-white border border-amber-200 px-2 py-1 text-xs font-mono text-black text-center">
                 {c}
               </code>
             ))}
@@ -369,7 +369,7 @@ function SecurityTab() {
         <div className="space-y-4">
           {!qrUrl ? (
             <div className="space-y-3">
-              <p className="text-sm text-slate-800">
+              <p className="text-sm text-black">
                 Protect your account with a time-based one-time password (TOTP) from an authenticator app like Google Authenticator or Authy.
               </p>
               <button
@@ -384,9 +384,9 @@ function SecurityTab() {
           ) : (
             <form onSubmit={handleEnable} className="space-y-4">
               <div className="space-y-2">
-                <p className="text-sm text-slate-700 font-medium">Scan with your authenticator app</p>
+                <p className="text-sm text-black font-medium">Scan with your authenticator app</p>
                 <img src={qrUrl} alt="TOTP QR code" className="w-48 h-48 rounded-lg border" />
-                <p className="text-xs text-slate-500">Then enter the 6-digit code shown in the app:</p>
+                <p className="text-xs text-black">Then enter the 6-digit code shown in the app:</p>
               </div>
               <Field label="Verification code">
                 <Input
@@ -406,7 +406,7 @@ function SecurityTab() {
                 <button
                   type="button"
                   onClick={() => { setQrUrl(null); setCode(""); setResult(null); }}
-                  className="rounded-lg border px-4 py-2 text-sm text-slate-800 hover:bg-slate-50 transition-colors"
+                  className="rounded-lg border px-4 py-2 text-sm text-black hover:bg-slate-50 transition-colors"
                 >
                   Cancel
                 </button>
@@ -419,7 +419,7 @@ function SecurityTab() {
       {/* ── DISABLE FLOW ── */}
       {has2fa && !isSuperadmin && (
         <form onSubmit={handleDisable} className="space-y-4">
-          <p className="text-sm text-slate-800">
+          <p className="text-sm text-black">
             Disabling 2FA will reduce the security of your account. Enter your current password to confirm.
           </p>
           <Field label="Current password">
@@ -442,7 +442,7 @@ function SecurityTab() {
 
       {/* Superadmin lock notice */}
       {has2fa && isSuperadmin && (
-        <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-slate-800">
+        <div className="rounded-lg bg-slate-50 border px-3 py-2 text-sm text-black">
           2FA is permanently required for superadmin accounts and cannot be disabled.
         </div>
       )}
@@ -454,9 +454,9 @@ function SecurityTab() {
 
 function deviceIcon(session: Session) {
   const os = session.device.os.toLowerCase();
-  if (os === "android" || os === "ios") return <Smartphone size={18} className="text-slate-500 shrink-0 mt-0.5" />;
-  if (os === "windows" || os === "macos" || os === "linux") return <Monitor size={18} className="text-slate-500 shrink-0 mt-0.5" />;
-  return <Globe size={18} className="text-slate-500 shrink-0 mt-0.5" />;
+  if (os === "android" || os === "ios") return <Smartphone size={18} className="text-black shrink-0 mt-0.5" />;
+  if (os === "windows" || os === "macos" || os === "linux") return <Monitor size={18} className="text-black shrink-0 mt-0.5" />;
+  return <Globe size={18} className="text-black shrink-0 mt-0.5" />;
 }
 
 function formatRelative(dateStr: string) {
@@ -537,14 +537,14 @@ function SessionsTab() {
   return (
     <div className="space-y-4 max-w-lg">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-800">
+        <p className="text-sm text-black">
           {loading ? "Loading sessions…" : `${sessions.length} active session${sessions.length !== 1 ? "s" : ""}`}
         </p>
         <button
           type="button"
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 disabled:opacity-40 transition-colors"
+          className="flex items-center gap-1 text-xs text-black hover:text-black disabled:opacity-40 transition-colors"
         >
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
           Refresh
@@ -554,7 +554,7 @@ function SessionsTab() {
       {result && <Alert type={result.type} message={result.message} />}
 
       {!loading && sessions.length === 0 && (
-        <p className="text-sm text-slate-500">No active sessions found.</p>
+        <p className="text-sm text-black">No active sessions found.</p>
       )}
 
       <ul className="space-y-2">
@@ -566,7 +566,7 @@ function SessionsTab() {
             {deviceIcon(session)}
             <div className="flex-1 min-w-0 space-y-0.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium text-slate-900 truncate">
+                <span className="text-sm font-medium text-black truncate">
                   {session.device.browser} on {session.device.os}
                 </span>
                 {session.current && (
@@ -575,7 +575,7 @@ function SessionsTab() {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-3 text-xs text-slate-500">
+              <div className="flex items-center gap-3 text-xs text-black">
                 {session.ip && <span>{session.ip}</span>}
                 <span>Active {formatRelative(session.lastUsedAt)}</span>
               </div>
@@ -640,7 +640,7 @@ export default function SettingsPanel() {
             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               active === t.id
                 ? "border-blue-600 text-blue-600"
-                : "border-transparent text-slate-500 hover:text-slate-800"
+                : "border-transparent text-black hover:text-black"
             }`}
           >
             {t.icon}

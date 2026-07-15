@@ -11,7 +11,7 @@ function RadioRow({
     onChange: () => void;
 }) {
     return (
-        <label className="flex cursor-pointer items-center gap-3 text-slate-700">
+        <label className="flex cursor-pointer items-center gap-3 text-black">
             <input type="radio" className="peer sr-only" checked={checked} onChange={onChange} />
             <span
                 className={[
@@ -41,7 +41,7 @@ export default function SidebarSmartFilter({
     return (
         <aside className="">
             <div className="rounded-3xl border border-white/70 bg-white/85 p-6 shadow-sm backdrop-blur">
-                <h3 className="text-lg font-semibold text-slate-800">Smart Filter</h3>
+                <h3 className="text-lg font-semibold text-black">Smart Filter</h3>
 
                 <div className="mt-4 space-y-3">
                     <RadioRow
@@ -71,17 +71,17 @@ export default function SidebarSmartFilter({
                         </svg>
                     </span>
                     <div>
-                        <p className="text-slate-800 font-medium">Payment secured</p>
-                        <p className="text-xs text-slate-500">256-bit SSL • PCI-DSS compliant</p>
+                        <p className="text-black font-medium">Payment secured</p>
+                        <p className="text-xs text-black">256-bit SSL • PCI-DSS compliant</p>
                     </div>
                 </div>
             </div>
 
             {/* Wishlist preview (demo) */}
             <div className="mt-6">
-                <h3 className="text-sm font-semibold text-slate-700">Wishlist</h3>
+                <h3 className="text-sm font-semibold text-black">Wishlist</h3>
                 {wishlist.length === 0 ? (
-                    <p className="mt-2 text-xs text-slate-500">Click the heart on any course to add it here.</p>
+                    <p className="mt-2 text-xs text-black">Click the heart on any course to add it here.</p>
                 ) : (
                     <div className="mt-3 grid grid-cols-1 gap-3">
                         {wishlist.map((c) => (
@@ -91,11 +91,11 @@ export default function SidebarSmartFilter({
                                     style={{ backgroundImage: c.cover ? `url(${c.cover})` : undefined }}
                                 />
                                 <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm text-slate-800">{c.title}</p>
-                                    <p className="text-xs text-slate-500">{c.level} • {c.durationHours}h • {c.rating.toFixed(1)}★</p>
+                                    <p className="truncate text-sm text-black">{c.title}</p>
+                                    <p className="text-xs text-black">{c.level} • {c.durationHours}h • {c.rating.toFixed(1)}★</p>
                                 </div>
                                 <button
-                                    className="ml-auto p-1 text-slate-500 hover:text-rose-600"
+                                    className="ml-auto p-1 text-black hover:text-rose-600"
                                     onClick={() => onToggleWishlist(c)}
                                     aria-label="Remove from wishlist"
                                     title="Remove"

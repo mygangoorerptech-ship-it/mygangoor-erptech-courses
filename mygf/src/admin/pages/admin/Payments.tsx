@@ -356,7 +356,7 @@ export default function ADPayments() {
         <div className="md:col-span-2 space-y-2">
           <Label>Search</Label>
           <div className="relative">
-            <Search size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search size={16} className="absolute left-2 top-1/2 -translate-y-1/2 text-black" />
             <Input className="pl-8" placeholder="Email, order id, method..." value={filters.q || ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))} />
           </div>
         </div>
@@ -471,7 +471,7 @@ export default function ADPayments() {
       <div className="w-full min-w-0 rounded-xl border bg-white overflow-hidden">
         <div className="w-full max-w-full overflow-x-auto overscroll-x-contain">
           <table className="min-w-[1200px] text-sm">
-            <thead className="bg-slate-50 text-slate-800 whitespace-nowrap">
+            <thead className="bg-slate-50 text-black whitespace-nowrap">
               <tr>
                 <th className="text-left font-medium p-3">When</th>
                 <th className="text-left font-medium p-3">Order / Sub</th>
@@ -489,7 +489,7 @@ export default function ADPayments() {
 
                 <th className="text-left font-medium p-3 w-[220px]">
                   Assigned Teachers
-                  <div className="text-[11px] font-normal text-slate-400 mt-0.5">Manage via row click</div>
+                  <div className="text-[11px] font-normal text-black mt-0.5">Manage via row click</div>
                 </th>
 
                 <th className="text-left font-medium p-3">
@@ -584,11 +584,11 @@ export default function ADPayments() {
             transition
           "
                           >
-                            <div className="font-medium text-slate-800">
+                            <div className="font-medium text-black">
                               {teacherSummary(p)}
                             </div>
 
-                            <div className="text-xs text-slate-500 mt-1">
+                            <div className="text-xs text-black mt-1">
                               View center-wise assignments
                             </div>
                           </button>
@@ -654,7 +654,7 @@ export default function ADPayments() {
                               ? 'text-indigo-700 bg-indigo-50 rounded px-2 py-0.5'
 
                               : p.status === 'refunded'
-                                ? 'text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+                                ? 'text-black bg-slate-100 rounded px-2 py-0.5'
 
                                 : p.status === 'rejected'
                                   ? 'text-rose-700 bg-rose-50 rounded px-2 py-0.5'
@@ -757,7 +757,7 @@ export default function ADPayments() {
               {rows.length === 0 && (
                 <tr>
                   <td
-                    className="p-6 text-center text-slate-500"
+                    className="p-6 text-center text-black"
                     colSpan={11}
                   >
                     No payments
@@ -773,11 +773,11 @@ export default function ADPayments() {
         {target && (
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div><div className="text-xs text-slate-500">ID</div><div className="font-mono text-sm">{target.id}</div></div>
-              <div><div className="text-xs text-slate-500">Status</div><div className="text-sm">{target.status}</div></div>
-              <div><div className="text-xs text-slate-500">Amount</div><div className="text-sm">₹{((target.amount || 0) / 100).toFixed(2)}</div></div>
-              <div><div className="text-xs text-slate-500">Method</div><div className="text-sm">{target.method || '—'}</div></div>
-              <div><div className="text-xs text-slate-500">Order/Sub</div><div className="text-sm">{target.providerOrderId
+              <div><div className="text-xs text-black">ID</div><div className="font-mono text-sm">{target.id}</div></div>
+              <div><div className="text-xs text-black">Status</div><div className="text-sm">{target.status}</div></div>
+              <div><div className="text-xs text-black">Amount</div><div className="text-sm">₹{((target.amount || 0) / 100).toFixed(2)}</div></div>
+              <div><div className="text-xs text-black">Method</div><div className="text-sm">{target.method || '—'}</div></div>
+              <div><div className="text-xs text-black">Order/Sub</div><div className="text-sm">{target.providerOrderId
                 ? `ONLINE_${target.providerOrderId}`
                 : target.providerPaymentId
                   ? `PAY_${target.providerPaymentId}`
@@ -789,9 +789,9 @@ export default function ADPayments() {
                         ? `${(target.method || 'PAY').toUpperCase()}_${String(target.id).slice(-6)}`
                         : '—'
               }</div></div>
-              <div><div className="text-xs text-slate-500">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
+              <div><div className="text-xs text-black">Student</div><div className="text-sm">{target.studentEmail || '—'}</div></div>
               <div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-black">
                   Course
                 </div>
 
@@ -801,7 +801,7 @@ export default function ADPayments() {
               </div>
 
               <div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-black">
                   Organization / Center
                 </div>
 
@@ -899,11 +899,11 @@ export default function ADPayments() {
                 <>
                   {payRows.length > 0 && (
                     <div className="mt-4 border-t pt-3">
-                      <div className="text-xs text-slate-500 mb-2 font-medium">Payment Breakdown</div>
+                      <div className="text-xs text-black mb-2 font-medium">Payment Breakdown</div>
                       <div className="grid grid-cols-2 gap-2">
                         {payRows.map(([label, val]) => (
                           <div key={label}>
-                            <div className="text-xs text-slate-500">{label}</div>
+                            <div className="text-xs text-black">{label}</div>
                             <div className="text-sm font-medium">{val}</div>
                           </div>
                         ))}
@@ -912,14 +912,14 @@ export default function ADPayments() {
                   )}
                   {fields.some(([, val]) => val != null) && (
                     <div className="mt-4 border-t pt-3">
-                      <div className="text-xs text-slate-500 mb-2 font-medium">
+                      <div className="text-xs text-black mb-2 font-medium">
                         Join Form Details
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         {fields.map(([label, val]) =>
                           val != null ? (
                             <div key={label}>
-                              <div className="text-xs text-slate-500">{label}</div>
+                              <div className="text-xs text-black">{label}</div>
                               <div className="text-sm">{String(val)}</div>
                             </div>
                           ) : null
@@ -1060,7 +1060,7 @@ export default function ADPayments() {
                           <td className="p-3">
                             <div className="space-y-1">
                               <div>{x.centerName || 'Center'}</div>
-                              <div className="text-[11px] text-slate-400 font-mono break-all">
+                              <div className="text-[11px] text-black font-mono break-all">
                                 {x.centerId || '—'}
                               </div>
                             </div>
@@ -1075,7 +1075,7 @@ export default function ADPayments() {
                               : (x.teacherName || '—')
                             }
                           </td>
-                          <td className="p-3 text-slate-800">{x.teacherEmail || '—'}</td>
+                          <td className="p-3 text-black">{x.teacherEmail || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1099,7 +1099,7 @@ export default function ADPayments() {
               <div ref={editDropdownRef}>
                 <div className="space-y-3">
                   {editCenterAssignments.length === 0 ? (
-                    <div className="text-sm text-slate-500 p-3">No center assignments to edit.</div>
+                    <div className="text-sm text-black p-3">No center assignments to edit.</div>
                   ) : (
                     editCenterAssignments.map((assignment) => {
                       const centerId = assignment.centerId
@@ -1117,10 +1117,10 @@ export default function ADPayments() {
                           className={`grid md:grid-cols-2 gap-3 border rounded-lg p-3${isExternal ? ' opacity-60 bg-slate-50' : ''}`}
                         >
                           <div className="flex items-center">
-                            <div className="text-sm font-medium text-slate-700">
+                            <div className="text-sm font-medium text-black">
                               {centerName}
                               {isExternal && (
-                                <span className="ml-2 text-xs font-normal text-slate-400">(read-only)</span>
+                                <span className="ml-2 text-xs font-normal text-black">(read-only)</span>
                               )}
                             </div>
                           </div>
@@ -1132,14 +1132,14 @@ export default function ADPayments() {
                               className="w-full text-left border rounded px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                             >
                               {selected.length === 0
-                                ? <span className="text-slate-400">Select Teachers…</span>
+                                ? <span className="text-black">Select Teachers…</span>
                                 : <span>{selected.length} teacher{selected.length > 1 ? 's' : ''} selected</span>
                               }
                             </button>
                             {isOpen && !isExternal && (
                               <div className="absolute z-20 mt-1 w-full border rounded bg-white shadow-lg max-h-48 overflow-y-auto">
                                 {options.length === 0 ? (
-                                  <div className="px-3 py-2 text-sm text-slate-400">No teachers available</div>
+                                  <div className="px-3 py-2 text-sm text-black">No teachers available</div>
                                 ) : (
                                   options.map((t) => (
                                     <label key={t.value} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer text-sm">

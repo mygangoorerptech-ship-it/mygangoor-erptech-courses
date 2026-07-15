@@ -41,7 +41,7 @@ function ErrorFallback({ onReset }: { onReset: () => void }) {
   const queryClient = useQueryClient();
 
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-4 text-slate-500">
+    <div className="flex flex-col items-center justify-center py-16 gap-4 text-black">
       <p className="text-sm">Something went wrong.</p>
       <button
         className="px-4 py-2 border rounded-lg text-sm hover:bg-slate-50 transition"

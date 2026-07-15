@@ -188,9 +188,9 @@ function CourseStep({
               {/* body — mirrors Tracks/CourseCard */}
               <div className="relative z-10 p-4">
                 {c.track && (
-                  <p className="text-xs uppercase tracking-wider text-slate-500">{c.track}</p>
+                  <p className="text-xs uppercase tracking-wider text-black">{c.track}</p>
                 )}
-                <h3 className="mt-1 line-clamp-2 font-semibold text-slate-900">{c.title}</h3>
+                <h3 className="mt-1 line-clamp-2 font-semibold text-black">{c.title}</h3>
 
                 {/* price row (sale + mrp + %OFF) */}
                 {!isPremium && hasPrice && salePaise != null && (
@@ -200,11 +200,11 @@ function CourseStep({
                         {discount}% OFF
                       </span>
                     )}
-                    <span className="text-lg sm:text-xl font-extrabold text-slate-900">
+                    <span className="text-lg sm:text-xl font-extrabold text-black">
                       {formatINRFromPaise(salePaise)}
                     </span>
                     {discount > 0 && mrpPaise != null && (
-                      <span className="text-sm text-slate-400 line-through">
+                      <span className="text-sm text-black line-through">
                         {formatINRFromPaise(mrpPaise)}
                       </span>
                     )}
@@ -225,23 +225,23 @@ function CourseStep({
 
                 {/* rating + level */}
                 <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-sm text-slate-700">
+                  <div className="flex items-center gap-1 text-sm text-black">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                       <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                     </svg>
                     <span className="font-medium">{Number(c.rating ?? 0).toFixed(1)}</span>
                     {typeof c.ratingCount === "number" && (
-                      <span className="text-xs text-slate-500">({c.ratingCount})</span>
+                      <span className="text-xs text-black">({c.ratingCount})</span>
                     )}
                   </div>
-                  <span className="px-2 py-1 text-xs text-slate-700 border border-slate-300">
+                  <span className="px-2 py-1 text-xs text-black border border-slate-300">
                     {level}
                   </span>
                 </div>
 
                 {/* org badge */}
                 <div className="mt-2">
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-slate-500">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] text-black">
                     {c.orgName || "Platform"}
                   </span>
                 </div>
@@ -249,12 +249,12 @@ function CourseStep({
                 {/* footer: preview (visual only) + duration */}
                 <div className="mt-4 flex items-center justify-between">
                   <span
-                    className="border border-slate-300 px-3 py-2 text-xs font-medium text-slate-800 bg-white/80 pointer-events-none select-none"
+                    className="border border-slate-300 px-3 py-2 text-xs font-medium text-black bg-white/80 pointer-events-none select-none"
                     aria-hidden="true"
                   >
                     Preview
                   </span>
-                  <span className="text-xs text-slate-500">{dur}</span>
+                  <span className="text-xs text-black">{dur}</span>
                 </div>
               </div>
             </button>

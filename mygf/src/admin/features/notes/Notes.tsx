@@ -258,7 +258,7 @@ export default function NotesFeature() {
           <button
             type="button"
             onClick={() => setActiveTab("rich")}
-            className={`px-4 py-2 text-sm ${activeTab === "rich" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-600"
+            className={`px-4 py-2 text-sm ${activeTab === "rich" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-black"
               }`}
           >
             Rich Text
@@ -266,7 +266,7 @@ export default function NotesFeature() {
           <button
             type="button"
             onClick={() => setActiveTab("pdf")}
-            className={`px-4 py-2 text-sm ${activeTab === "pdf" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-slate-600"
+            className={`px-4 py-2 text-sm ${activeTab === "pdf" ? "border-b-2 border-indigo-600 text-indigo-700" : "text-black"
               }`}
           >
             PDF
@@ -322,7 +322,7 @@ export default function NotesFeature() {
                 className="hidden"
               />
               {pdfFile && (
-                <div className="text-xs text-slate-800 mt-1">
+                <div className="text-xs text-black mt-1">
                   Selected: <b>{pdfFile.name}</b> {Math.round(pdfFile.size / 1024)} KB
                 </div>
               )}
@@ -377,7 +377,7 @@ export default function NotesFeature() {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border rounded-lg">
               <thead>
-                <tr className="text-left text-slate-700 bg-slate-50">
+                <tr className="text-left text-black bg-slate-50">
                   <th className="py-2 px-3 font-medium">Title</th>
                   <th className="py-2 px-3 font-medium">Kind</th>
                   <th className="py-2 px-3 font-medium">Status</th>
@@ -387,7 +387,7 @@ export default function NotesFeature() {
               <tbody className="divide-y">
                 {notesLoading && (
                   <tr>
-                    <td className="py-4 px-3 text-slate-500" colSpan={4}>
+                    <td className="py-4 px-3 text-black" colSpan={4}>
                       Loading…
                     </td>
                   </tr>
@@ -399,11 +399,11 @@ export default function NotesFeature() {
                       <td className="py-2 px-3">
                         <span className="inline-flex items-center gap-1">
                           {n.kind === "rich" ? (
-                            <FileText className="w-4 h-4 text-slate-800" />
+                            <FileText className="w-4 h-4 text-black" />
                           ) : (
-                            <File className="w-4 h-4 text-slate-800" />
+                            <File className="w-4 h-4 text-black" />
                           )}
-                          <span className="uppercase text-slate-700">{n.kind}</span>
+                          <span className="uppercase text-black">{n.kind}</span>
                         </span>
                       </td>
                       <td className="py-2 px-3">
@@ -418,7 +418,7 @@ export default function NotesFeature() {
                             Draft
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-700 px-2 py-0.5">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-black px-2 py-0.5">
                             {n.status}
                           </span>
                         )}

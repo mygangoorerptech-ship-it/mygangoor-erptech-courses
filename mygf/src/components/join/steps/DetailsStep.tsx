@@ -34,8 +34,8 @@ export default function DetailsStep({
       {/* Saved profile card — shown when a complete profile exists */}
       {savedProfile && (
         <div className="rounded-lg border bg-slate-50 p-4 space-y-3">
-          <p className="text-sm font-medium text-slate-700">Saved enrollment details found</p>
-          <div className="grid sm:grid-cols-2 gap-1 text-sm text-slate-800">
+          <p className="text-sm font-medium text-black">Saved enrollment details found</p>
+          <div className="grid sm:grid-cols-2 gap-1 text-sm text-black">
             <span><strong>Name:</strong> {savedProfile.fullName}</span>
             <span><strong>Mobile:</strong> {savedProfile.mobile}</span>
             <span><strong>Email:</strong> {savedProfile.email}</span>
@@ -165,9 +165,9 @@ export default function DetailsStep({
               {values.photoUrl ? (
                 <img src={values.photoUrl} alt="preview" className="w-14 h-14 rounded-lg object-cover border" />
               ) : savedProfile ? (
-                <p className="text-xs text-slate-500">Photo upload skipped for faster enrollment</p>
+                <p className="text-xs text-black">Photo upload skipped for faster enrollment</p>
               ) : (
-                <div className="w-14 h-14 grid place-content-center rounded-lg border text-slate-500">
+                <div className="w-14 h-14 grid place-content-center rounded-lg border text-black">
                   <ImageUp className="w-5 h-5" />
                 </div>
               )}

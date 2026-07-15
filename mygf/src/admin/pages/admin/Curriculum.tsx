@@ -89,16 +89,16 @@ export default function Curriculum(){
                 onDragOver={onModDragOver}
                 onDrop={(e)=> onModDrop(e, m.id)}
                 onClick={()=> setSelected(m.id)}>
-              <GripVertical size={16} className="text-slate-400" />
+              <GripVertical size={16} className="text-black" />
               <div className="flex-1">
                 <div className="font-medium">{m.title}</div>
-                {m.description && <div className="text-xs text-slate-500">{m.description}</div>}
+                {m.description && <div className="text-xs text-black">{m.description}</div>}
               </div>
               <button className="px-2 py-1 rounded border hover:bg-slate-50" onClick={(e)=>{ e.stopPropagation(); setOpenMod({mode:'edit', mod:m}) }}><Pencil size={16}/></button>
               <button className="px-2 py-1 rounded border hover:bg-slate-50" onClick={(e)=>{ e.stopPropagation(); if(confirm('Delete module and all its lessons?')) deleteMod.mutate(m.id) }}><Trash2 size={16}/></button>
             </li>
           ))}
-          {modules.length===0 && <li className="p-4 text-sm text-slate-500">No modules yet.</li>}
+          {modules.length===0 && <li className="p-4 text-sm text-black">No modules yet.</li>}
         </ul>
       </div>
 
@@ -107,7 +107,7 @@ export default function Curriculum(){
         <div className="flex items-center justify-between p-3 border-b">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">Lessons</h2>
-            {selectedId && <span className="text-xs text-slate-500">in “{modules.find(m=>m.id===selectedId)?.title}”</span>}
+            {selectedId && <span className="text-xs text-black">in “{modules.find(m=>m.id===selectedId)?.title}”</span>}
           </div>
           <Button onClick={()=> selectedId && setOpenLes({mode:'create'})} disabled={!selectedId}><Plus size={16}/> New</Button>
         </div>
@@ -119,10 +119,10 @@ export default function Curriculum(){
                 onDragStart={(e)=> onLesDragStart(e, l.id)}
                 onDragOver={onLesDragOver}
                 onDrop={(e)=> onLesDrop(e, l.id)}>
-              <GripVertical size={16} className="text-slate-400" />
+              <GripVertical size={16} className="text-black" />
               <div className="flex-1">
                 <div className="font-medium">{l.title}</div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-black">
                   {l.contentType} • {l.durationMin ?? '—'} min
                   {l.preview ? ' • Preview' : ''}
                   {l.downloadable ? ' • Download' : ''}
@@ -133,7 +133,7 @@ export default function Curriculum(){
               <button className="px-2 py-1 rounded border hover:bg-slate-50" onClick={()=> { if(confirm('Delete lesson?')) deleteLes.mutate(l.id) }}><Trash2 size={16}/></button>
             </li>
           ))}
-          {lessons.length===0 && <li className="p-4 text-sm text-slate-500">No lessons in this module.</li>}
+          {lessons.length===0 && <li className="p-4 text-sm text-black">No lessons in this module.</li>}
         </ul>
       </div>
 

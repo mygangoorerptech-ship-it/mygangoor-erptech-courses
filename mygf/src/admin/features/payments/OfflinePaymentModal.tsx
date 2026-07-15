@@ -81,7 +81,7 @@ export default function OfflinePaymentModal({
               </option>
             ))}
           </Select>
-          {studentsQ.isLoading && <div className="text-xs text-slate-500 mt-1">Loading students…</div>}
+          {studentsQ.isLoading && <div className="text-xs text-black mt-1">Loading students…</div>}
         </div>
 
         <div className="sm:col-span-1">
@@ -101,7 +101,7 @@ export default function OfflinePaymentModal({
               </option>
             ))}
           </Select>
-          {coursesQ.isLoading && <div className="text-xs text-slate-500 mt-1">Loading courses…</div>}
+          {coursesQ.isLoading && <div className="text-xs text-black mt-1">Loading courses…</div>}
         </div>
 
         <div>

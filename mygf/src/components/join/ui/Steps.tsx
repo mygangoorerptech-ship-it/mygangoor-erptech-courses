@@ -27,7 +27,7 @@ export default function Steps({ step }: { step: Step }) {
               <span
                 className={classNames(
                   "hidden sm:block",
-                  active ? "text-indigo-700 font-medium" : "text-slate-600"
+                  active ? "text-indigo-700 font-medium" : "text-black"
                 )}
               >
                 {label}

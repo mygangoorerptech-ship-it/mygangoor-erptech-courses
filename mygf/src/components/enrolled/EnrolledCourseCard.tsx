@@ -58,16 +58,16 @@ export default function EnrolledCourseCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-black">
               {course.category}
             </p>
 
-            <h3 className="mt-2 line-clamp-2 text-xl font-bold leading-snug text-slate-900">
+            <h3 className="mt-2 line-clamp-2 text-xl font-bold leading-snug text-black">
               {course.title}
             </h3>
           </div>
 
-          <button className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">
+          <button className="flex h-9 w-9 items-center justify-center rounded-lg text-black transition-colors hover:bg-slate-100 hover:text-black">
             <MoreVertical className="h-5 w-5" />
           </button>
         </div>
@@ -75,11 +75,11 @@ export default function EnrolledCourseCard({
         {/* Progress */}
         <div className="mt-6">
           <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium text-slate-500">
+            <span className="font-medium text-black">
               Progress
             </span>
 
-            <span className="font-semibold text-slate-700">
+            <span className="font-semibold text-black">
               {course.progress}% Complete
             </span>
           </div>
@@ -110,13 +110,13 @@ export default function EnrolledCourseCard({
               Continue Learning
             </button>
 
-            {/* <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]">
+            {/* <button className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-black transition-all hover:bg-slate-50 active:scale-[0.98]">
               View Details
             </button> */}
           </div>
 
           {/* Duration */}
-          {/* <span className="text-sm font-semibold text-slate-500">
+          {/* <span className="text-sm font-semibold text-black">
             {course.duration}
           </span> */}
         </div>

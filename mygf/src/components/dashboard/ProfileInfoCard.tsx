@@ -194,7 +194,7 @@ export default function ProfileInfoCard({
                             "Untitled Course"}
                         </div>
                         {course.track && (
-                          <div className="text-xs text-slate-500 uppercase tracking-wide">
+                          <div className="text-xs text-black uppercase tracking-wide">
                             {course.track}
                           </div>
                         )}
@@ -209,7 +209,7 @@ export default function ProfileInfoCard({
 
         {/* No courses → simple note */}
         {!hasCourses && !coursesLoading && (
-          <div className="mt-3 text-xs text-slate-800">
+          <div className="mt-3 text-xs text-black">
             You don't have any active courses yet.
           </div>
         )}

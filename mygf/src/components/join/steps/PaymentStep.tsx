@@ -60,14 +60,14 @@ export default function PaymentStep(props: {
         <div className="flex items-center justify-between">
           <div>
             <div className="font-semibold">{course.title}</div>
-            <div className="text-sm text-slate-800 flex items-center gap-2 mt-0.5">
+            <div className="text-sm text-black flex items-center gap-2 mt-0.5">
               <Timer className="w-4 h-4" /> {course.duration || "—"}
             </div>
           </div>
 
           <div className="text-right">
             {/* Cut-off = MRP */}
-            <div className="text-slate-500 line-through">
+            <div className="text-black line-through">
               {mrpPaise > 0 ? formatINRFromPaise(mrpPaise) : "-"}
             </div>
 

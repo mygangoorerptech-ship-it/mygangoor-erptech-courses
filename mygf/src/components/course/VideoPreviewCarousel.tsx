@@ -90,7 +90,7 @@ export default function VideoPreviewCarousel({
             className="relative z-10 grid place-items-center h-full w-full focus:outline-none"
           >
             <div className="rounded-full bg-white/90 p-4 shadow-md transition group-hover:scale-105">
-              <i className="fas fa-play text-2xl text-slate-800" />
+              <i className="fas fa-play text-2xl text-black" />
             </div>
           </button>
         ) : (
@@ -105,14 +105,14 @@ export default function VideoPreviewCarousel({
               aria-label="Previous"
               className="absolute left-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 p-2 shadow hover:bg-white"
             >
-              <i className="fas fa-chevron-left text-slate-800" />
+              <i className="fas fa-chevron-left text-black" />
             </button>
             <button
               onClick={next}
               aria-label="Next"
               className="absolute right-2 top-1/2 -translate-y-1/2 z-20 rounded-full bg-white/90 p-2 shadow hover:bg-white"
             >
-              <i className="fas fa-chevron-right text-slate-800" />
+              <i className="fas fa-chevron-right text-black" />
             </button>
           </>
         )}

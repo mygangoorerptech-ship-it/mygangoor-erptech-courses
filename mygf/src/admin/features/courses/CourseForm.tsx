@@ -635,9 +635,9 @@ export default function CourseFormModal({
                       {tagChips.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1 text-[11px]">
                           {tagChips.map((t) => (
-                            <span key={t} className="rounded px-1.5 py-0.5 bg-slate-100 text-slate-700">{t}</span>
+                            <span key={t} className="rounded px-1.5 py-0.5 bg-slate-100 text-black">{t}</span>
                           ))}
-                          <span className="text-slate-500 ml-1">{tagChips.length}/5</span>
+                          <span className="text-black ml-1">{tagChips.length}/5</span>
                         </div>
                       )}
                     </Field>
@@ -810,7 +810,7 @@ export default function CourseFormModal({
                         {!isSA && selectedCenterIds
                           .filter((id) => !ownCenterIdSet.has(id))
                           .map((id) => (
-                            <label key={id} className="flex items-center gap-2 text-sm text-slate-400 cursor-not-allowed">
+                            <label key={id} className="flex items-center gap-2 text-sm text-black cursor-not-allowed">
                               <input type="checkbox" checked disabled readOnly />
                               {centerLabelMap[id] || id}
                               <span className="text-xs ml-1">(assigned externally)</span>
@@ -846,10 +846,10 @@ export default function CourseFormModal({
                               className={`grid md:grid-cols-2 gap-3 border rounded-lg p-3${isExternal ? " opacity-60 bg-slate-50" : ""}`}
                             >
                               <div className="flex items-center">
-                                <div className="text-sm font-medium text-slate-700">
+                                <div className="text-sm font-medium text-black">
                                   {label}
                                   {isExternal && (
-                                    <span className="ml-2 text-xs font-normal text-slate-400">(read-only)</span>
+                                    <span className="ml-2 text-xs font-normal text-black">(read-only)</span>
                                   )}
                                 </div>
                               </div>
@@ -862,14 +862,14 @@ export default function CourseFormModal({
                                   className="w-full text-left border rounded px-3 py-2 text-sm bg-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                                 >
                                   {selected.length === 0
-                                    ? <span className="text-slate-400">Select Teachers…</span>
+                                    ? <span className="text-black">Select Teachers…</span>
                                     : <span>{selected.length} teacher{selected.length > 1 ? "s" : ""} selected</span>
                                   }
                                 </button>
                                 {isOpen && !isExternal && (
                                   <div className="absolute z-20 mt-1 w-full border rounded bg-white shadow-lg max-h-48 overflow-y-auto">
                                     {options.length === 0 ? (
-                                      <div className="px-3 py-2 text-sm text-slate-400">No teachers available</div>
+                                      <div className="px-3 py-2 text-sm text-black">No teachers available</div>
                                     ) : (
                                       options.map((t) => (
                                         <label
@@ -910,7 +910,7 @@ export default function CourseFormModal({
                 subtitle="Enable to add multiple chapters under one course. Price applies to the whole course."
               >
                 <div className="space-y-3">
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-black">
                     When enabled, the course becomes a bundle with an ordered list of chapters.
                   </div>
                   <label className="inline-flex items-center gap-2 text-sm">
@@ -1005,7 +1005,7 @@ export default function CourseFormModal({
                         setPlatformFeeRs(Number.isFinite(n) ? Math.max(0, n) : 0);
                       }}
                     />
-                    <div className="text-xs text-slate-500 mt-1">
+                    <div className="text-xs text-black mt-1">
                       This fee is added to the course total. Default comes from SuperAdmin settings.
                     </div>
                   </Field>
@@ -1041,7 +1041,7 @@ export default function CourseFormModal({
               <SectionCard
                 title={
                   <div className="flex items-center gap-2">
-                    Chapters <span className="text-slate-500">({chapters.length})</span>
+                    Chapters <span className="text-black">({chapters.length})</span>
                   </div>
                 }
                 right={
@@ -1051,7 +1051,7 @@ export default function CourseFormModal({
                 }
               >
                 {chapters.length === 0 ? (
-                  <div className="rounded-md border p-3 text-sm text-slate-800 bg-slate-50">
+                  <div className="rounded-md border p-3 text-sm text-black bg-slate-50">
                     No chapters yet.
                   </div>
                 ) : (
@@ -1149,7 +1149,7 @@ export default function CourseFormModal({
                                     </Button>
                                   </div>
                                   {ch.coverUrl ? (
-                                    <div className="text-[11px] text-slate-500 mt-1 truncate">
+                                    <div className="text-[11px] text-black mt-1 truncate">
                                       {ch.coverUrl}
                                     </div>
                                   ) : null}
@@ -1217,7 +1217,7 @@ export default function CourseFormModal({
                                     </Button>
                                   </div>
                                   {ch.videoUrl ? (
-                                    <div className="text-[11px] text-slate-500 mt-1 truncate">
+                                    <div className="text-[11px] text-black mt-1 truncate">
                                       {ch.videoUrl}
                                     </div>
                                   ) : null}

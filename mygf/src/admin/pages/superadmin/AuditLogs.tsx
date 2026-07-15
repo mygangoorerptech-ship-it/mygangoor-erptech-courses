@@ -114,7 +114,7 @@ export default function SAAuditLogs() {
       {/* ── Table ── */}
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3 whitespace-nowrap">Time</th>
               <th className="text-left font-medium p-3 whitespace-nowrap">Actor</th>
@@ -142,18 +142,18 @@ export default function SAAuditLogs() {
             {/* Data rows */}
             {rows.map(r => (
               <tr key={r.id} className="border-t hover:bg-slate-50 transition-colors">
-                <td className="p-3 whitespace-nowrap text-slate-500">
+                <td className="p-3 whitespace-nowrap text-black">
                   {r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}
                 </td>
                 <td className="p-3">
                   <div className="font-medium">{r.actorName || '—'}</div>
-                  <div className="text-xs text-slate-400">{r.actorEmail || ''}</div>
+                  <div className="text-xs text-black">{r.actorEmail || ''}</div>
                 </td>
-                <td className="p-3 text-slate-500">{r.actorRole || '—'}</td>
+                <td className="p-3 text-black">{r.actorRole || '—'}</td>
                 <td className="p-3">
                   <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs">{r.action}</span>
                 </td>
-                <td className="p-3 text-slate-400 font-mono text-xs">{r.ip || '—'}</td>
+                <td className="p-3 text-black font-mono text-xs">{r.ip || '—'}</td>
                 <td className="p-3">
                   <Button variant="ghost" onClick={() => setView(r)}>
                     <Eye size={14} />
@@ -165,7 +165,7 @@ export default function SAAuditLogs() {
             {/* Empty state — only when not loading */}
             {!query.isFetching && rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-10 text-center text-slate-400">
+                <td colSpan={6} className="p-10 text-center text-black">
                   No audit logs found.
                 </td>
               </tr>
@@ -175,7 +175,7 @@ export default function SAAuditLogs() {
       </div>
 
       {/* ── Pagination ── */}
-      <div className="flex items-center justify-between text-sm text-slate-800">
+      <div className="flex items-center justify-between text-sm text-black">
         <span>
           {total > 0
             ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, total)} of ${total}`

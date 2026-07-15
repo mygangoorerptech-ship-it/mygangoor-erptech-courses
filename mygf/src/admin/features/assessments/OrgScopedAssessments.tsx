@@ -62,7 +62,7 @@ export default function OrgScopedAssessments() {
 
   // 🔒 Guards (same UX tone as your other screens)
   if (authStatus !== "ready") {
-    return <div className="p-6 text-sm text-slate-500">Checking permissions…</div>;
+    return <div className="p-6 text-sm text-black">Checking permissions…</div>;
   }
   if (!isAllowed) {
     return <div className="p-6 text-sm text-red-600">Forbidden: admin or teacher only.</div>;
@@ -115,7 +115,7 @@ export default function OrgScopedAssessments() {
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Title</th>
               <th className="text-left font-medium p-3">Course</th>
@@ -132,13 +132,13 @@ export default function OrgScopedAssessments() {
                 <td className="p-3">
                   <div className="font-medium">{a.title}</div>
                   {a.description && (
-                    <div className="text-xs text-slate-500">{a.description}</div>
+                    <div className="text-xs text-black">{a.description}</div>
                   )}
                 </td>
                 <td className="p-3">
                   <div className="text-sm">{(a as any).courseTitle || "—"}</div>
                   {(a as any).courseId && (
-                    <div className="text-xs text-slate-500">{(a as any).courseId}</div>
+                    <div className="text-xs text-black">{(a as any).courseId}</div>
                   )}
                 </td>
                 <td className="p-3">{a.totalQuestions ?? "—"}</td>
@@ -151,7 +151,7 @@ export default function OrgScopedAssessments() {
                         ? "text-green-700 bg-green-50 rounded px-2 py-0.5"
                         : a.status === "draft"
                         ? "text-amber-700 bg-amber-50 rounded px-2 py-0.5"
-                        : "text-slate-700 bg-slate-100 rounded px-2 py-0.5"
+                        : "text-black bg-slate-100 rounded px-2 py-0.5"
                     }
                   >
                     {a.status}
@@ -201,7 +201,7 @@ export default function OrgScopedAssessments() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-slate-500" colSpan={7}>
+                <td className="p-6 text-center text-black" colSpan={7}>
                   No assessments
                 </td>
               </tr>

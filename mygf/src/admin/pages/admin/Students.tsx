@@ -57,13 +57,13 @@ export default function ADStudents(){
         </div>
       </header>
 
-      <div className="text-sm text-slate-800">
+      <div className="text-sm text-black">
         <span className="font-medium">{total}</span> students • <span className="font-medium">{activeCount}</span> active
       </div>
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Name</th>
               <th className="text-left font-medium p-3">Username</th>
@@ -111,7 +111,7 @@ export default function ADStudents(){
                 </td>
               </tr>
             ))}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={5}>No students</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={5}>No students</td></tr>}
           </tbody>
         </table>
       </div>
@@ -259,7 +259,7 @@ function CSVModal({ open, onClose, onImport }:{
   return (
     <Modal open={open} onClose={onClose} title="Bulk import via CSV">
       <div className="space-y-3">
-        <div className="text-sm text-slate-800">
+        <div className="text-sm text-black">
           Headers supported: <code>username,email,name,status,orgId,orgName</code>. Existing students matched by
           <strong> email or username</strong> will be updated; others will be created.
         </div>

@@ -339,7 +339,7 @@ export default function BulkUploadModal({
   return (
     <BulkModal open title="Bulk Upload Courses" onClose={onClose}>
       <div className="w-[92vw] max-w-4xl space-y-4">
-        <div className="rounded-lg border p-3 bg-slate-50 text-slate-700 flex items-start gap-2">
+        <div className="rounded-lg border p-3 bg-slate-50 text-black flex items-start gap-2">
           <Info size={18} className="mt-0.5" />
           <div className="text-sm leading-relaxed">
             <div>Upload a CSV or XLSX file. <strong>Column order doesn’t matter</strong>.</div>
@@ -401,8 +401,8 @@ export default function BulkUploadModal({
           <label htmlFor="bulk-file" className="cursor-pointer inline-flex items-center gap-2 rounded-md border px-3 py-2 hover:bg-slate-50">
             <Upload size={16}/> {fileName ? "Choose another file" : "Choose CSV/XLSX file"}
           </label>
-          {fileName && <div className="text-xs text-slate-500 mt-2">Selected: {fileName}</div>}
-          {parsing && <div className="text-sm text-slate-800 mt-2">Parsing…</div>}
+          {fileName && <div className="text-xs text-black mt-2">Selected: {fileName}</div>}
+          {parsing && <div className="text-sm text-black mt-2">Parsing…</div>}
           {error && <div className="text-sm text-rose-600 mt-2">{error}</div>}
         </div>
 
@@ -427,7 +427,7 @@ export default function BulkUploadModal({
               </tbody>
             </table>
             {rows.length > 100 && (
-              <div className="text-[11px] text-slate-500 p-2">
+              <div className="text-[11px] text-black p-2">
                 Showing first 100 rows of {rows.length}…
               </div>
             )}

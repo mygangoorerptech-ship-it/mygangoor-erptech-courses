@@ -221,7 +221,7 @@ export default function CoursesUnified() {
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Title</th>
               <th className="text-left font-medium p-3">Program Type</th>
@@ -238,7 +238,7 @@ export default function CoursesUnified() {
               <tr key={c.id} className="border-t">
                 <td className="p-3">
                   <div className="font-medium">{c.title}</div>
-                  {c.slug && <div className="text-xs text-slate-500">/{c.slug}</div>}
+                  {c.slug && <div className="text-xs text-black">/{c.slug}</div>}
                   {/* meta badges (tiny, unobtrusive) */}
                   <div className="mt-1 flex flex-wrap gap-1 text-[11px]">
                     {/* Free/Paid */}
@@ -246,7 +246,7 @@ export default function CoursesUnified() {
                       className={
                         (c.courseType ?? "paid") === "free"
                           ? "rounded px-1.5 py-0.5 bg-emerald-50 text-emerald-700"
-                          : "rounded px-1.5 py-0.5 bg-slate-100 text-slate-700"
+                          : "rounded px-1.5 py-0.5 bg-slate-100 text-black"
                       }
                       title="Course type"
                     >
@@ -284,7 +284,7 @@ export default function CoursesUnified() {
                 <td className="p-3">
                   <span className={c.status === "published" ? "text-emerald-700 bg-emerald-50 rounded px-2 py-0.5"
                     : c.status === "draft" ? "text-amber-700 bg-amber-50 rounded px-2 py-0.5"
-                      : "text-slate-700 bg-slate-100 rounded px-2 py-0.5"}>{c.status}</span>
+                      : "text-black bg-slate-100 rounded px-2 py-0.5"}>{c.status}</span>
                 </td>
                 <td className="p-3 whitespace-nowrap space-x-2">
                   {/* Preview from shared component (table action) */}
@@ -300,7 +300,7 @@ export default function CoursesUnified() {
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={8} className="p-6 text-center text-slate-500">No courses</td></tr>
+              <tr><td colSpan={8} className="p-6 text-center text-black">No courses</td></tr>
             )}
           </tbody>
         </table>
@@ -308,7 +308,7 @@ export default function CoursesUnified() {
 
       {/* Pagination controls */}
       <div className="flex items-center justify-between gap-3">
-        <div className="text-xs text-slate-800">
+        <div className="text-xs text-black">
           Showing{" "}
           {total === 0
             ? "0"
@@ -324,7 +324,7 @@ export default function CoursesUnified() {
           >
             Prev
           </Button>
-          <span className="text-sm text-slate-700">
+          <span className="text-sm text-black">
             Page {page} / {totalPages}
           </span>
           <Button

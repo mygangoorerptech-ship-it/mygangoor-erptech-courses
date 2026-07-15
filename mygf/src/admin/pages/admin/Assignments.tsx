@@ -60,7 +60,7 @@ export default function ADAssignments(){
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Title</th>
               <th className="text-left font-medium p-3">Course</th>
@@ -76,11 +76,11 @@ export default function ADAssignments(){
               <tr key={a.id} className="border-t">
                 <td className="p-3">
                   <div className="font-medium">{a.title}</div>
-                  {a.description && <div className="text-xs text-slate-500">{a.description}</div>}
+                  {a.description && <div className="text-xs text-black">{a.description}</div>}
                 </td>
                 <td className="p-3">
                   <div className="text-sm">{a.courseTitle || '—'}</div>
-                  {a.courseId && <div className="text-xs text-slate-500">{a.courseId}</div>}
+                  {a.courseId && <div className="text-xs text-black">{a.courseId}</div>}
                 </td>
                 <td className="p-3 uppercase">{a.submissionType}</td>
                 <td className="p-3">{a.maxPoints}</td>
@@ -93,7 +93,7 @@ export default function ADAssignments(){
                   <span className={
                     a.status==='published' ? 'text-green-700 bg-green-50 rounded px-2 py-0.5' :
                     a.status==='draft' ? 'text-amber-700 bg-amber-50 rounded px-2 py-0.5' :
-                    'text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+                    'text-black bg-slate-100 rounded px-2 py-0.5'
                   }>{a.status}</span>
                 </td>
 <td className="p-3">
@@ -141,7 +141,7 @@ export default function ADAssignments(){
 
               </tr>
             ))}
-            {rows.length===0 && <tr><td className="p-6 text-center text-slate-500" colSpan={7}>No assignments</td></tr>}
+            {rows.length===0 && <tr><td className="p-6 text-center text-black" colSpan={7}>No assignments</td></tr>}
           </tbody>
         </table>
       </div>

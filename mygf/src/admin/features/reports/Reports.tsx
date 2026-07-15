@@ -147,7 +147,7 @@ function CertificatePreviewModal({
       <div className="grid gap-4 md:grid-cols-[1fr,320px]">
         <div className="rounded-lg border bg-slate-50 p-2">
           {loading && (
-            <div className="h-[70vh] flex items-center justify-center text-slate-500">
+            <div className="h-[70vh] flex items-center justify-center text-black">
               Loading PDF…
             </div>
           )}
@@ -155,7 +155,7 @@ function CertificatePreviewModal({
             <div className="h-[70vh] flex items-center justify-center">
               <div className="text-center">
                 <div className="text-rose-600 font-medium mb-1">Unable to load</div>
-                <div className="text-sm text-slate-800">{error}</div>
+                <div className="text-sm text-black">{error}</div>
               </div>
             </div>
           )}
@@ -172,19 +172,19 @@ function CertificatePreviewModal({
 
         <aside className="h-max rounded-xl border bg-white p-4 shadow-sm">
           <div className="mb-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Student</div>
+            <div className="text-xs uppercase tracking-wide text-black">Student</div>
             <div className="font-medium">{item.student.name || item.student.email}</div>
-            <div className="text-xs text-slate-500">{item.student.email}</div>
+            <div className="text-xs text-black">{item.student.email}</div>
           </div>
 
           <div className="mb-4">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Course</div>
+            <div className="text-xs uppercase tracking-wide text-black">Course</div>
             <div className="font-medium">{item.course.title}</div>
           </div>
 
           <div className="mb-6">
-            <div className="text-xs uppercase tracking-wide text-slate-500">Status</div>
-            <div className="inline-block rounded px-2 py-0.5 bg-slate-100 text-slate-700 text-sm">
+            <div className="text-xs uppercase tracking-wide text-black">Status</div>
+            <div className="inline-block rounded px-2 py-0.5 bg-slate-100 text-black text-sm">
               {item.overallStatus === 'not-started'
                 ? 'started'
                 : (item.overallStatus || '—')}
@@ -195,7 +195,7 @@ function CertificatePreviewModal({
             <a
               href={blobUrl || '#'}
               download={fileName}
-              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${blobUrl ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${blobUrl ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-slate-200 text-black cursor-not-allowed'
                 }`}
               onClick={(e) => { if (!blobUrl) e.preventDefault(); }}
             >
@@ -207,7 +207,7 @@ function CertificatePreviewModal({
               href={blobUrl || '#'}
               target="_blank"
               rel="noopener noreferrer"
-              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${blobUrl ? 'bg-white hover:bg-slate-50 text-slate-700' : 'bg-slate-200 text-slate-500 cursor-not-allowed'
+              className={`inline-flex items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${blobUrl ? 'bg-white hover:bg-slate-50 text-black' : 'bg-slate-200 text-black cursor-not-allowed'
                 }`}
               onClick={(e) => { if (!blobUrl) e.preventDefault(); }}
             >
@@ -217,7 +217,7 @@ function CertificatePreviewModal({
 
             <button
               type="button"
-              className="mt-3 text-slate-800 hover:text-slate-800 text-sm"
+              className="mt-3 text-black hover:text-black text-sm"
               onClick={onClose}
             >
               Close
@@ -226,8 +226,8 @@ function CertificatePreviewModal({
 
           {item.certificateUrl && (
             <div className="mt-6 border-t pt-3">
-              <div className="text-xs text-slate-500">Source URL</div>
-              <div className="text-xs text-slate-700 break-all">{item.certificateUrl}</div>
+              <div className="text-xs text-black">Source URL</div>
+              <div className="text-xs text-black break-all">{item.certificateUrl}</div>
             </div>
           )}
         </aside>
@@ -690,7 +690,7 @@ export default function Reports() {
             <div className="relative">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-black"
               />
 
               <Input
@@ -704,7 +704,7 @@ export default function Reports() {
                 <button
                   type="button"
                   onClick={() => setSearch('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-black hover:text-black"
                 >
                   <X size={15} />
                 </button>
@@ -836,7 +836,7 @@ export default function Reports() {
           {/* ACTIVE FILTERS */}
           <div className="flex flex-wrap items-center gap-2">
             {filters.q && (
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs text-black">
                 Search: {filters.q}
               </span>
             )}
@@ -979,11 +979,11 @@ export default function Reports() {
                   )}
 
                   <div>
-                    <div className="font-semibold text-slate-800">
+                    <div className="font-semibold text-black">
                       {section.label}
                     </div>
 
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-black">
                       {rows.length} reports
                     </div>
                   </div>
@@ -995,7 +995,7 @@ export default function Reports() {
                   {/* TABLE */}
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-slate-800">
+                      <thead className="bg-slate-50 text-black">
                         <tr>
                           <th className="text-left font-medium p-3">
                             Student
@@ -1038,7 +1038,7 @@ export default function Reports() {
                                 {r.student.name || r.student.email}
                               </div>
 
-                              <div className="text-xs text-slate-500">
+                              <div className="text-xs text-black">
                                 {r.student.email}
                               </div>
                             </td>
@@ -1052,14 +1052,14 @@ export default function Reports() {
                             </td>
 
                             <td className="p-3">
-                              <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">
+                              <span className="rounded bg-slate-100 px-2 py-0.5 text-black">
                                 {r.overallStatus === 'not-started'
                                   ? 'started'
                                   : (r.overallStatus || '—')}
                               </span>
                             </td>
 
-                            <td className="p-3 whitespace-nowrap text-xs text-slate-500">
+                            <td className="p-3 whitespace-nowrap text-xs text-black">
                               {new Date(
                                 r.updatedAt || r.createdAt || ''
                               ).toLocaleString()}
@@ -1146,7 +1146,7 @@ export default function Reports() {
                           <tr>
                             <td
                               colSpan={7}
-                              className="p-6 text-center text-slate-500"
+                              className="p-6 text-center text-black"
                             >
                               No reports
                             </td>
@@ -1159,7 +1159,7 @@ export default function Reports() {
                   {/* PAGINATION */}
                   {rows.length > SECTION_PAGE_SIZE && (
                     <div className="flex items-center justify-between border-t bg-white px-5 py-3">
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-black">
                         Showing {(state.page - 1) * SECTION_PAGE_SIZE + 1}
                         –
                         {Math.min(
@@ -1189,7 +1189,7 @@ export default function Reports() {
                           Prev
                         </Button>
 
-                        <span className="text-sm text-slate-800">
+                        <span className="text-sm text-black">
                           {state.page} / {totalPages}
                         </span>
 
@@ -1345,13 +1345,13 @@ function ProgressModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <div className="text-sm font-medium mb-1">Student</div>
-          <div className="text-sm text-slate-700">
+          <div className="text-sm text-black">
             {item.student.name || item.student.email} ({item.student.email})
           </div>
         </div>
         <div>
           <div className="text-sm font-medium mb-1">Course</div>
-          <div className="text-sm text-slate-700">{item.course.title}</div>
+          <div className="text-sm text-black">{item.course.title}</div>
         </div>
         {isBundled ? (
           <div className="space-y-4">
@@ -1526,7 +1526,7 @@ function CertificateModal({
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-black mt-1">
               Paste a link to a PDF or hosted certificate. Leave blank to remove.
             </p>
           </div>
@@ -1545,7 +1545,7 @@ function CertificateModal({
               <p className="text-xs text-green-600 mt-1">PDF selected. Click Save to publish.</p>
             )}
             {!fileDataUrl && (
-              <p className="text-xs text-slate-500 mt-1">Select a PDF file to upload.</p>
+              <p className="text-xs text-black mt-1">Select a PDF file to upload.</p>
             )}
           </div>
         )}

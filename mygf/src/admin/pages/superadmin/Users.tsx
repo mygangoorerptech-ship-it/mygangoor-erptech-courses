@@ -98,7 +98,7 @@ export default function SAUsers() {
     active: rows.filter(r => r.status === 'active').length,
   }), [rows])
 
-  if (loading) return <div className="p-6 text-sm text-slate-500">Loading users…</div>
+  if (loading) return <div className="p-6 text-sm text-black">Loading users…</div>
   if (error) return <div className="p-6 text-sm text-red-600">Failed to load users: {String(error)}</div>
 
   return (
@@ -142,7 +142,7 @@ export default function SAUsers() {
         </div>
       </header>
 
-      <div className="text-sm text-slate-800">
+      <div className="text-sm text-black">
         <span className="font-medium">{stats.total}</span> users •{' '}
         <span className="font-medium">{stats.supers}</span> superadmins •{' '}
         <span className="font-medium">{stats.admins}</span> admins •{' '}
@@ -153,7 +153,7 @@ export default function SAUsers() {
 
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">User</th>
               <th className="text-left font-medium p-3">Role</th>
@@ -171,7 +171,7 @@ export default function SAUsers() {
                     <div className="font-medium">
                       {u.name || '—'} {isMe && <span className="text-xs rounded bg-blue-50 text-blue-700 px-1.5 py-0.5 ml-1">You</span>}
                     </div>
-                    <div className="text-xs text-slate-500 flex items-center gap-2">
+                    <div className="text-xs text-black flex items-center gap-2">
                       <span>{u.email}</span>
                       {u.isVerified === false
                         ? <span className="rounded px-1.5 py-0.5 bg-amber-50 text-amber-700">Unverified</span>
@@ -183,7 +183,7 @@ export default function SAUsers() {
                       u.role === 'superadmin'
                         ? 'inline-flex items-center gap-1 text-purple-700 bg-purple-50 rounded px-2 py-0.5'
                         : u.role === 'admin'
-                          ? 'inline-flex items-center gap-1 text-slate-700 bg-slate-100 rounded px-2 py-0.5'
+                          ? 'inline-flex items-center gap-1 text-black bg-slate-100 rounded px-2 py-0.5'
                           : u.role === 'teacher'
                             ? 'inline-flex items-center gap-1 text-amber-700 bg-amber-50 rounded px-2 py-0.5'
                             : 'inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 rounded px-2 py-0.5'
@@ -493,7 +493,7 @@ export default function SAUsers() {
                 </tr>
               )
             })}
-            {rows.length === 0 && <tr><td className="p-6 text-center text-slate-500" colSpan={5}>No users</td></tr>}
+            {rows.length === 0 && <tr><td className="p-6 text-center text-black" colSpan={5}>No users</td></tr>}
           </tbody>
         </table>
       </div>
@@ -673,11 +673,11 @@ function UserDetailsModal({
                     )}
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-slate-900">
+                    <h2 className="text-xl font-semibold text-black">
                       {user?.name || '—'}
                     </h2>
 
-                    <div className="mt-2 space-y-2 text-sm text-slate-800">
+                    <div className="mt-2 space-y-2 text-sm text-black">
                       <div className="flex items-center gap-2">
                         <Mail size={16} />
                         {user?.email || '—'}
@@ -725,13 +725,13 @@ function UserDetailsModal({
 
             {(user?.role === 'student' || user?.role === 'orguser') && profile && (
               <div className="rounded-xl border p-4">
-                <h3 className="font-semibold text-slate-900 mb-4">
+                <h3 className="font-semibold text-black mb-4">
                   Student Form Details
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Full Name
                     </div>
 
@@ -741,7 +741,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Mobile
                     </div>
 
@@ -751,7 +751,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Gender
                     </div>
 
@@ -761,7 +761,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Age
                     </div>
 
@@ -771,7 +771,7 @@ function UserDetailsModal({
                   </div>
 
                   <div>
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Birth
                     </div>
 
@@ -781,7 +781,7 @@ function UserDetailsModal({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <div className="text-slate-500">
+                    <div className="text-black">
                       Address
                     </div>
 
@@ -1009,7 +1009,7 @@ function UserModal({ open, mode, initial, orgOptions, adminsByOrg, submitting = 
                 </Select>
               ) : null}
               {role === 'student' && (
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-black mt-1">
                   Pick the Admin; the Organization will be set automatically from that admin.
                 </p>
               )}
@@ -1231,7 +1231,7 @@ function CSVModal({ open, onClose, onImport }: {
   return (
     <Modal open={open} onClose={onClose} title="Bulk import users (CSV)">
       <div className="space-y-3">
-        <div className="text-sm text-slate-800 space-y-1">
+        <div className="text-sm text-black space-y-1">
           <p className="font-medium">Accepted headers (use any subset):</p>
           <div className="text-xs grid gap-1">
             <div><code>email</code> (required), <code>name</code>, <code>role</code> (<code>superadmin|admin|teacher|student</code>), <code>status</code> (<code>active|disabled</code>), <code>password</code> (admin/teacher only)</div>

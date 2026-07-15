@@ -326,7 +326,7 @@ export default function SA_Assessments() {
   }
 
   if (authStatus !== "ready") {
-    return <div className="p-6 text-sm text-slate-500">Checking permissions…</div>;
+    return <div className="p-6 text-sm text-black">Checking permissions…</div>;
   }
   if (user?.role !== "superadmin") {
     return <div className="p-6 text-sm text-red-600">Forbidden: superadmin only.</div>;
@@ -723,7 +723,7 @@ export default function SA_Assessments() {
                     <td className="px-4 py-2 font-medium" colSpan={6}>
                       <div className="flex items-center justify-between">
                         <span>{bucket.label}</span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-black">
                           {bucket.items.length} {bucket.items.length === 1 ? "assessment" : "assessments"}
                         </span>
                       </div>

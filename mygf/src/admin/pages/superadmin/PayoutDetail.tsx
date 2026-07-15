@@ -12,38 +12,38 @@ export default function PayoutDetail() {
   const { id } = useParams()
   const { data, isLoading } = useQuery({ queryKey: ['payout', id], queryFn: () => getPayout(id as string), enabled: !!id })
   if (isLoading) return <div>Loading…</div>
-  if (!data) return <div className="p-4 text-slate-500">Payout not found</div>
+  if (!data) return <div className="p-4 text-black">Payout not found</div>
   const p = data
   return (
     <div className="space-y-6">
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="rounded-xl border bg-white p-4">
-          <div className="text-xs text-slate-500">Payout ID</div>
+          <div className="text-xs text-black">Payout ID</div>
           <div className="mt-1 text-sm font-mono break-all">{p.id}</div>
         </div>
         <div className="rounded-xl border bg-white p-4">
-          <div className="text-xs text-slate-500">Organisation</div>
+          <div className="text-xs text-black">Organisation</div>
           <div className="mt-1 text-sm">{p.orgId}</div>
         </div>
         <div className="rounded-xl border bg-white p-4">
-          <div className="text-xs text-slate-500">Total Amount</div>
+          <div className="text-xs text-black">Total Amount</div>
           <div className="mt-1 text-xl font-semibold">{formatINR(p.totalAmount)}</div>
         </div>
         <div className="rounded-xl border bg-white p-4">
-          <div className="text-xs text-slate-500">Payments Count</div>
+          <div className="text-xs text-black">Payments Count</div>
           <div className="mt-1 text-xl font-semibold">{p.paymentCount}</div>
         </div>
         <div className="rounded-xl border bg-white p-4">
-          <div className="text-xs text-slate-500">Method</div>
+          <div className="text-xs text-black">Method</div>
           <div className="mt-1 text-sm">{p.method}</div>
         </div>
         <div className="rounded-xl border bg-white p-4">
-          <div className="text-xs text-slate-500">Reference</div>
+          <div className="text-xs text-black">Reference</div>
           <div className="mt-1 text-sm">{p.reference || '-'}</div>
         </div>
         {p.note && (
           <div className="rounded-xl border bg-white p-4 sm:col-span-2">
-            <div className="text-xs text-slate-500">Note</div>
+            <div className="text-xs text-black">Note</div>
             <div className="mt-1 text-sm whitespace-pre-wrap">{p.note}</div>
           </div>
         )}
@@ -71,7 +71,7 @@ export default function PayoutDetail() {
             ))}
             {p.payments.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-slate-500" colSpan={5}>
+                <td className="p-6 text-center text-black" colSpan={5}>
                   No payments included
                 </td>
               </tr>

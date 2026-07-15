@@ -48,7 +48,7 @@ export default function Payouts() {
       </header>
       <div className="overflow-x-auto rounded-xl border bg-white">
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-slate-800">
+          <thead className="bg-slate-50 text-black">
             <tr>
               <th className="text-left font-medium p-3">Payout ID</th>
               <th className="text-left font-medium p-3">Organisation</th>
@@ -65,7 +65,7 @@ export default function Payouts() {
                 <td className="p-3 text-xs font-mono">{p.id}</td>
                 <td className="p-3">
                   <div className="font-medium">{p.orgName}</div>
-                  {p.orgCode && <div className="text-xs text-slate-500">{p.orgCode}</div>}
+                  {p.orgCode && <div className="text-xs text-black">{p.orgCode}</div>}
                 </td>
                 <td className="p-3 text-right">{formatINR(p.totalAmount)}</td>
                 <td className="p-3">{p.method}</td>
@@ -76,7 +76,7 @@ export default function Payouts() {
             ))}
             {data.length === 0 && (
               <tr>
-                <td className="p-6 text-center text-slate-500" colSpan={7}>
+                <td className="p-6 text-center text-black" colSpan={7}>
                   {isLoading ? 'Loading…' : 'No payouts found'}
                 </td>
               </tr>

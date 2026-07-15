@@ -68,8 +68,8 @@ export default function VEStudents() {
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-lg font-semibold text-slate-900">Students</h2>
-        <p className="text-sm text-slate-500 mt-0.5">
+        <h2 className="text-lg font-semibold text-black">Students</h2>
+        <p className="text-sm text-black mt-0.5">
           Students enrolled in courses assigned to you.
         </p>
       </div>
@@ -98,7 +98,7 @@ export default function VEStudents() {
 
       {/* States */}
       {query.isLoading && (
-        <div className="py-16 text-center text-sm text-slate-500">Loading students…</div>
+        <div className="py-16 text-center text-sm text-black">Loading students…</div>
       )}
 
       {query.isError && (
@@ -109,14 +109,14 @@ export default function VEStudents() {
 
       {/* Table */}
       {query.isSuccess && items.length === 0 && (
-        <div className="py-16 text-center text-sm text-slate-400">No students found.</div>
+        <div className="py-16 text-center text-sm text-black">No students found.</div>
       )}
 
       {query.isSuccess && items.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-xl border">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <thead className="bg-slate-50 text-left text-xs font-semibold text-black uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3">Student</th>
                   <th className="px-4 py-3">Course</th>
@@ -133,16 +133,16 @@ export default function VEStudents() {
                   return (
                     <tr key={s.enrollmentId} className="hover:bg-slate-50">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-slate-900">{s.studentName || "-"}</div>
-                        <div className="text-xs text-slate-500">{s.studentEmail || "-"}</div>
+                        <div className="font-medium text-black">{s.studentName || "-"}</div>
+                        <div className="text-xs text-black">{s.studentEmail || "-"}</div>
                       </td>
-                      <td className="px-4 py-3 text-slate-700">{s.courseTitle || s.courseId}</td>
+                      <td className="px-4 py-3 text-black">{s.courseTitle || s.courseId}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${s.enrollmentStatus === "premium"
                             ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                             : s.enrollmentStatus === "revoked"
                               ? "bg-red-50 text-red-700 border border-red-200"
-                              : "bg-slate-100 text-slate-600 border border-slate-200"
+                              : "bg-slate-100 text-black border border-slate-200"
                           }`}>
                           {s.enrollmentStatus}
                         </span>
@@ -153,17 +153,17 @@ export default function VEStudents() {
                             ✓ Completed
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-xs text-black">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">
+                      <td className="px-4 py-3 text-black text-xs">
                         {s.enrolledAt ? new Date(s.enrolledAt).toLocaleDateString() : "—"}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setViewStudentId(s.studentId)}
-                            className="rounded p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            className="rounded p-1 text-black hover:text-indigo-600 hover:bg-indigo-50"
                             title="View student details"
                           >
                             <Eye size={14} />
@@ -179,12 +179,12 @@ export default function VEStudents() {
                                 View Certificate
                               </a>
                             ) : (
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-black">
                                 Certificate pending
                               </span>
                             )
                           ) : (
-                            <span className="text-xs text-slate-400">
+                            <span className="text-xs text-black">
                               Not completed
                             </span>
                           )}
@@ -199,7 +199,7 @@ export default function VEStudents() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between text-sm text-slate-800">
+            <div className="flex items-center justify-between text-sm text-black">
               <span>{total} student{total !== 1 ? "s" : ""}</span>
               <div className="flex items-center gap-2">
                 <button
@@ -209,7 +209,7 @@ export default function VEStudents() {
                 >
                   Previous
                 </button>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-black">
                   {page} / {totalPages}
                 </span>
                 <button
@@ -303,10 +303,10 @@ function StudentDetailsModal({
             <div className="rounded-xl border p-4">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h2 className="text-xl font-semibold text-slate-900">
+                  <h2 className="text-xl font-semibold text-black">
                     {user?.name || "—"}
                   </h2>
-                  <div className="mt-2 space-y-2 text-sm text-slate-800">
+                  <div className="mt-2 space-y-2 text-sm text-black">
                     <div className="flex items-center gap-2">
                       <Mail size={16} />
                       {user?.email || "—"}
@@ -350,32 +350,32 @@ function StudentDetailsModal({
 
             {(user?.role === "student" || user?.role === "orguser") && profile && (
               <div className="rounded-xl border p-4">
-                <h3 className="font-semibold text-slate-900 mb-4">
+                <h3 className="font-semibold text-black mb-4">
                   Student Form Details
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-slate-500">Full Name</div>
+                    <div className="text-black">Full Name</div>
                     <div className="font-medium">{profile?.fullName || "—"}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Mobile</div>
+                    <div className="text-black">Mobile</div>
                     <div className="font-medium">{profile?.mobile || "—"}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Gender</div>
+                    <div className="text-black">Gender</div>
                     <div className="font-medium">{profile?.gender || "—"}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Age</div>
+                    <div className="text-black">Age</div>
                     <div className="font-medium">{profile?.age || "—"}</div>
                   </div>
                   <div>
-                    <div className="text-slate-500">Birth</div>
+                    <div className="text-black">Birth</div>
                     <div className="font-medium">{profile?.birth || "—"}</div>
                   </div>
                   <div className="sm:col-span-2">
-                    <div className="text-slate-500">Address</div>
+                    <div className="text-black">Address</div>
                     <div className="font-medium">{profile?.address || "—"}</div>
                   </div>
                 </div>
