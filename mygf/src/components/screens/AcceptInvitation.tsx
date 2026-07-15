@@ -247,7 +247,7 @@ const AcceptInvitation: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-black mb-1">
                 Full Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -266,7 +266,7 @@ const AcceptInvitation: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-black mb-1">
                 Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">
@@ -308,7 +308,7 @@ const AcceptInvitation: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-black mb-1">
                 Confirm Password <span className="text-red-500">*</span>
               </label>
               <div className="relative">

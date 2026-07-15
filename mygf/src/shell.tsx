@@ -37,7 +37,7 @@ export default function Shell({ children, allowedRoles, requireMfaIf }: Props) {
   // Wait until auth check finishes
   if (status !== "ready") {
     return (
-      <div className="min-h-screen grid place-items-center text-gray-500">
+      <div className="min-h-screen grid place-items-center text-black">
         Loading...
       </div>
     );

@@ -48,7 +48,7 @@ export default function StudentSidebar() {
             {/* TOP */}
             <div className="flex items-center justify-between px-3 py-3">
                 {!collapsed && (
-                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-semibold text-black dark:text-black">
                         Student
                     </span>
                 )}
@@ -80,8 +80,8 @@ export default function StudentSidebar() {
                                 } gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200
               
               ${isActive
-                                    ? "bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white"
-                                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                                    ? "bg-gray-100 dark:bg-slate-800 text-black dark:text-white"
+                                    : "text-black dark:text-black hover:bg-gray-100 dark:hover:bg-slate-800"
                                 }
               `}
                         >
@@ -105,7 +105,7 @@ export default function StudentSidebar() {
             {/* BOTTOM */}
             {/* <div className="px-3 py-3">
                 {!collapsed && (
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                    <div className="text-xs text-black dark:text-black">
                         Student Panel
                     </div>
                 )}

@@ -667,7 +667,7 @@ function UserDetailsModal({
     </div>
   </button>
 ) : (
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 text-xl font-semibold">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-black text-xl font-semibold">
                         {(user?.name || user?.email || '?')[0].toUpperCase()}
                       </div>
                     )}

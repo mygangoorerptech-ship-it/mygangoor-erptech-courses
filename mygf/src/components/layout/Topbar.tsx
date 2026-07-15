@@ -38,8 +38,8 @@ export default function Topbar({
             <Menu className="w-5 h-5" />
           </button>
           <div className="hidden sm:flex items-center gap-2">
-            <span className="text-sm text-gray-500 capitalize">{role}</span>
-            <span className="text-sm text-gray-300">•</span>
+            <span className="text-sm text-black capitalize">{role}</span>
+            <span className="text-sm text-black">•</span>
             <span className="text-sm font-semibold">Dashboard</span>
           </div>
         </div>
@@ -47,7 +47,7 @@ export default function Topbar({
         {/* Right */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:flex items-center gap-2 pr-2">
-            <span className="text-sm text-gray-800 truncate max-w-[12rem]">{name}</span>
+            <span className="text-sm text-black truncate max-w-[12rem]">{name}</span>
           </div>
           <RoleAvatar role={role} size={28} />
           <button

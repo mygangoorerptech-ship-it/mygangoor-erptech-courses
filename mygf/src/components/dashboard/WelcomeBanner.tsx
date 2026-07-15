@@ -19,10 +19,10 @@ return (
       
       {/* LEFT CONTENT */}
       <div>
-        <h2 className="text-xl font-semibold text-gray-900 mb-1">
+        <h2 className="text-xl font-semibold text-black mb-1">
           Welcome back, {displayName} 👋
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-black">
           {subtitle}
         </p>
 
@@ -32,7 +32,7 @@ return (
             Browse Courses
           </button>
 
-          <button className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition">
+          <button className="border border-gray-300 text-black text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition">
             View My Progress
           </button>
         </div>
@@ -40,7 +40,7 @@ return (
 
       {/* RIGHT ICON (SUBTLE) */}
       <div className="hidden md:flex items-center justify-center w-16 h-16 rounded-lg bg-gray-100">
-        <i className="fas fa-graduation-cap text-gray-500 text-xl" />
+        <i className="fas fa-graduation-cap text-black text-xl" />
       </div>
     </div>
   </div>

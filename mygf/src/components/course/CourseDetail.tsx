@@ -427,7 +427,7 @@ export default function CourseDetail() {
       <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-7xl mx-auto">
           {courseId && (
-            <p className="mb-2 text-xs text-gray-500">
+            <p className="mb-2 text-xs text-black">
               Course ID: <span className="font-mono">{courseId}</span>
             </p>
           )}
@@ -443,7 +443,7 @@ export default function CourseDetail() {
 
           {/* levels */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Course Levels</h2>
+            <h2 className="text-2xl font-bold text-black mb-6">Course Levels</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
               {effectiveLevels.map((level, index) => {
                 const stat = statusesArr[index] || "not-started";
@@ -465,7 +465,7 @@ export default function CourseDetail() {
           </div>
 
           <div className="bg-white rounded-xl p-8 shadow-lg mb-8">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">
+            <h3 className="text-xl font-bold text-black mb-4">
               Current: {effectiveLevels[currentLevel]?.title ?? courseData.title}
             </h3>
             <div className="flex flex-wrap gap-4">

@@ -54,7 +54,7 @@ export default function Sidebar({
           <div className="flex items-center gap-3 px-4 py-4 border-b">
             <RoleAvatar role={role} size={36} />
             <div className="leading-tight">
-              <div className="text-[11px] text-gray-500 capitalize">{role}</div>
+              <div className="text-[11px] text-black capitalize">{role}</div>
               <div className="text-sm font-semibold truncate max-w-[10rem]">{name}</div>
             </div>
           </div>
@@ -64,7 +64,7 @@ export default function Sidebar({
             {groups.map((g, i) => (
               <div key={i} className="mb-4">
                 {g.heading && (
-                  <div className="px-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  <div className="px-2 text-[10px] font-semibold text-black uppercase tracking-wider mb-2">
                     {g.heading}
                   </div>
                 )}
@@ -81,7 +81,7 @@ export default function Sidebar({
                               "group flex items-center gap-3 px-3 py-2 rounded-xl transition",
                               isActive
                                 ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-100"
-                                : "text-gray-700 hover:bg-gray-50",
+                                : "text-black hover:bg-gray-50",
                             ].join(" ")
                           }
                           onClick={!isLg ? onClose : undefined}
@@ -97,7 +97,7 @@ export default function Sidebar({
             ))}
           </nav>
 
-          <div className="px-4 py-3 border-t text-xs text-gray-500">© {new Date().getFullYear()}</div>
+          <div className="px-4 py-3 border-t text-xs text-black">© {new Date().getFullYear()}</div>
         </div>
       </motion.aside>
 

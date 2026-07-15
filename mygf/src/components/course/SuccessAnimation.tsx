@@ -7,8 +7,8 @@ export default function SuccessAnimation({ isVisible }: { isVisible: boolean }) 
         <div className="success-pulse mb-4">
           <i className="fas fa-check-circle text-6xl text-green-500" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Level Completed!</h2>
-        <p className="text-gray-800">Great job! Moving to the next level…</p>
+        <h2 className="text-2xl font-bold text-black mb-2">Level Completed!</h2>
+        <p className="text-black">Great job! Moving to the next level…</p>
       </div>
     </div>
   );

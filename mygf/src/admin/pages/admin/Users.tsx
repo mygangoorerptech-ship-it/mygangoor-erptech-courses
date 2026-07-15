@@ -105,10 +105,10 @@ export default function ADUsers() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td className="p-6 text-center text-gray-500" colSpan={5}>Loading…</td></tr>
+              <tr><td className="p-6 text-center text-black" colSpan={5}>Loading…</td></tr>
             )}
             {!loading && rows.length === 0 && (
-              <tr><td className="p-6 text-center text-gray-500" colSpan={5}>No users</td></tr>
+              <tr><td className="p-6 text-center text-black" colSpan={5}>No users</td></tr>
             )}
             {rows.map(u => (
               <tr key={u.id} className="border-b hover:bg-gray-50/60">
@@ -343,7 +343,7 @@ function EditUserModal({
             <option value="student">Student</option>
             <option value="teacher">Teacher</option>
           </Select>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-black mt-1">
             {sendMethod === 'credentials'
               ? `Students will receive login credentials by email, and must complete MFA (${mfaRequired ? (mfaMethod?.toUpperCase() || 'OTP') : 'optional'}). No Sign Up needed.`
               : `Invitation link will be sent to the user. They will set their own password and create their account.`}
@@ -364,7 +364,7 @@ function EditUserModal({
               <option value="credentials">Send Credentials (Auto-create account)</option>
               <option value="invitation">Send Invitation Link (User sets password)</option>
             </Select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-black mt-1">
               {sendMethod === 'credentials'
                 ? 'User account will be created immediately with auto-generated password sent via email.'
                 : 'User will receive an invitation link to set their own password. Link expires in 24 hours.'}
@@ -421,7 +421,7 @@ function EditUserModal({
                 >
                   {saving ? 'Generating...' : 'Generate Link'}
                 </Button>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-black mt-1">
                   Click to generate invitation link. You can copy it and send manually, or click Create to also send via email.
                 </p>
               </div>
@@ -462,7 +462,7 @@ function EditUserModal({
         <div className="flex items-center gap-2">
           <input id="mfa" type="checkbox" className="scale-110" checked={mfaRequired} onChange={e => setMfaRequired(e.target.checked)} />
           {/* Label component doesn't accept htmlFor: use native label for this inline control */}
-          <label htmlFor="mfa" className="text-sm font-medium text-gray-700">Require MFA</label>
+          <label htmlFor="mfa" className="text-sm font-medium text-black">Require MFA</label>
           {mfaRequired && (
             <Select className="ml-2" value={mfaMethod || 'otp'} onChange={e => setMfaMethod(e.target.value as any)}>
               <option value="otp">Email OTP</option>
@@ -813,7 +813,7 @@ function UserDetailsModal({
     </div>
   </button>
 ) : (
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 text-xl font-semibold">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-black text-xl font-semibold">
                         {(user?.name || user?.email || '?')[0].toUpperCase()}
                       </div>
                     )}
@@ -1096,7 +1096,7 @@ teacher2@acme.com,teacher,Teacher Two,active,admin2@acme.com,,true,otp`
   return (
     <Modal open title="Import CSV" onClose={onClose}>
       <div className="space-y-3">
-        <div className="text-sm text-gray-800 space-y-1">
+        <div className="text-sm text-black space-y-1">
           <p className="font-medium">Accepted headers (org is auto-assigned to your org):</p>
           <div className="text-xs grid gap-1">
             <div><code>email</code> (required), <code>role</code> (<code>student|teacher</code>), <code>name</code>, <code>status</code> (<code>active|disabled</code>), <code>password</code> (teacher only)</div>

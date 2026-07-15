@@ -74,22 +74,22 @@ export default function CentersStats() {
                 <Icon
                   size={20}
                   strokeWidth={1.9}
-                  className="text-gray-700 transition group-hover:text-white"
+                  className="text-black transition group-hover:text-white"
                 />
               </div>
 
-              <span className="text-[11px] font-medium text-gray-400">
+              <span className="text-[11px] font-medium text-black">
                 LIVE
               </span>
             </div>
 
             {/* VALUE */}
             <div className="mt-6">
-              <p className="text-3xl font-semibold tracking-tight text-gray-900">
+              <p className="text-3xl font-semibold tracking-tight text-black">
                 {s.value}
               </p>
 
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-black">
                 {s.label}
               </p>
             </div>

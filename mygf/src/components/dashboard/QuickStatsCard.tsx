@@ -75,15 +75,15 @@ export default function QuickStatsCard({ stats }: Props) {
 
   return (
     <Card>
-      <h4 className="text-sm font-semibold text-gray-900 mb-4">Overview</h4>
+      <h4 className="text-sm font-semibold text-black mb-4">Overview</h4>
       <div className="space-y-3">
         {merged.map((s) => (
           <div key={s.id} className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
 <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
-  <i className={`${s.iconClass} text-gray-500 text-sm`} />
+  <i className={`${s.iconClass} text-black text-sm`} />
 </div>
-              <span className="text-sm text-gray-500">{s.label}</span>
+              <span className="text-sm text-black">{s.label}</span>
             </div>
             <span className={`font-bold text-2xl ${s.valueColor}`}>{s.value}</span>
           </div>

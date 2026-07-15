@@ -119,7 +119,7 @@ export default function LearningStreakCard({
 return (
   <Card>
     {/* HEADER */}
-    <h4 className="text-sm font-semibold text-gray-900 mb-4">
+    <h4 className="text-sm font-semibold text-black mb-4">
       {label}
     </h4>
 
@@ -134,15 +134,15 @@ return (
               😊
             </span>
           ) : (
-            <i className="fas fa-fire text-gray-500 text-sm" />
+            <i className="fas fa-fire text-black text-sm" />
           )}
         </div>
 
         <div>
-          <p className="text-lg font-semibold text-gray-900">
+          <p className="text-lg font-semibold text-black">
             {display}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-black">
             Days in a row
           </p>
         </div>
@@ -150,7 +150,7 @@ return (
 
       {/* RIGHT (OPTIONAL MESSAGE) */}
       <div className="hidden sm:block text-right">
-        <p className="text-xs text-gray-500 max-w-[140px]">
+        <p className="text-xs text-black max-w-[140px]">
           {message}
         </p>
       </div>

@@ -387,7 +387,7 @@ export default function SA_Assessments() {
       <div className="bg-white rounded-xl border p-4 space-y-4">
         <div className="grid md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Title</label>
+            <label className="text-sm text-black">Title</label>
             <input
               className="w-full border rounded-lg px-3 py-2"
               value={draft.title}
@@ -396,8 +396,8 @@ export default function SA_Assessments() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Assessment Group</label>
-            <div className="flex gap-4 text-sm text-gray-700">
+            <label className="text-sm text-black">Assessment Group</label>
+            <div className="flex gap-4 text-sm text-black">
               <label className="flex items-center gap-2">
                 <input type="radio" name="groupMode" checked={groupMode === "existing"} onChange={() => setGroupMode("existing")} />
                 Use existing
@@ -472,7 +472,7 @@ export default function SA_Assessments() {
                   </button>
                 </div>
                 <div className="mt-2 grid grid-cols-1 gap-2">
-                  <label className="text-sm text-gray-800">Position in group (optional)</label>
+                  <label className="text-sm text-black">Position in group (optional)</label>
                   <input
                     type="number"
                     min={1}
@@ -490,19 +490,19 @@ export default function SA_Assessments() {
               <div className="mt-3 border rounded-lg p-2">
                 <div className="text-sm font-medium mb-1">Current sequence</div>
                 {groupPreviewLoading ? (
-                  <div className="text-xs text-gray-500 p-2">Loading…</div>
+                  <div className="text-xs text-black p-2">Loading…</div>
                 ) : groupPreview.length === 0 ? (
-                  <div className="text-xs text-gray-500 p-2">No assessments in this group yet.</div>
+                  <div className="text-xs text-black p-2">No assessments in this group yet.</div>
                 ) : (
                   <ol className="list-decimal ml-5 text-sm space-y-1">
                     {groupPreview.map((it, idx) => (
                       <li key={it._id}>
-                        {it.title} <span className="text-xs text-gray-400">({(it.groupOrder ?? idx + 1)})</span>
+                        {it.title} <span className="text-xs text-black">({(it.groupOrder ?? idx + 1)})</span>
                       </li>
                     ))}
                   </ol>
                 )}
-                <div className="text-[11px] text-gray-400 mt-1">
+                <div className="text-[11px] text-black mt-1">
                   Order uses <code>groupOrder</code> first, then creation time.
                 </div>
               </div>
@@ -510,7 +510,7 @@ export default function SA_Assessments() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Status</label>
+            <label className="text-sm text-black">Status</label>
             <select
               className="w-full border rounded-lg px-3 py-2"
               value={draft.status}
@@ -522,7 +522,7 @@ export default function SA_Assessments() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Scope</label>
+            <label className="text-sm text-black">Scope</label>
             <select
               className="w-full border rounded-lg px-3 py-2"
               value={draft.scope}
@@ -544,7 +544,7 @@ export default function SA_Assessments() {
           </div>
           {draft.scope === "org" && (
             <div className="space-y-2">
-              <label className="text-sm text-gray-800">Organization</label>
+              <label className="text-sm text-black">Organization</label>
               <select
                 className="w-full border rounded-lg px-3 py-2"
                 value={draft.orgId || ""}
@@ -561,7 +561,7 @@ export default function SA_Assessments() {
           )}
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Opens At</label>
+            <label className="text-sm text-black">Opens At</label>
             <input
               type="datetime-local"
               className="w-full border rounded-lg px-3 py-2"
@@ -570,7 +570,7 @@ export default function SA_Assessments() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Closes At</label>
+            <label className="text-sm text-black">Closes At</label>
             <input
               type="datetime-local"
               className="w-full border rounded-lg px-3 py-2"
@@ -579,7 +579,7 @@ export default function SA_Assessments() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Time Limit (seconds)</label>
+            <label className="text-sm text-black">Time Limit (seconds)</label>
             <input
               type="number"
               min={30}
@@ -589,7 +589,7 @@ export default function SA_Assessments() {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-gray-800">Max Attempts</label>
+            <label className="text-sm text-black">Max Attempts</label>
             <input
               type="number"
               min={1}
@@ -600,7 +600,7 @@ export default function SA_Assessments() {
           </div>
 
           <div className="space-y-2 md:col-span-3">
-            <label className="text-sm text-gray-800">Description</label>
+            <label className="text-sm text-black">Description</label>
             <textarea
               className="w-full border rounded-lg px-3 py-2"
               rows={2}
@@ -620,7 +620,7 @@ export default function SA_Assessments() {
           <button className="px-3 py-2 rounded-lg bg-slate-900 text-white" onClick={() => addQuestion("puzzle")}>
             + Puzzle
           </button>
-          <span className="text-sm text-gray-500 ml-2">Max 20 questions</span>
+          <span className="text-sm text-black ml-2">Max 20 questions</span>
         </div>
 
         <div className="space-y-4">
@@ -640,7 +640,7 @@ export default function SA_Assessments() {
             />
           ))}
           {draft.questions.length === 0 && (
-            <div className="text-sm text-gray-500">No questions added yet.</div>
+            <div className="text-sm text-black">No questions added yet.</div>
           )}
         </div>
 
@@ -794,7 +794,7 @@ function QuestionRow({
         {q.type === "mcq" && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-800">Options</div>
+              <div className="text-sm text-black">Options</div>
               <button
                 className="text-sm"
                 onClick={() => onChange({ ...q, options: [...(q.options || []), "Option"] })}

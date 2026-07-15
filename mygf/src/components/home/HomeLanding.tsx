@@ -274,7 +274,7 @@ useEffect(() => {
         <a
           href="/home"
           onClick={(e) => { e.preventDefault(); navigate("/home"); }}
-          className="nav-link text-gray-700 hover:text-pink-500 flex items-center gap-2"
+          className="nav-link text-black hover:text-pink-500 flex items-center gap-2"
         >
           <i className="fa-solid fa-house-chimney" /><span>Home</span>
         </a>
@@ -282,7 +282,7 @@ useEffect(() => {
         <a
           href="/about"
           onClick={(e) => { e.preventDefault(); navigate("/about"); }}
-          className="nav-link text-gray-700 hover:text-pink-500 flex items-center gap-2"
+          className="nav-link text-black hover:text-pink-500 flex items-center gap-2"
         >
           <i className="fa-solid fa-circle-info" /><span>About</span>
         </a>
@@ -290,7 +290,7 @@ useEffect(() => {
               <div className="flex items-center space-x-4">
                 <button
                   onClick={goLoginOrDashboard}
-                  className="text-gray-700 hover:text-pink-500 transition-colors flex items-center gap-2"
+                  className="text-black hover:text-pink-500 transition-colors flex items-center gap-2"
                 >
                   <i className="fa-solid fa-right-to-bracket" />
                   {isAuthed ? "Dashboard" : "Login"}
@@ -357,25 +357,25 @@ useEffect(() => {
               <div className="text-center md:text-left">
                 <div className="inline-flex items-center bg-gradient-to-r from-pink-100 to-blue-100 border border-pink-200 rounded-full px-5 py-2.5 mb-6 shadow-sm fade-in">
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-3 animate-pulse" />
-                  <span className="text-sm font-medium text-gray-700">🎉 Join 50,000+ successful learners</span>
+                  <span className="text-sm font-medium text-black">🎉 Join 50,000+ successful learners</span>
                 </div>
 
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight fade-in-delay-1">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-black leading-tight fade-in-delay-1">
                   Master New Skills. Level Up Your{" "}
                   <span id="typewriter" className="bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent" />
                 </h1>
 
-                <p className="text-lg md:text-xl text-gray-800 mt-5 mb-8 leading-relaxed fade-in-delay-2">
+                <p className="text-lg md:text-xl text-black mt-5 mb-8 leading-relaxed fade-in-delay-2">
                   Expert-led courses, hands-on projects, and certificates that employers value.
                 </p>
 
                 {/* search */}
                 <div className="relative z-30 max-w-xl md:max-w-2xl fade-in-delay-3 mx-auto md:mx-0">
                   <div className="flex items-center bg-white rounded-2xl shadow-xl border border-gray-100 p-2.5">
-                    <i className="fas fa-search text-gray-400 ml-3 mr-2" />
+                    <i className="fas fa-search text-black ml-3 mr-2" />
                     <input
                       id="heroSearch" type="text" placeholder="What do you want to learn today?"
-                      className="flex-1 py-3 bg-transparent focus:outline-none text-gray-700 placeholder-gray-400 text-base md:text-lg"
+                      className="flex-1 py-3 bg-transparent focus:outline-none text-black placeholder-gray-400 text-base md:text-lg"
                     />
                     <button
                       className="bg-gradient-to-r from-pink-500 to-blue-500 text-white px-5 py-3 rounded-xl font-semibold hover:shadow-lg transition-all ml-2"
@@ -388,7 +388,7 @@ useEffect(() => {
                     className="absolute top-full left-0 right-0 bg-white rounded-2xl shadow-xl mt-2 p-5 opacity-0 invisible transition-all duration-300"
                     id="searchSuggestions"
                   >
-                    <div className="text-sm text-gray-500 mb-3">Popular searches:</div>
+                    <div className="text-sm text-black mb-3">Popular searches:</div>
                     <div className="flex flex-wrap gap-3">
                       <span className="bg-pink-100 text-pink-700 px-4 py-2 rounded-full text-sm cursor-pointer hover:bg-pink-200 transition-colors">Web Development</span>
                       <span className="bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm cursor-pointer hover:bg-blue-200 transition-colors">Data Science</span>
@@ -411,7 +411,7 @@ useEffect(() => {
                   </button>
                   <button
                     onClick={watchDemo}
-                    className="group border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-2xl text-lg font-semibold hover:border-pink-300 hover:text-pink-600 transition-all flex items-center justify-center"
+                    className="group border-2 border-gray-300 text-black px-8 py-4 rounded-2xl text-lg font-semibold hover:border-pink-300 hover:text-pink-600 transition-all flex items-center justify-center"
                   >
                     <i className="fas fa-video mr-3 group-hover:scale-110 transition-transform" /> Watch Demo
                   </button>
@@ -420,16 +420,16 @@ useEffect(() => {
                 {/* stats */}
                 <div className="grid grid-cols-3 gap-4 sm:gap-6 max-w-xl mt-10 fade-in-delay-3 mx-auto md:mx-0">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900">50K+</div>
-                    <div className="text-gray-800 text-sm">Active Students</div>
+                    <div className="text-3xl font-bold text-black">50K+</div>
+                    <div className="text-black text-sm">Active Students</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900">200+</div>
-                    <div className="text-gray-800 text-sm">Expert Courses</div>
+                    <div className="text-3xl font-bold text-black">200+</div>
+                    <div className="text-black text-sm">Expert Courses</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-gray-900">4.9★</div>
-                    <div className="text-gray-800 text-sm">Avg. Rating</div>
+                    <div className="text-3xl font-bold text-black">4.9★</div>
+                    <div className="text-black text-sm">Avg. Rating</div>
                   </div>
                 </div>
               </div>
@@ -484,20 +484,20 @@ useEffect(() => {
 
                       <div className="relative rounded-2xl bg-white ring-1 ring-gray-200 p-4 flex flex-col justify-between">
                         <div className="flex items-center justify-between">
-                          <div className="font-semibold text-gray-800">ECA Certificate</div>
+                          <div className="font-semibold text-black">ECA Certificate</div>
                           <span className="inline-flex items-center gap-1 text-xs font-semibold text-white bg-gradient-to-r from-pink-500 to-blue-500 px-2.5 py-1 rounded-full shadow">
                             <i className="fa-solid fa-award" /> Verified
                           </span>
                         </div>
-                        <div className="mt-3 text-sm text-gray-800">
-                          Awarded to <span className="font-semibold text-gray-900">Your Name</span> for completing:
-                          <div className="mt-1 font-medium text-gray-900">React Bootcamp</div>
+                        <div className="mt-3 text-sm text-black">
+                          Awarded to <span className="font-semibold text-black">Your Name</span> for completing:
+                          <div className="mt-1 font-medium text-black">React Bootcamp</div>
                         </div>
                         <div className="mt-4 flex items-center justify-between">
-                          <div className="text-xs text-gray-500">ID: ECA-2024-RB-1024</div>
+                          <div className="text-xs text-black">ID: ECA-2024-RB-1024</div>
                           <div className="flex items-center gap-2 text-xs">
                             <i className="fa-solid fa-shield-halved text-green-600" />
-                            <span className="text-gray-800">Blockchain logged</span>
+                            <span className="text-black">Blockchain logged</span>
                           </div>
                         </div>
                         <div className="absolute -bottom-6 -right-6 w-24 h-24 rounded-full bg-gradient-to-r from-pink-200 to-blue-200 blur-2xl opacity-60 pointer-events-none" />
@@ -521,8 +521,8 @@ useEffect(() => {
         <section id="about" className="py-16 bg-white/50">
           <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-16 fade-in">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">Why Choose ECA Academy?</h2>
-              <p className="text-xl text-gray-800 max-w-3xl mx-auto">
+              <h2 className="text-4xl font-bold text-black mb-4">Why Choose ECA Academy?</h2>
+              <p className="text-xl text-black max-w-3xl mx-auto">
                 We're committed to providing world-class education that transforms careers and lives
               </p>
             </div>
@@ -531,22 +531,22 @@ useEffect(() => {
                 <div className="bg-gradient-to-r from-pink-500 to-blue-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-chalkboard-teacher text-white text-2xl" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4">Expert Instructors</h3>
-                <p className="text-gray-800">Learn from industry professionals with years of real-world experience</p>
+                <h3 className="text-2xl font-semibold text-black mb-4">Expert Instructors</h3>
+                <p className="text-black">Learn from industry professionals with years of real-world experience</p>
               </div>
               <div className="text-center fade-in-delay-2 card-hover bg-white rounded-2xl p-8 shadow-lg">
                 <div className="bg-gradient-to-r from-blue-500 to-purple-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-clock text-white text-2xl" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4">Flexible Learning</h3>
-                <p className="text-gray-800">Study at your own pace with 24/7 access to course materials</p>
+                <h3 className="text-2xl font-semibold text-black mb-4">Flexible Learning</h3>
+                <p className="text-black">Study at your own pace with 24/7 access to course materials</p>
               </div>
               <div className="text-center fade-in-delay-3 card-hover bg-white rounded-2xl p-8 shadow-lg">
                 <div className="bg-gradient-to-r from-purple-500 to-pink-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
                   <i className="fas fa-certificate text-white text-2xl" />
                 </div>
-                <h3 className="text-2xl font-semibold text-gray-800 mb-4">Certified Programs</h3>
-                <p className="text-gray-800">Earn recognized certificates to boost your career prospects</p>
+                <h3 className="text-2xl font-semibold text-black mb-4">Certified Programs</h3>
+                <p className="text-black">Earn recognized certificates to boost your career prospects</p>
               </div>
 
               {/* Learn more CTA → dedicated About screen (your About.tsx) */}
@@ -568,8 +568,8 @@ useEffect(() => {
         <section id="courses" className="py-16">
           <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-16 fade-in">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">Featured Courses</h2>
-              <p className="text-xl text-gray-800">Discover our most popular and highly-rated courses</p>
+              <h2 className="text-4xl font-bold text-black mb-4">Featured Courses</h2>
+              <p className="text-xl text-black">Discover our most popular and highly-rated courses</p>
             </div>
 
 <div className="flex flex-wrap justify-center gap-4 mb-12">
@@ -578,7 +578,7 @@ useEffect(() => {
       "course-filter px-6 py-3 rounded-full font-semibold",
       courseFilter === "all"
         ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
-        : "bg-white text-gray-700 hover:bg-pink-50 transition-all"
+        : "bg-white text-black hover:bg-pink-50 transition-all"
     )}
     data-category="all"
     onClick={() => setCourseFilter("all")}
@@ -591,7 +591,7 @@ useEffect(() => {
       "course-filter px-6 py-3 rounded-full font-semibold",
       courseFilter === "paid"
         ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
-        : "bg-white text-gray-700 hover:bg-pink-50 transition-all"
+        : "bg-white text-black hover:bg-pink-50 transition-all"
     )}
     data-category="paid"
     onClick={() => setCourseFilter("paid")}
@@ -604,7 +604,7 @@ useEffect(() => {
       "course-filter px-6 py-3 rounded-full font-semibold",
       courseFilter === "free"
         ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white"
-        : "bg-white text-gray-700 hover:bg-pink-50 transition-all"
+        : "bg-white text-black hover:bg-pink-50 transition-all"
     )}
     data-category="free"
     onClick={() => setCourseFilter("free")}
@@ -618,13 +618,13 @@ useEffect(() => {
 
 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
   {featLoading && (
-    <div className="col-span-full text-center text-gray-500 py-8">
+    <div className="col-span-full text-center text-black py-8">
       Loading courses…
     </div>
   )}
 
   {!featLoading && featured && cards.length === 0 && (
-    <div className="col-span-full text-center text-gray-800 py-8 text-lg font-semibold">
+    <div className="col-span-full text-center text-black py-8 text-lg font-semibold">
       {courseFilter === "all"
         ? "Courses Not Available"
         : courseFilter === "paid"
@@ -660,11 +660,11 @@ useEffect(() => {
       </div>
 
       <div className="p-6 bg-white">
-        <h3 className="text-xl font-bold text-gray-800 mb-2 line-clamp-2">
+        <h3 className="text-xl font-bold text-black mb-2 line-clamp-2">
           {c.title}
         </h3>
 
-        <div className="flex items-center justify-between mb-4 text-sm text-gray-800">
+        <div className="flex items-center justify-between mb-4 text-sm text-black">
           <span>{c.durationText || "Self-paced"}</span>
           <span className="flex items-center gap-1">
             <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" className="w-4 h-4">
@@ -675,7 +675,7 @@ useEffect(() => {
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="text-2xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-black">
             {c.courseType === "free" ? "Free" : formatINR((c.price ?? 0) / 100)}
           </div>
 
@@ -725,7 +725,7 @@ useEffect(() => {
               <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
                 <input
                   id="newsletterEmail" type="email" placeholder="Enter your email"
-                  className="flex-1 px-6 py-4 rounded-full text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30"
+                  className="flex-1 px-6 py-4 rounded-full text-black placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30"
                 />
                 <button
                   onClick={() => alert("Thank you for subscribing! You'll receive updates about new courses and offers.")}
@@ -743,8 +743,8 @@ useEffect(() => {
         <section id="contact" className="py-16 bg-white/50">
           <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-16 fade-in">
-              <h2 className="text-4xl font-bold text-gray-800 mb-4">Recommended for You</h2>
-              <p className="text-xl text-gray-800">Based on your interests and learning goals</p>
+              <h2 className="text-4xl font-bold text-black mb-4">Recommended for You</h2>
+              <p className="text-xl text-black">Based on your interests and learning goals</p>
             </div>
             <div className="grid md:grid-cols-4 gap-6">
               {[
@@ -757,8 +757,8 @@ useEffect(() => {
                   <div className="bg-gradient-to-r from-pink-500 to-blue-500 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i className={`fas ${c.icon} text-white`} />
                   </div>
-                  <h3 className="font-semibold text-gray-800 mb-2">{c.title}</h3>
-                  <p className="text-gray-800 text-sm mb-4">{c.desc}</p>
+                  <h3 className="font-semibold text-black mb-2">{c.title}</h3>
+                  <p className="text-black text-sm mb-4">{c.desc}</p>
                   <button className="text-pink-500 font-semibold hover:text-pink-600 transition-colors">
                     Learn More →
                   </button>
@@ -776,19 +776,19 @@ useEffect(() => {
                 <div className="text-2xl font-bold bg-gradient-to-r from-pink-400 to-blue-400 bg-clip-text text-transparent mb-4">
                   ECA Academy
                 </div>
-                <p className="text-gray-400 mb-6">
+                <p className="text-black mb-6">
                   Empowering learners worldwide with quality education and practical skills for the digital age.
                 </p>
                 <div className="flex space-x-4">
-                  <a href="#" className="text-gray-400 hover:text-pink-400 transition-colors"><i className="fab fa-facebook-f" /></a>
-                  <a href="#" className="text-gray-400 hover:text-pink-400 transition-colors"><i className="fab fa-twitter" /></a>
-                  <a href="#" className="text-gray-400 hover:text-pink-400 transition-colors"><i className="fab fa-linkedin-in" /></a>
-                  <a href="#" className="text-gray-400 hover:text-pink-400 transition-colors"><i className="fab fa-instagram" /></a>
+                  <a href="#" className="text-black hover:text-pink-400 transition-colors"><i className="fab fa-facebook-f" /></a>
+                  <a href="#" className="text-black hover:text-pink-400 transition-colors"><i className="fab fa-twitter" /></a>
+                  <a href="#" className="text-black hover:text-pink-400 transition-colors"><i className="fab fa-linkedin-in" /></a>
+                  <a href="#" className="text-black hover:text-pink-400 transition-colors"><i className="fab fa-instagram" /></a>
                 </div>
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-4">Courses</h3>
-                <ul className="space-y-2 text-gray-400">
+                <ul className="space-y-2 text-black">
                   <li><a href="#" className="hover:text-white transition-colors">Web Development</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">Data Science</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">UI/UX Design</a></li>
@@ -797,7 +797,7 @@ useEffect(() => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-4">Support</h3>
-                <ul className="space-y-2 text-gray-400">
+                <ul className="space-y-2 text-black">
                   <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
@@ -806,7 +806,7 @@ useEffect(() => {
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-4">Company</h3>
-                <ul className="space-y-2 text-gray-400">
+                <ul className="space-y-2 text-black">
                   <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
                   <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
@@ -814,7 +814,7 @@ useEffect(() => {
                 </ul>
               </div>
             </div>
-            <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+            <div className="border-t border-gray-800 mt-12 pt-8 text-center text-black">
               <p>&copy; {new Date().getFullYear()} ECA Academy. All rights reserved.</p>
             </div>
           </div>

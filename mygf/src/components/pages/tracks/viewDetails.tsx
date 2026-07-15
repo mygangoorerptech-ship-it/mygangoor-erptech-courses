@@ -488,7 +488,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
 
                 {/* Overview / Active Chapter */}
                 <div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  <h3 className="text-2xl font-bold text-black mb-2">
                     {hasChapters ? `Chapter ${idx + 1}${current?.title ? `: ${current.title}` : ""}` : "Course Overview"}
                   </h3>
 
@@ -504,7 +504,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                         style={{ maxHeight: isLongDescription ? `${descMax}px` : "none" }}
                         aria-expanded={descExpanded}
                       >
-                        <div ref={descContentRef} className="text-gray-800 leading-relaxed whitespace-pre-line">
+                        <div ref={descContentRef} className="text-black leading-relaxed whitespace-pre-line">
                           {overviewText}
                         </div>
                         {!descExpanded && isLongDescription && (
@@ -530,7 +530,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                       )}
                     </div>
                   ) : (
-                    <p className="text-gray-400 leading-relaxed mb-4 italic">Description coming soon…</p>
+                    <p className="text-black leading-relaxed mb-4 italic">Description coming soon…</p>
                   )}
                 </div>
 
@@ -538,7 +538,7 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                 {hasChapters ? (
                   <div>
                     <div className="mb-4 flex items-center justify-between">
-                      <h3 className="text-xl font-bold text-gray-900">Course Curriculum</h3>
+                      <h3 className="text-xl font-bold text-black">Course Curriculum</h3>
                       <InlineEnrollCTA />
                     </div>
                     <div className="space-y-3">
@@ -561,14 +561,14 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <h4 className="font-semibold text-gray-900">
+                                <h4 className="font-semibold text-black">
                                   {i + 1}. {ch.title || "Chapter"}
                                 </h4>
-                                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               </div>
-                              <p className="text-sm text-gray-800">
+                              <p className="text-sm text-black">
                                 {category || "Course"}
                               </p>
                             </div>
@@ -583,35 +583,35 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
               {/* Sidebar (4 cols) */}
               <div className="col-span-12 md:col-span-4 space-y-6">
                 <div className="bg-gray-50 rounded-2xl p-6">
-                  <h3 className="font-bold text-gray-900 mb-4">Course Details</h3>
+                  <h3 className="font-bold text-black mb-4">Course Details</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-800">Duration</span>
+                      <span className="text-black">Duration</span>
                       <span className="font-semibold">{courseDuration}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-800">Lessons</span>
+                      <span className="text-black">Lessons</span>
                       <span className="font-semibold">{lessonsCount != null ? `${lessonsCount}` : "—"}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-800">Level</span>
+                      <span className="text-black">Level</span>
                       <span className="font-semibold">{level}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-800">Certificate</span>
+                      <span className="text-black">Certificate</span>
                       <span className="font-semibold">Available</span>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-bold text-gray-900 mb-4">Skills You'll Gain</h3>
+                  <h3 className="font-bold text-black mb-4">Skills You'll Gain</h3>
                   {curatedSkills.length ? (
                     <div className="flex flex-wrap gap-2">
                       {curatedSkills.map((s, i) => (
                         <span
                           key={i}
-                          className="px-3 py-1 rounded-full text-sm font-medium text-gray-700"
+                          className="px-3 py-1 rounded-full text-sm font-medium text-black"
                           style={{ background: "linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)" }}
                         >
                           {s}
@@ -619,20 +619,20 @@ export default function ViewDetails({ open, courseId, onClose, onRequireEnroll }
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 italic">To be updated…</p>
+                    <p className="text-sm text-black italic">To be updated…</p>
                   )}
                 </div>
 
                 {/* Instructor */}
                 <div className="bg-blue-50 rounded-2xl p-6">
-                  <h3 className="font-bold text-gray-900 mb-4">Your Instructor</h3>
+                  <h3 className="font-bold text-black mb-4">Your Instructor</h3>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                       {instructorInitials}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900">{instructorDisplay}</h4>
-                      <p className="text-sm text-gray-800">Instructor</p>
+                      <h4 className="font-semibold text-black">{instructorDisplay}</h4>
+                      <p className="text-sm text-black">Instructor</p>
                     </div>
                   </div>
                 </div>

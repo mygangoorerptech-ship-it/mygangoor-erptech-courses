@@ -12,7 +12,7 @@ export default function RequireAuth({children}:{children:React.ReactNode}) {
   }, [status, hydrate]);
 
   if (status !== 'ready') {
-    return <div className="min-h-screen grid place-items-center text-gray-500">Loading...</div>;
+    return <div className="min-h-screen grid place-items-center text-black">Loading...</div>;
   }
 
   if (!user) return <Navigate to="/login" state={{ from: location }} replace />;

@@ -77,6 +77,15 @@ export default function DetailsStep({
               />
             </Field>
 
+                        <Field label="Birth date *" icon={<Calendar className="w-4 h-4" />} error={errors.birth}>
+              <input
+                type="date" value={values.birth}
+                max={maxBirth}
+                onChange={(e) => onValues.birth(e.target.value)}
+                className="Input"
+              />
+            </Field>
+
             <Field label="Age *" icon={<Calendar className="w-4 h-4" />} error={errors.age}>
               <input
                 type="number"
@@ -105,14 +114,7 @@ export default function DetailsStep({
               </div>
             </Field>
 
-            <Field label="Birth date *" icon={<Calendar className="w-4 h-4" />} error={errors.birth}>
-              <input
-                type="date" value={values.birth}
-                max={maxBirth}
-                onChange={(e) => onValues.birth(e.target.value)}
-                className="Input"
-              />
-            </Field>
+
           </div>
 
           <Field label="Full Address *" error={errors.address}>

@@ -127,14 +127,14 @@ return (
   <Card>
     {/* HEADER */}
     <div className="flex items-center justify-between mb-4">
-      <h4 className="text-sm font-semibold text-gray-900">
+      <h4 className="text-sm font-semibold text-black">
         Certificates
       </h4>
 
       {onViewAll ? (
         <button
           onClick={onViewAll}
-          className="text-sm text-gray-500 hover:text-gray-700 transition"
+          className="text-sm text-black hover:text-black transition"
         >
           View all
         </button>
@@ -143,7 +143,7 @@ return (
 
     {/* EMPTY STATE */}
     {empty ? (
-      <div className="text-sm text-gray-500">
+      <div className="text-sm text-black">
         No certificates available
       </div>
     ) : (
@@ -163,21 +163,21 @@ return (
             {/* LEFT */}
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-8 h-8 flex items-center justify-center rounded-md bg-gray-100">
-                <i className="fas fa-award text-gray-500 text-sm" />
+                <i className="fas fa-award text-black text-sm" />
               </div>
 
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-black truncate">
                   {c.title}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-black">
                   Issued: {c.issued || "—"}
                 </p>
               </div>
             </div>
 
             {/* RIGHT ICON */}
-            <i className="fas fa-download text-gray-400 text-sm" />
+            <i className="fas fa-download text-black text-sm" />
           </div>
         ))}
       </div>
@@ -187,7 +187,7 @@ return (
     {onViewAll ? (
       <button
         onClick={onViewAll}
-        className="w-full mt-4 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-md hover:bg-gray-50 transition"
+        className="w-full mt-4 border border-gray-300 text-black text-sm font-medium py-2 rounded-md hover:bg-gray-50 transition"
       >
         View All Certificates
       </button>

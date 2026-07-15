@@ -351,7 +351,7 @@ const SignUp: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Username */}
               <div>
-                <label className="text-sm font-medium text-gray-700">Username</label>
+                <label className="text-sm font-medium text-black">Username</label>
                 <div className="mt-1 relative group">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
@@ -375,7 +375,7 @@ const SignUp: React.FC = () => {
 
               {/* Email */}
               <div>
-                <label className="text-sm font-medium text-gray-700">Email</label>
+                <label className="text-sm font-medium text-black">Email</label>
                 <div className="mt-1 relative group">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
@@ -415,7 +415,7 @@ const SignUp: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Password */}
               <div>
-                <label className="text-sm font-medium text-gray-700">Password</label>
+                <label className="text-sm font-medium text-black">Password</label>
                 <div className="mt-1 relative group">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
@@ -448,7 +448,7 @@ const SignUp: React.FC = () => {
 
               {/* Confirm Password */}
               <div>
-                <label className="text-sm font-medium text-gray-700">Confirm Password</label>
+                <label className="text-sm font-medium text-black">Confirm Password</label>
                 <div className="mt-1 relative group">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">

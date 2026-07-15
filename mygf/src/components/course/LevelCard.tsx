@@ -24,7 +24,7 @@ export default function LevelCard({
       onClick={() => isUnlocked && onLevelClick(index)}
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">{level.title}</h3>
+        <h3 className="text-lg font-semibold text-black">{level.title}</h3>
         <div className="flex items-center">
           {isCompleted && (
             <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-2">
@@ -39,14 +39,14 @@ export default function LevelCard({
         </div>
       </div>
 
-      <p className="text-gray-800 mb-4">{level.description}</p>
+      <p className="text-black mb-4">{level.description}</p>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center text-gray-500">
+        <div className="flex items-center text-black">
           <i className="fas fa-clock mr-2" />
           <span className="text-sm">{level.duration}</span>
         </div>
-        <div className="flex items-center text-gray-500">
+        <div className="flex items-center text-black">
           <i className="fas fa-video mr-2" />
           <span className="text-sm">{level.lessons} lessons</span>
         </div>

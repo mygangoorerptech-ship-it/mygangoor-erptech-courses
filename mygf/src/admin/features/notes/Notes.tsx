@@ -457,7 +457,7 @@ export default function NotesFeature() {
                   ))}
                 {!notesLoading && notes.length === 0 && (
                   <tr>
-                    <td className="py-4 px-3 text-gray-500" colSpan={4}>
+                    <td className="py-4 px-3 text-black" colSpan={4}>
                       No notes yet.
                     </td>
                   </tr>

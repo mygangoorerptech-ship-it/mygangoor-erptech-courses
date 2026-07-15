@@ -137,7 +137,7 @@ return (
   <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm sm:rounded-[28px]">
 
     {/* DESKTOP HEADER */}
-    <div className="hidden grid-cols-12 border-b border-gray-100 bg-gray-50/80 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-gray-500 md:grid">
+    <div className="hidden grid-cols-12 border-b border-gray-100 bg-gray-50/80 px-6 py-4 text-[12px] font-semibold uppercase tracking-[0.08em] text-black md:grid">
       <div className="col-span-5">Center</div>
       <div className="col-span-2">Courses</div>
       <div className="col-span-2">Categories</div>
@@ -148,16 +148,16 @@ return (
     {/* MOBILE/TABLET TOP BAR */}
     <div className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 px-4 py-4 md:hidden">
       <div>
-        <p className="text-sm font-semibold text-gray-900">
+        <p className="text-sm font-semibold text-black">
           Learning Centers
         </p>
 
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-black">
           {filtered.length} centers available
         </p>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-800 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-black shadow-sm">
         Page {page} / {totalPages}
       </div>
     </div>
@@ -175,11 +175,11 @@ return (
             <div className="h-5 w-5 rounded-full bg-gray-900" />
           </div>
 
-          <p className="text-sm font-medium text-gray-700">
+          <p className="text-sm font-medium text-black">
             Loading centers
           </p>
 
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-black">
             Fetching learning organizations...
           </p>
         </div>
@@ -193,11 +193,11 @@ return (
           ⚠️
         </div>
 
-        <p className="text-base font-semibold text-gray-800">
+        <p className="text-base font-semibold text-black">
           Failed to load centers
         </p>
 
-        <p className="mt-1 text-sm text-gray-400">
+        <p className="mt-1 text-sm text-black">
           Please try again later
         </p>
       </div>
@@ -225,11 +225,11 @@ return (
           </span>
         </div>
 
-        <p className="text-lg font-semibold tracking-tight text-gray-800">
+        <p className="text-lg font-semibold tracking-tight text-black">
           No centers found
         </p>
 
-        <p className="mt-2 max-w-sm text-sm leading-6 text-gray-400">
+        <p className="mt-2 max-w-sm text-sm leading-6 text-black">
           Try searching with another keyword or changing the selected region
         </p>
       </div>
@@ -242,13 +242,13 @@ return (
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
 
           {/* LEFT */}
-          <div className="text-xs text-gray-400 sm:text-sm">
+          <div className="text-xs text-black sm:text-sm">
             Showing{" "}
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-black">
               {paginated.length}
             </span>{" "}
             of{" "}
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-black">
               {filtered.length}
             </span>{" "}
             centers
@@ -260,7 +260,7 @@ return (
             {/* PREV */}
             <button
               onClick={() => setPage((p) => Math.max(p - 1, 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-black transition-all duration-200 hover:bg-gray-100 hover:text-black"
             >
               <ChevronLeft size={18} />
             </button>
@@ -274,7 +274,7 @@ return (
                   className={`flex h-10 min-w-[40px] items-center justify-center rounded-xl px-3 text-sm font-medium transition-all duration-200 ${
                     page === i + 1
                       ? "bg-gray-900 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
+                      : "text-black hover:bg-gray-100"
                   }`}
                 >
                   {i + 1}
@@ -287,7 +287,7 @@ return (
               onClick={() =>
                 setPage((p) => Math.min(p + 1, totalPages))
               }
-              className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-black transition-all duration-200 hover:bg-gray-100 hover:text-black"
             >
               <ChevronRight size={18} />
             </button>

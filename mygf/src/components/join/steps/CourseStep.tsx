@@ -263,7 +263,7 @@ function CourseStep({
       </div>
 
       {!error && courses.length === 0 && (
-        <div className="text-center text-gray-500 text-sm mt-4">No courses available.</div>
+        <div className="text-center text-black text-sm mt-4">No courses available.</div>
       )}
       {error && <InlineError msg={error} />}
     </div>

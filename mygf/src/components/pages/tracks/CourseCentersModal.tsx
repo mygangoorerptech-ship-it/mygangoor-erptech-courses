@@ -66,15 +66,15 @@ return (
 
                     {/* LEFT */}
                     <div className="min-w-0">
-                        <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-gray-500 sm:text-[11px]">
+                        <div className="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-black sm:text-[11px]">
                             Learning Centers
                         </div>
 
-                        <h2 className="mt-3 truncate text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl">
+                        <h2 className="mt-3 truncate text-xl font-semibold tracking-tight text-black sm:text-2xl">
                             {course.title}
                         </h2>
 
-                        <p className="mt-2 max-w-lg text-sm leading-6 text-gray-500">
+                        <p className="mt-2 max-w-lg text-sm leading-6 text-black">
                             Select your preferred center to continue enrollment
                         </p>
                     </div>
@@ -82,7 +82,7 @@ return (
                     {/* CLOSE */}
                     <button
                         onClick={onClose}
-                        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-gray-400 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700"
+                        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-black transition-all duration-200 hover:bg-gray-100 hover:text-black"
                     >
                         ✕
                     </button>
@@ -126,7 +126,7 @@ return (
 
                                     {/* CONTENT */}
                                     <div className="min-w-0">
-                                        <h3 className="truncate text-[15px] font-semibold tracking-tight text-gray-900 sm:text-[17px]">
+                                        <h3 className="truncate text-[15px] font-semibold tracking-tight text-black sm:text-[17px]">
                                             {name}
                                         </h3>
 
@@ -135,7 +135,7 @@ return (
                                                 Verified
                                             </span>
 
-                                            <span className="text-xs text-gray-400 sm:text-sm">
+                                            <span className="text-xs text-black sm:text-sm">
                                                 Learning Center
                                             </span>
                                         </div>
@@ -148,7 +148,7 @@ return (
                                     disabled={!user}
                                     className={`w-full rounded-xl px-5 py-3 text-sm font-medium transition-all duration-200 sm:w-auto sm:min-w-[150px] ${user
                                             ? "border border-gray-200 bg-gray-900 text-white hover:bg-black"
-                                            : "border border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                            : "border border-gray-200 bg-gray-100 text-black hover:bg-gray-200"
                                         }`}
                                 >
                                     {user ? "Enroll Now" : "Login to Enroll"}
@@ -169,11 +169,11 @@ return (
                             />
                         </div>
 
-                        <p className="text-base font-semibold text-gray-800">
+                        <p className="text-base font-semibold text-black">
                             No centers available
                         </p>
 
-                        <p className="mt-2 max-w-sm text-sm leading-6 text-gray-400">
+                        <p className="mt-2 max-w-sm text-sm leading-6 text-black">
                             Organizations will appear here once assigned to this course
                         </p>
                     </div>
@@ -184,7 +184,7 @@ return (
             <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-4 sm:px-6 lg:px-7">
                 <button
                     onClick={onClose}
-                    className="text-sm font-medium text-gray-500 transition-colors duration-200 hover:text-gray-900"
+                    className="text-sm font-medium text-black transition-colors duration-200 hover:text-black"
                 >
                     Close
                 </button>

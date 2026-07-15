@@ -228,13 +228,13 @@ export default function Reviews() {
               <i className="fa-solid fa-star text-xl" />
             </div>
             <div>
-              <div className="text-sm text-gray-800">Overall Rating</div>
+              <div className="text-sm text-black">Overall Rating</div>
               <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-black">
                   {summary ? (Math.round((summary.overall.avgRating || 0) * 10) / 10).toFixed(1) : "–"}
                 </div>
                 <Stars value={summary?.overall.avgRating || 0} />
-                <div className="text-sm text-gray-500">({summary?.overall.count || 0} reviews)</div>
+                <div className="text-sm text-black">({summary?.overall.count || 0} reviews)</div>
               </div>
             </div>
           </div>
@@ -243,7 +243,7 @@ export default function Reviews() {
           <div className="flex items-center gap-3 flex-wrap">
             {role === "superadmin" && (
               <div className="w-full sm:w-48">
-                <label className="block text-xs text-gray-500 mb-1">Organization</label>
+                <label className="block text-xs text-black mb-1">Organization</label>
                 <select
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300"
                   value={orgId}
@@ -264,7 +264,7 @@ export default function Reviews() {
             )}
 
             <div className="w-full sm:w-56">
-              <label className="block text-xs text-gray-500 mb-1">Course</label>
+              <label className="block text-xs text-black mb-1">Course</label>
               <select
                 value={courseId}
                 onChange={(e) => {
@@ -283,7 +283,7 @@ export default function Reviews() {
             </div>
 
             <div className="w-full sm:w-36">
-              <label className="block text-xs text-gray-500 mb-1">Min Stars</label>
+              <label className="block text-xs text-black mb-1">Min Stars</label>
               <select
                 value={minStars}
                 onChange={(e) => {
@@ -302,7 +302,7 @@ export default function Reviews() {
             </div>
 
             <div className="w-full sm:w-36">
-              <label className="block text-xs text-gray-500 mb-1">Status</label>
+              <label className="block text-xs text-black mb-1">Status</label>
               <select
                 value={status}
                 onChange={(e) => {
@@ -321,9 +321,9 @@ export default function Reviews() {
             </div>
 
             <div className="w-full sm:w-56">
-              <label className="block text-xs text-gray-500 mb-1">Search</label>
+              <label className="block text-xs text-black mb-1">Search</label>
               <div className="relative">
-                <i className="fa-solid fa-magnifying-glass text-gray-400 absolute left-3 top-2.5" />
+                <i className="fa-solid fa-magnifying-glass text-black absolute left-3 top-2.5" />
                 <input
                   value={q}
                   onChange={(e) => {
@@ -337,7 +337,7 @@ export default function Reviews() {
             </div>
 
             <div className="w-full sm:w-40">
-              <label className="block text-xs text-gray-500 mb-1">Sort</label>
+              <label className="block text-xs text-black mb-1">Sort</label>
               <select
                 value={sort}
                 onChange={(e) => {
@@ -369,7 +369,7 @@ export default function Reviews() {
                   "px-3 py-1 text-sm rounded-full border",
                   courseId === c.courseId
                     ? "bg-gradient-to-r from-pink-500 to-blue-500 text-white border-transparent"
-                    : "bg-white text-gray-700 border-gray-200 hover:bg-pink-50"
+                    : "bg-white text-black border-gray-200 hover:bg-pink-50"
                 )}
               >
                 {c.courseTitle} • {c.count}
@@ -403,7 +403,7 @@ export default function Reviews() {
         )}
         {error && <div className="p-4 text-red-600">{error}</div>}
         {!loading && pageData.rows.length === 0 && !error && (
-          <div className="p-8 text-center text-gray-500">No reviews found.</div>
+          <div className="p-8 text-center text-black">No reviews found.</div>
         )}
 
         <ul className="divide-y divide-gray-100">
@@ -419,7 +419,7 @@ export default function Reviews() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <div className="font-semibold text-gray-900 truncate">{displayName}</div>
+                      <div className="font-semibold text-black truncate">{displayName}</div>
                       <Stars value={r.rating} />
                       <div
                         className={cx(
@@ -428,24 +428,24 @@ export default function Reviews() {
                             ? "border-green-200 text-green-700 bg-green-50"
                             : r.status === "hidden"
                             ? "border-amber-200 text-amber-700 bg-amber-50"
-                            : "border-gray-200 text-gray-600 bg-gray-50"
+                            : "border-gray-200 text-black bg-gray-50"
                         )}
                       >
                         {r.status}
                       </div>
-                      <div className="text-xs text-gray-500">{new Date(r.createdAt).toLocaleString()}</div>
+                      <div className="text-xs text-black">{new Date(r.createdAt).toLocaleString()}</div>
                     </div>
 
-                    <div className="mt-1 text-gray-700 whitespace-pre-wrap">
-                      {r.comment || <span className="text-gray-400 italic">No comment.</span>}
+                    <div className="mt-1 text-black whitespace-pre-wrap">
+                      {r.comment || <span className="text-black italic">No comment.</span>}
                     </div>
 
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                      <span className="inline-flex items-center gap-1 text-gray-700">
+                      <span className="inline-flex items-center gap-1 text-black">
                         <i className="fa-solid fa-book-open" /> {r.courseTitle}
                       </span>
                       {r.orgName && (
-                        <span className="inline-flex items-center gap-1 text-gray-500">
+                        <span className="inline-flex items-center gap-1 text-black">
                           <i className="fa-solid fa-building" /> {r.orgName}
                         </span>
                       )}
@@ -464,7 +464,7 @@ export default function Reviews() {
                     <div className="flex items-center gap-2 ml-2">
                       <button
                         onClick={() => toggleVisibility(r)}
-                        className="rounded-lg px-3 py-2 border border-gray-200 hover:bg-gray-100 text-gray-700"
+                        className="rounded-lg px-3 py-2 border border-gray-200 hover:bg-gray-100 text-black"
                         title={r.status === "visible" ? "Hide review" : "Show review"}
                       >
                         {r.status === "visible" ? (
@@ -490,7 +490,7 @@ export default function Reviews() {
 
         {/* Paging */}
         <div className="p-4 sm:p-5 flex items-center justify-between border-t border-gray-100">
-          <div className="text-sm text-gray-800">
+          <div className="text-sm text-black">
             {Math.min((page - 1) * pageSize + 1, Math.max(0, pageData.total))}–
             {Math.min(page * pageSize, pageData.total)} of {pageData.total}
           </div>
@@ -501,8 +501,8 @@ export default function Reviews() {
               className={cx(
                 "px-3 py-2 rounded-lg border",
                 page <= 1
-                  ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                  : "border-gray-200 text-gray-700 hover:bg-gray-100"
+                  ? "border-gray-200 text-black cursor-not-allowed"
+                  : "border-gray-200 text-black hover:bg-gray-100"
               )}
             >
               <i className="fa-solid fa-chevron-left" />
@@ -513,8 +513,8 @@ export default function Reviews() {
               className={cx(
                 "px-3 py-2 rounded-lg border",
                 page * pageSize >= pageData.total
-                  ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                  : "border-gray-200 text-gray-700 hover:bg-gray-100"
+                  ? "border-gray-200 text-black cursor-not-allowed"
+                  : "border-gray-200 text-black hover:bg-gray-100"
               )}
             >
               <i className="fa-solid fa-chevron-right" />

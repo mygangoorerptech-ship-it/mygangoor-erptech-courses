@@ -69,7 +69,7 @@ const handleSubmit = async () => {
 
   return (
     <div className="bg-white rounded-xl p-8 shadow-lg mb-8">
-      <h3 className="text-2xl font-bold text-gray-800 mb-6">Student Reviews</h3>
+      <h3 className="text-2xl font-bold text-black mb-6">Student Reviews</h3>
 
       {/* ---- Optional Add Review Toggle ---- */}
       <div className="mb-6">
@@ -124,7 +124,7 @@ const handleSubmit = async () => {
         <Star
           size={22}
           className={`transition ${
-            active ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+            active ? "text-yellow-400 fill-yellow-400" : "text-black"
           }`}
         />
       </button>
@@ -212,7 +212,7 @@ const handleSubmit = async () => {
                   {review.name.charAt(0)}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-800">{review.name}</h4>
+                  <h4 className="font-semibold text-black">{review.name}</h4>
                   <div className="flex items-center">
 <div className="flex items-center gap-1 mr-2">
   {Array.from({ length: 5 }).map((_, i) => (
@@ -222,16 +222,16 @@ const handleSubmit = async () => {
       className={
         i < review.rating
           ? "text-yellow-400 fill-yellow-400"
-          : "text-gray-300"
+          : "text-black"
       }
     />
   ))}
 </div>
-                    <span className="text-sm text-gray-500">{review.date}</span>
+                    <span className="text-sm text-black">{review.date}</span>
                   </div>
                 </div>
               </div>
-              <p className="text-gray-800 leading-relaxed">{review.comment}</p>
+              <p className="text-black leading-relaxed">{review.comment}</p>
             </div>
           ))}
         </div>

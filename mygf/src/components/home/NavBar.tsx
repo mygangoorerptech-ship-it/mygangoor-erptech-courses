@@ -120,7 +120,7 @@ export default function NavBar() {
             {isAuthed && (
               <button
                 onClick={() => navigate("/tracks")}
-                className="text-gray-700 hover:text-pink-500 transition-colors"
+                className="text-black hover:text-pink-500 transition-colors"
               >
                 Courses
               </button>
@@ -129,7 +129,7 @@ export default function NavBar() {
             {/* {isAuthed && (
               <button
                 onClick={() => navigate("/centers")}
-                className="text-gray-700 hover:text-pink-500 transition-colors"
+                className="text-black hover:text-pink-500 transition-colors"
               >
                 Centers
               </button>
@@ -144,7 +144,7 @@ export default function NavBar() {
             {/* hide these on mobile; they exist in the drawer */}
             <button
               onClick={goLoginOrDashboard}
-              className="hidden md:inline-flex text-gray-700 hover:text-pink-500 transition-colors items-center gap-2"
+              className="hidden md:inline-flex text-black hover:text-pink-500 transition-colors items-center gap-2"
             >
               <i className="fa-solid fa-right-to-bracket" />
               {isAuthed ? "Dashboard" : "Login"}
@@ -172,7 +172,7 @@ export default function NavBar() {
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 text-gray-700"
+                className="h-5 w-5 text-black"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -208,7 +208,7 @@ export default function NavBar() {
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-gray-700"
+              className="h-5 w-5 text-black"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -230,9 +230,9 @@ export default function NavBar() {
                 setMobileOpen(false);
                 navigate("/tracks");
               }}
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-black hover:bg-pink-50"
             >
-              <i className="fa-solid fa-book-open text-gray-800" />
+              <i className="fa-solid fa-book-open text-black" />
               <span>Courses</span>
             </button>
           )}
@@ -244,18 +244,18 @@ export default function NavBar() {
                 setMobileOpen(false);
                 navigate("/centers");
               }}
-              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+              className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-black hover:bg-pink-50"
             >
-              <i className="fa-solid fa-building-columns text-gray-800" />
+              <i className="fa-solid fa-building-columns text-black" />
               <span>Centers</span>
             </button>
           )} */}
 
           <button
             onClick={goDashOrLogin}
-            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-gray-800 hover:bg-pink-50"
+            className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left text-black hover:bg-pink-50"
           >
-            <i className="fa-solid fa-right-to-bracket text-gray-800" />
+            <i className="fa-solid fa-right-to-bracket text-black" />
             <span>{isAuthed ? "Dashboard" : "Login"}</span>
           </button>
 
@@ -273,7 +273,7 @@ export default function NavBar() {
           {/* Mobile bell: aligned with the drawer content */}
           {isAuthed && (
             <div className="mt-4">
-              <div className="w-full flex items-center gap-3 rounded-xl px-8 py-3 text-gray-800 hover:bg-pink-50">
+              <div className="w-full flex items-center gap-3 rounded-xl px-8 py-3 text-black hover:bg-pink-50">
                 <NotificationBell />
                 <span className="text-sm">Notifications</span>
               </div>
@@ -281,7 +281,7 @@ export default function NavBar() {
           )}
         </nav>
 
-        <div className="mt-auto px-4 py-4 text-xs text-gray-500">
+        <div className="mt-auto px-4 py-4 text-xs text-black">
           © {new Date().getFullYear()} ECA Academy
         </div>
       </aside>

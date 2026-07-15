@@ -30,8 +30,8 @@ export default function ReminderPopup() {
     <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-2xl border border-gray-200 bg-white p-3 shadow-xl ring-1 ring-black/5">
       <div className="flex items-start gap-2">
         <div className="flex-1">
-          <div className="text-sm font-semibold text-gray-900">{lastPopup.title}</div>
-          <div className="text-sm text-gray-700 mt-0.5">{lastPopup.body}</div>
+          <div className="text-sm font-semibold text-black">{lastPopup.title}</div>
+          <div className="text-sm text-black mt-0.5">{lastPopup.body}</div>
           <div className="mt-2 flex gap-2">
             <button onClick={go} className="inline-flex items-center rounded-lg border border-gray-200 px-2 py-1 text-xs font-medium hover:bg-gray-50">
               Open

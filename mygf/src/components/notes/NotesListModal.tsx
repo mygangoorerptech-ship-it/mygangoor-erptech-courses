@@ -42,13 +42,13 @@ export default function NotesListModal({
           <X className="w-4 h-4" />
         </button>
 
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">Course Notes</h2>
-        <p className="text-xs text-gray-500 mb-4">
+        <h2 className="text-lg font-semibold text-black mb-1">Course Notes</h2>
+        <p className="text-xs text-black mb-4">
           Select a note to read it, or download PDFs.
         </p>
 
         {notes.length === 0 ? (
-          <div className="text-sm text-gray-500 py-8 text-center">
+          <div className="text-sm text-black py-8 text-center">
             No notes available.
           </div>
         ) : (

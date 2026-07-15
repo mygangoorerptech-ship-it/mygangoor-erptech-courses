@@ -39,14 +39,14 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 rounded-2xl border border-gray-200 bg-white shadow-lg ring-1 ring-black/5">
           <div className="max-h-80 overflow-auto">
             {items.length === 0 ? (
-              <div className="p-4 text-sm text-gray-500">No new reminders</div>
+              <div className="p-4 text-sm text-black">No new reminders</div>
             ) : (
               items.map((it) => (
                 <div key={it._id} className="p-3 hover:bg-gray-50 border-b border-gray-100 last:border-none">
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
-                      <div className="text-sm font-semibold text-gray-900">{it.title}</div>
-                      <div className="text-sm text-gray-800 mt-0.5">{it.body}</div>
+                      <div className="text-sm font-semibold text-black">{it.title}</div>
+                      <div className="text-sm text-black mt-0.5">{it.body}</div>
                       <div className="mt-2 flex gap-2">
                         <button
                           onClick={() => onClickItem(it._id, it)}

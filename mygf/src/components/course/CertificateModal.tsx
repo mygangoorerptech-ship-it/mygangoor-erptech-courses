@@ -167,9 +167,9 @@ export default function CertificateModal({
                 <div className="decorative-corner corner-br" />
 
                 <div className="text-center mb-4">
-                  <div className="text-[clamp(.8rem,1.4vw,1rem)] font-semibold text-gray-800 mb-1 tracking-widest">CERTIFICATE OF</div>
+                  <div className="text-[clamp(.8rem,1.4vw,1rem)] font-semibold text-black mb-1 tracking-widest">CERTIFICATE OF</div>
                   <h1 className="certificate-title">COMPLETION</h1>
-                  <div className="text-[clamp(.7rem,1.3vw,.9rem)] text-gray-500 uppercase tracking-wider">This is to certify that</div>
+                  <div className="text-[clamp(.7rem,1.3vw,.9rem)] text-black uppercase tracking-wider">This is to certify that</div>
                 </div>
 
                 <div className="recipient-name">{studentName}</div>
@@ -178,7 +178,7 @@ export default function CertificateModal({
 
                 <div className="course-details">
                   <h2>{courseName}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[clamp(.82rem,1.5vw,1rem)] text-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[clamp(.82rem,1.5vw,1rem)] text-black">
                     <div><strong>Duration:</strong> <span>—</span></div>
                     <div><strong>Completion Date:</strong> <span>{completionDate}</span></div>
                     <div><strong>Grade:</strong> <span>—</span></div>
@@ -193,13 +193,13 @@ export default function CertificateModal({
                 <div className="signature-section">
                   <div className="signature-box">
                     <div className="signature-line">Dr. Sarah Johnson</div>
-                    <div className="text-[clamp(.72rem,1.3vw,.9rem)] text-gray-700 font-semibold">Course Instructor</div>
-                    <div className="text-[clamp(.65rem,1.1vw,.8rem)] text-gray-500">Ph.D. Computer Science</div>
+                    <div className="text-[clamp(.72rem,1.3vw,.9rem)] text-black font-semibold">Course Instructor</div>
+                    <div className="text-[clamp(.65rem,1.1vw,.8rem)] text-black">Ph.D. Computer Science</div>
                   </div>
                   <div className="signature-box">
                     <div className="signature-line">Michael Chen</div>
-                    <div className="text-[clamp(.72rem,1.3vw,.9rem)] text-gray-700 font-semibold">Academic Director</div>
-                    <div className="text-[clamp(.65rem,1.1vw,.8rem)] text-gray-500">TechEd Academy</div>
+                    <div className="text-[clamp(.72rem,1.3vw,.9rem)] text-black font-semibold">Academic Director</div>
+                    <div className="text-[clamp(.65rem,1.1vw,.8rem)] text-black">TechEd Academy</div>
                   </div>
                 </div>
               </div>

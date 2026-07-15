@@ -12,31 +12,31 @@ export default function CenterRow({ center }: { center: Center }) {
       {/* LEFT */}
       <div className="col-span-5 flex items-center gap-3">
         <div className="w-10 h-10 flex items-center justify-center rounded-md bg-gray-100">
-          <Building2 size={18} className="text-gray-500" />
+          <Building2 size={18} className="text-black" />
         </div>
 
         <div>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-black">
             {center.name}
           </p>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-black">
             {center.location}
           </p>
         </div>
       </div>
 
       {/* COURSES */}
-      <div className="col-span-2 text-sm text-gray-700">
+      <div className="col-span-2 text-sm text-black">
         {center.totalCourses}
       </div>
 
       {/* CATEGORIES */}
-      <div className="col-span-2 text-sm text-gray-700">
+      <div className="col-span-2 text-sm text-black">
         {center.categories}
       </div>
 
       {/* STUDENTS */}
-      <div className="col-span-2 text-sm text-gray-700">
+      <div className="col-span-2 text-sm text-black">
         {center.students}
       </div>
 
@@ -44,7 +44,7 @@ export default function CenterRow({ center }: { center: Center }) {
       <div className="col-span-1 text-right">
         <button
           onClick={() => navigate("/tracks")}
-          className="text-sm text-gray-800 group-hover:text-indigo-600 transition"
+          className="text-sm text-black group-hover:text-indigo-600 transition"
         >
           View →
         </button>

@@ -135,7 +135,7 @@ export default function CourseProgressList() {
 
   return (
     <Card className="p-8">
-      <h4 className="text-xl font-bold text-gray-900 mb-6">Your courses</h4>
+      <h4 className="text-xl font-bold text-black mb-6">Your courses</h4>
 
       {/* Loading state: simple skeletons */}
       {loading && (
@@ -177,7 +177,7 @@ export default function CourseProgressList() {
 
       {/* Empty state */}
       {!loading && !error && courses.length === 0 && (
-        <div className="text-sm text-gray-500 py-4">
+        <div className="text-sm text-black py-4">
           No enrolled courses yet.
         </div>
       )}

@@ -44,7 +44,7 @@ const ForgotPassword = () => {
           <div className="mt-6 space-y-5">
             {/* Email */}
             <div>
-              <label className="text-sm font-medium text-gray-700">Email</label>
+              <label className="text-sm font-medium text-black">Email</label>
               <div className="mt-1 relative group">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-800">
                   {/* Mail icon */}

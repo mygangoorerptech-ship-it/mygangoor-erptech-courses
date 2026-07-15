@@ -91,7 +91,7 @@ export default function ProfileInfoCard({
               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
             />
           ) : (
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-gray-700 text-xl font-semibold">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-black text-xl font-semibold">
               {initials}
             </div>
           )}
@@ -101,8 +101,8 @@ export default function ProfileInfoCard({
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-<p className="text-sm text-gray-500">@{handle}</p>
+          <h3 className="text-lg font-semibold text-black">{name}</h3>
+<p className="text-sm text-black">@{handle}</p>
           <div className="flex items-center mt-2 gap-2">
             {statusBadges.map((b, idx) => (
               <span
@@ -143,14 +143,14 @@ export default function ProfileInfoCard({
       <div className="mt-6 border border-gray-200 rounded-lg p-4">
         {/* <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-gray-900">Courses Enrolled</div>
-            <div className="text-xs text-gray-700">{subtitle}</div>
+            <div className="text-sm font-semibold text-black">Courses Enrolled</div>
+            <div className="text-xs text-black">{subtitle}</div>
           </div>
 
           {hasCourses && (
             <button
               onClick={toggleExpand}
-              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+              className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-black hover:bg-gray-50 transition"
               aria-expanded={expanded}
               aria-controls="enrolled-courses"
               title={expanded ? "Hide courses" : "Show courses"}
@@ -188,7 +188,7 @@ export default function ProfileInfoCard({
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate font-medium text-gray-900 group-hover:text-indigo-600">
+                        <div className="truncate font-medium text-black group-hover:text-indigo-600">
                           {course.title ||
                             (course as { name?: string }).name ||
                             "Untitled Course"}
@@ -199,7 +199,7 @@ export default function ProfileInfoCard({
                           </div>
                         )}
                       </div>
-                      <i className="fas fa-arrow-right-long text-gray-400 group-hover:text-indigo-600 transition" />
+                      <i className="fas fa-arrow-right-long text-black group-hover:text-indigo-600 transition" />
                     </div>
                   </a>
                 );
@@ -223,7 +223,7 @@ function Detail({
   iconClass,
   label,
   value,
-  valueClass = "text-gray-900",
+  valueClass = "text-black",
 }: {
   iconBg: string;
   iconClass: string;
@@ -238,7 +238,7 @@ function Detail({
           <i className={iconClass} />
         </div>
         <div>
-          <p className="text-sm text-gray-800">{label}</p>
+          <p className="text-sm text-black">{label}</p>
           <p className={`font-semibold ${valueClass}`}>{value}</p>
         </div>
       </div>
