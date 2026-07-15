@@ -149,20 +149,79 @@ html, body {
 .carousel-container { scroll-behavior: smooth; }
 
 /* Receipt print isolation.
-   Toggled by JoinNowModal (body.printing-receipt) only while printing the receipt,
-   so window.print() outputs just the receipt card (no modal backdrop, overlay, nav,
-   or underlying page) while keeping its real Tailwind styling. Scoped to the class,
-   so Ctrl+P elsewhere is unaffected. */
+   JoinNowModal temporarily creates a direct body-level receipt clone.
+   The application root is removed from print layout so hidden page content,
+   fixed modal containers, and overflow wrappers cannot create extra pages. */
 @media print {
-  body.printing-receipt * { visibility: hidden; }
-  body.printing-receipt [data-receipt-root],
-  body.printing-receipt [data-receipt-root] * { visibility: visible; }
-  body.printing-receipt [data-receipt-root] {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  body.printing-receipt {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /*
+   * Remove every normal body child from print layout.
+   * Unlike visibility:hidden, display:none prevents those elements
+   * from contributing hidden page height.
+   */
+  body.printing-receipt > *:not([data-receipt-print-copy]) {
+    display: none !important;
+  }
+
+  body.printing-receipt > [data-receipt-print-copy] {
+    display: block !important;
+    position: static !important;
+
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  body.printing-receipt [data-receipt-print-content] {
+    display: block !important;
+    position: static !important;
+
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+
+    margin: 0 !important;
+    padding: 20px !important;
+    overflow: visible !important;
+
+    color: #000000 !important;
+    background: #ffffff !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  body.printing-receipt [data-receipt-print-content] * {
+    box-sizing: border-box;
   }
 }

@@ -803,15 +803,59 @@ export default function JoinNowModal({
   // Print ONLY the receipt via the browser's print dialog. A body-class toggles a
   // scoped @media print rule (in index.css) so overlays/nav/page are excluded, while
   // the receipt keeps its real Tailwind styling. Class is removed after printing.
-  function printReceipt() {
-    document.body.classList.add("printing-receipt");
-    const cleanup = () => {
-      document.body.classList.remove("printing-receipt");
-      window.removeEventListener("afterprint", cleanup);
-    };
-    window.addEventListener("afterprint", cleanup);
-    window.print();
+function printReceipt() {
+  const receiptElement = receiptRef.current;
+
+  if (!receiptElement) {
+    console.error("[receipt-print] Receipt element is unavailable");
+    return;
   }
+
+  // Prevent stale print nodes if a previous browser print lifecycle
+  // did not dispatch afterprint correctly.
+  document
+    .querySelectorAll("[data-receipt-print-copy]")
+    .forEach((node) => node.remove());
+
+  const printContainer = document.createElement("div");
+  printContainer.setAttribute("data-receipt-print-copy", "true");
+
+  const receiptClone = receiptElement.cloneNode(true) as HTMLDivElement;
+
+  // The cloned receipt is the print target, not the original modal receipt.
+  receiptClone.removeAttribute("data-receipt-root");
+  receiptClone.setAttribute("data-receipt-print-content", "true");
+
+  printContainer.appendChild(receiptClone);
+  document.body.appendChild(printContainer);
+  document.body.classList.add("printing-receipt");
+
+  let cleaned = false;
+
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+
+    document.body.classList.remove("printing-receipt");
+    printContainer.remove();
+    window.removeEventListener("afterprint", cleanup);
+  };
+
+  window.addEventListener("afterprint", cleanup, { once: true });
+
+  // Allow the browser to attach the clone and apply print CSS before
+  // opening the native print dialog.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try {
+        window.print();
+      } catch (error) {
+        console.error("[receipt-print] Browser print failed", error);
+        cleanup();
+      }
+    });
+  });
+}
 
   async function downloadReceipt(format: "pdf" | "png" = "pdf") {
     const canvas = await buildReceiptCanvas();

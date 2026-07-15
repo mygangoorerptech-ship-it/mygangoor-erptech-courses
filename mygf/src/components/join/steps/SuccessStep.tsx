@@ -63,11 +63,24 @@ export default function SuccessStep({
       </div>
 
       {/* Receipt card — this is what we rasterize for PDF/PNG */}
-       <div 
-   ref={innerRef} 
-   data-receipt-root 
-   className="mx-auto max-w-xl rounded-2xl border bg-white shadow-sm p-5 print:p-0" 
- >
+<div
+  ref={innerRef}
+  data-receipt-root
+  className="
+    mx-auto
+    max-w-xl
+    rounded-xl
+    border
+    border-slate-300
+    bg-white
+    p-5
+    text-black
+    shadow-sm
+    print:rounded-none
+    print:border-black
+    print:shadow-none
+  "
+>
         <div className="flex items-center justify-between border-b pb-3 mb-3">
           <div>
             <div className="text-xs text-black">Payment Receipt</div>
@@ -114,7 +127,7 @@ export default function SuccessStep({
             <div className="font-medium">{receipt?.status || "-"}</div>
           </div>
 
-          <div className="col-span-2 mt-1 rounded-lg bg-slate-50 border px-4 py-3 flex items-center justify-between">
+          <div className="col-span-2 mt-1 rounded-lg print:rounded-none bg-slate-50 border px-4 py-3 flex items-center justify-between">
             <span className="text-sm text-black">Amount paid</span>
             <span className="text-lg font-semibold">{amount}</span>
           </div>
