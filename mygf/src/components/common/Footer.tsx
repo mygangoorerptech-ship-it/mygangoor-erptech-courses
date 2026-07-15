@@ -29,7 +29,7 @@ const Footer: React.FC<{ className?: string }> = ({ className = "" }) => {
               About Us
             </h4>
 
-            <p className="!text-black text-sm leading-7 mb-8 max-w-md">
+            <p className="!text-gray-300 text-sm leading-7 mb-8 max-w-md">
               M.Y. Gangoor Global Foundation is a holistic education and
               research centre dedicated to spiritual sciences, natural healing,
               and conscious living.
@@ -153,10 +153,10 @@ const Footer: React.FC<{ className?: string }> = ({ className = "" }) => {
 
       {/* Bottom Bar */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm">
-        <p className="!text-black text-center md:text-left leading-6">
+        <p className="!text-gray-300 text-center md:text-left leading-6">
           © 2026 M.Y. Gangoor Global Foundation®. All Rights Reserved.
           <br className="md:hidden" />
-          <span className="md:ml-1 !text-black">
+          <span className="md:ml-1 !text-gray-300">
             Designed &amp; Developed by{" "}
             <span className="font-medium !text-pink-500">NexioGlobal</span>
           </span>
