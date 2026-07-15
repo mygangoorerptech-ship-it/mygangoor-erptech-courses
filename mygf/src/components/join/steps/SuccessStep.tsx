@@ -63,10 +63,10 @@ export default function SuccessStep({
       </div>
 
       {/* Receipt card — this is what we rasterize for PDF/PNG */}
-<div
-  ref={innerRef}
-  data-receipt-root
-  className="
+      <div
+        ref={innerRef}
+        data-receipt-root
+        className="
     mx-auto
     max-w-xl
     rounded-xl
@@ -80,7 +80,7 @@ export default function SuccessStep({
     print:border-black
     print:shadow-none
   "
->
+      >
         <div className="flex items-center justify-between border-b pb-3 mb-3">
           <div>
             <div className="text-xs text-black">Payment Receipt</div>
@@ -92,7 +92,7 @@ export default function SuccessStep({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
           <div>
             <div className="text-xs text-black">Student</div>
             <div className="font-medium">{receipt?.student?.name || "-"}</div>
@@ -103,19 +103,24 @@ export default function SuccessStep({
           </div>
 
           {receipt?.organization && (
-            <div className="col-span-2 border-t border-slate-100 pt-2">
+            <div className="border-t border-slate-100 pt-2 sm:col-span-2">
               <div className="text-xs text-black">Organization</div>
               <div className="font-medium">{receipt.organization}</div>
             </div>
           )}
 
-          <div>
+          <div className="min-w-0">
             <div className="text-xs text-black">Order ID</div>
-            <div className="font-mono text-[13px]">{receipt?.orderId || "-"}</div>
+            <div className="font-mono text-[12px] leading-5 [overflow-wrap:anywhere] sm:text-[13px]">
+              {receipt?.orderId || "-"}
+            </div>
           </div>
-          <div>
+
+          <div className="min-w-0">
             <div className="text-xs text-black">Payment ID</div>
-            <div className="font-mono text-[13px]">{receipt?.paymentId || "-"}</div>
+            <div className="font-mono text-[12px] leading-5 [overflow-wrap:anywhere] sm:text-[13px]">
+              {receipt?.paymentId || "-"}
+            </div>
           </div>
 
           <div>
@@ -127,36 +132,36 @@ export default function SuccessStep({
             <div className="font-medium">{receipt?.status || "-"}</div>
           </div>
 
-          <div className="col-span-2 mt-1 rounded-lg print:rounded-none bg-slate-50 border px-4 py-3 flex items-center justify-between">
+          <div className="mt-1 flex items-center justify-between rounded-lg border bg-slate-50 px-4 py-3 print:rounded-none sm:col-span-2">
             <span className="text-sm text-black">Amount paid</span>
             <span className="text-lg font-semibold">{amount}</span>
           </div>
 
-          <div className="col-span-2 text-xs text-black mt-1">
+          <div className="mt-1 text-xs text-black sm:col-span-2">
             {enrolled ? "Enrollment: active" : `Enrollment: ${receipt?.enrollment?.status || "pending"}`}
           </div>
         </div>
       </div>
 
       {/* actions */}
-      <div className="pt-2 flex items-center justify-center gap-3">
+      <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-center sm:gap-3">
         <button
           onClick={() => onDownload("pdf")}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-white"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2 hover:bg-white sm:w-auto"
         >
           <Download className="w-4 h-4" />
           Download PDF
         </button>
         <button
           onClick={onPrint}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border hover:bg-white"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2 hover:bg-white sm:w-auto"
         >
           <Printer className="w-4 h-4" />
           Print
         </button>
         <button
           onClick={onShare}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 sm:w-auto"
         >
           <Share2 className="w-4 h-4" />
           Share

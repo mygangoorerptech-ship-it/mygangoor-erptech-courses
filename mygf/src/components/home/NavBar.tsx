@@ -142,13 +142,13 @@ export default function NavBar() {
           {/* CTAs */}
           <div className="flex items-center gap-3">
             {/* hide these on mobile; they exist in the drawer */}
-            <button
+            {/* <button
               onClick={goLoginOrDashboard}
               className="hidden md:inline-flex text-black hover:text-pink-500 transition-colors items-center gap-2"
             >
               <i className="fa-solid fa-right-to-bracket" />
               {isAuthed ? "Dashboard" : "Login"}
-            </button>
+            </button> */}
 
             {isAuthed && (
               <button

@@ -910,11 +910,38 @@ function printReceipt() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center" aria-modal role="dialog">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-[92vw] max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200">
+<div
+  className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto p-3 sm:items-center sm:p-5"
+  aria-modal="true"
+  role="dialog"
+>
+  <div
+    className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+    onClick={onClose}
+    aria-hidden="true"
+  />
+
+  <div
+    className="
+      relative
+      z-10
+      flex
+      w-full
+      max-w-3xl
+      flex-col
+      overflow-hidden
+      rounded-2xl
+      border
+      border-slate-200
+      bg-white
+      shadow-2xl
+      max-h-[calc(100dvh-1.5rem)]
+      sm:w-[92vw]
+      sm:max-h-[90dvh]
+    "
+  >
         {/* header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div className="flex shrink-0 items-center justify-between border-b px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
             <GraduationCap className="w-5 h-5 text-indigo-600" />
             <h3 className="text-lg font-semibold">Join a Course</h3>
@@ -952,9 +979,22 @@ function printReceipt() {
           </button>
         </div>
 
-        <Steps step={step} />
+        <div className="shrink-0">
+  <Steps step={step} />
+</div>
 
-        <div className="p-5 overflow-y-auto max-h-[60vh]">
+        <div
+  className="
+    min-h-0
+    flex-1
+    overflow-y-auto
+    overscroll-contain
+    px-4
+    py-4
+    sm:p-5
+    [-webkit-overflow-scrolling:touch]
+  "
+>
           {step === 1 && (
             <>
               {loadingCourses ? (
@@ -1099,12 +1139,12 @@ function printReceipt() {
         </div>
 
         {step <= 3 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t bg-slate-50">
-            <div className="flex items-center gap-2 text-xs text-black">
+          <div className="flex shrink-0 flex-col gap-3 border-t bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5 sm:py-4">
+            <div className="flex items-start gap-2 text-xs text-black sm:items-center">
               <ShieldCheck className="w-4 h-4" />
               <span>Payments are processed securely.</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex w-full items-center justify-end gap-2 sm:w-auto sm:gap-3">
               {step > 1 && (
                 <button onClick={prev} className="px-4 py-2 rounded-lg border hover:bg-white">
                   Back
